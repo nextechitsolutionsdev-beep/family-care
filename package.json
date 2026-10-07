@@ -1,0 +1,42 @@
+{
+  "name": "family-care-clinic",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build && node scripts/verify-bundle.mjs",
+    "preview": "vite preview",
+    "lint": "eslint src scripts tests supabase/functions",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/money.test.mjs tests/database.test.mjs",
+    "test:e2e": "playwright test",
+    "connect": "node scripts/connect.mjs",
+    "migrate": "node scripts/migrate.mjs",
+    "seed": "node scripts/seed.mjs",
+    "deploy": "node scripts/deploy.mjs",
+    "verify": "node scripts/verify.mjs",
+    "archive:demo": "node scripts/archive-demo.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "7.18.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "5.2.0",
+    "dotenv": "18.0.6",
+    "eslint": "10.12.0",
+    "globals": "17.13.0",
+    "pg": "^8.23.1",
+    "supabase": "2.120.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.1",
+    "vite": "7.3.7"
+  }
+}
