@@ -66,5 +66,6 @@
 - [x] E2E: insurance split → ledger/settlement; birthday message; campaign preview and mock send.
 - [x] E2E: doctor sees assigned client and statement, owner-only route denied; owner screens captured at desk and phone sizes.
 - [x] Validate features in the running app against the new real development database.
+- [x] Enter test data through the UI for catalog, doctor categories and rent, staff account, patient edit, follow-up actions, and audited payment/settlement reversals; archive demo batches after verification.
 - [x] No TODO stubs, dead buttons, silent offline writes, public patient access or unlabelled active fake data.
 - [x] Final short report: working features, run commands, assumptions to review and provider/pricing input.

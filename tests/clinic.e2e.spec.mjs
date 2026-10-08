@@ -10,6 +10,8 @@ const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,{auth:{persist
 const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
 const nextDay=new Date(`${day}T12:00:00Z`);nextDay.setUTCDate(nextDay.getUTCDate()+1);
 const tomorrow=nextDay.toISOString().slice(0,10);
+const followingDay=new Date(nextDay);followingDay.setUTCDate(followingDay.getUTCDate()+1);
+const afterTomorrow=followingDay.toISOString().slice(0,10);
 const suffix=randomUUID().slice(0,8).toUpperCase();
 const displayName=`عميل واجهة تجريبي ${suffix}`;
 const insurerName=`تأمين تجربة ${suffix}`;
@@ -20,8 +22,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  const {data:batch,error:batchError}=await admin.from('demo_batches').insert({name:`E2E ${suffix}`}).select('id').single();
  expect(batchError).toBeNull();
  const {data:dental}=await admin.from('specialties').select('id').eq('client_prefix','DEN').single();
- const {data:doctor,error:doctorError}=await admin.from('doctors').insert({name:`طبيب واجهة تجريبي ${suffix}`,specialty_id:dental.id,category:'percentage',default_share_bps:3000,demo_batch_id:batch.id}).select('id,name').single();
- expect(doctorError).toBeNull();
+ let doctor;
  const {data:services}=await admin.from('services').select('id').eq('seed_code','DEN-001').single();
 
  await page.goto('/');
@@ -31,9 +32,22 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await expect(page.getByRole('heading',{name:'اليوم'})).toBeVisible();
  await page.screenshot({path:'docs/review/today-desktop.jpg',type:'jpeg'});
 
+ await page.getByRole('link',{name:'الأطباء والحسابات'}).click();
+ await page.getByRole('button',{name:'طبيب جديد'}).click();
+ let form=page.locator('dialog');
+ await form.getByLabel('اسم الطبيب').fill(`طبيب واجهة تجريبي ${suffix}`);
+ await form.getByLabel('التخصص').selectOption(dental.id);
+ await form.getByLabel('الفئة').selectOption('percentage');
+ await form.getByLabel('النسبة من التحصيل (%)').fill('30');
+ await form.getByRole('button',{name:'حفظ'}).click();
+ await expect(form).toHaveCount(0);
+ const {data:createdDoctor,error:doctorError}=await admin.from('doctors').select('id,name').eq('name',`طبيب واجهة تجريبي ${suffix}`).single();
+ expect(doctorError).toBeNull();doctor=createdDoctor;
+ expect((await admin.from('doctors').update({demo_batch_id:batch.id}).eq('id',doctor.id)).error).toBeNull();
+
  await page.getByRole('link',{name:'العملاء'}).click();
  await page.getByRole('button',{name:'عميل جديد'}).click();
- let form=page.locator('dialog');
+ form=page.locator('dialog');
  await form.getByLabel('اسم العميل').fill(displayName);
  await form.getByLabel('رقم الموبايل').fill(phone);
  await form.getByLabel('تاريخ الميلاد').fill(`2000-${day.slice(5)}`);
@@ -151,6 +165,42 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'تسجيل إرسال تجريبي'}).click();
  await expect.poll(async()=>{const {count}=await admin.from('campaign_recipients').select('patient_id',{count:'exact',head:true}).eq('patient_id',patientId);return count;}).toBeGreaterThan(0);
+
+ await page.getByRole('link',{name:'المتابعات'}).click();
+ await page.getByLabel('عرض').selectOption('upcoming');
+ let followRow=page.locator('tr').filter({hasText:displayName});
+ await followRow.getByRole('button',{name:'تغيير الموعد'}).click();
+ form=page.locator('dialog');
+ await form.getByLabel('التاريخ الجديد').fill(afterTomorrow);
+ await form.getByRole('button',{name:'حفظ'}).click();
+ await expect(form).toHaveCount(0);
+ followRow=page.locator('tr').filter({hasText:displayName});
+ await followRow.getByRole('button',{name:'تمت'}).click();
+ await expect.poll(async()=>{const {data}=await admin.from('follow_ups').select('status').eq('patient_id',patientId);return data?.map(row=>row.status).sort().join(',');}).toBe('done,rescheduled');
+
+ await page.goto(`/patients/${patientId}`);
+ await page.getByRole('button',{name:'تعديل البيانات'}).click();
+ form=page.locator('dialog');
+ await form.getByLabel('ملاحظات الملف').fill('تحديث تجريبي من الواجهة');
+ await form.getByLabel('وافق على رسائل العروض وأعياد الميلاد').uncheck();
+ await form.getByRole('button',{name:'حفظ'}).click();
+ await expect(form).toHaveCount(0);
+ await expect(page.getByText('تحديث تجريبي من الواجهة')).toBeVisible();
+ const {data:updatedPatient}=await admin.from('patients').select('marketing_consent').eq('id',patientId).single();
+ expect(updatedPatient.marketing_consent).toBe(false);
+
+ const {data:originalPayment}=await admin.from('payments').select('id').eq('visit_id',visitId).is('reverses_payment_id',null).single();
+ await page.goto(`/visits/${visitId}`);
+ page.once('dialog',dialog=>dialog.accept());
+ await page.getByRole('button',{name:'رد المبلغ'}).click();
+ await expect.poll(async()=>{const {count}=await admin.from('payments').select('id',{count:'exact',head:true}).eq('reverses_payment_id',originalPayment.id);return count;}).toBe(1);
+
+ const {data:originalSettlement}=await admin.from('insurance_settlements').select('id').eq('insurer_id',insurer.id).is('reverses_settlement_id',null).single();
+ await page.goto('/insurance');
+ page.once('dialog',dialog=>dialog.accept());
+ await page.locator('table').last().locator('tr').filter({hasText:insurerName}).getByRole('button',{name:'عكس التسوية'}).click();
+ await expect.poll(async()=>{const {count}=await admin.from('insurance_settlements').select('id',{count:'exact',head:true}).eq('reverses_settlement_id',originalSettlement.id);return count;}).toBe(1);
+
  await page.setViewportSize({width:390,height:844});
  await page.goto('/patients');
  await expect(page.getByRole('heading',{name:'ملفات العملاء'})).toBeVisible();

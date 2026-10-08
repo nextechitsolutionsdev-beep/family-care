@@ -60,6 +60,7 @@ export default function Patients() {
  ]}/></>}
  {editing!==undefined&&<Dialog title={editing?'تعديل بيانات العميل':'عميل جديد'} close={()=>setEditing(undefined)}><Form fields={fields} initial={editing??{client_type_code:'family_care_cash'}} submit={async values=>{
    if(values.client_type_code!=='insurance_credit')values.insurer_id=null;
+   if(!values.specialty_id)delete values.specialty_id;
    const result=await command('patient_save',{...values,...(editing?{id:editing.id}:{})});await refresh();setEditing(undefined);navigate(`/patients/${text(result.id)}`);
  }}/></Dialog>}
  {booking&&<VisitBooking patient={booking} close={()=>setBooking(null)}/>}
