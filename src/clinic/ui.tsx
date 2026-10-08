@@ -35,8 +35,20 @@ export function Dialog({title,close,children}:{title:string;close:()=>void;child
 }
 export type Column={label:string;render:(row:Row)=>ReactNode;numeric?:boolean};
 export function Table({rows,columns,empty='لا توجد سجلات هنا.'}:{rows:Row[];columns:Column[];empty?:string}) {
+ const wrapper=useRef<HTMLDivElement>(null);
+ const [overflows,setOverflows]=useState(false);
+ useEffect(()=>{
+   const element=wrapper.current;
+   if(!element){setOverflows(false);return;}
+   const measure=()=>setOverflows(element.scrollWidth>element.clientWidth+1);
+   const observer=new ResizeObserver(measure);
+   observer.observe(element);
+   const table=element.querySelector('table');if(table)observer.observe(table);
+   measure();
+   return()=>observer.disconnect();
+ },[rows.length,columns.length]);
  if(!rows.length)return <p className="empty">{empty}</p>;
- return <div className="table-wrap"><table><thead><tr>{columns.map(column=><th key={column.label} className={column.numeric?'numeric':''}>{column.label}</th>)}</tr></thead><tbody>{rows.map((row,index)=><tr key={row.id||index}>{columns.map(column=><td key={column.label} className={column.numeric?'numeric':''}>{column.render(row)}</td>)}</tr>)}</tbody></table></div>;
+ return <>{overflows&&<p className="table-scroll-hint">حرّك الجدول يمينًا ويسارًا لعرض بقية الأعمدة</p>}<div className="table-wrap" ref={wrapper}><table><thead><tr>{columns.map(column=><th key={column.label} className={column.numeric?'numeric':column.label==='الإجراء'?'action-column':''}>{column.label}</th>)}</tr></thead><tbody>{rows.map((row,index)=><tr key={row.id||index}>{columns.map(column=><td key={column.label} className={column.numeric?'numeric':column.label==='الإجراء'?'action-column':''}>{column.render(row)}</td>)}</tr>)}</tbody></table></div></>;
 }
 export function Badge({children,tone='neutral'}:{children:ReactNode;tone?:'neutral'|'warning'|'success'}){return <span className={`badge ${tone}`}>{children}</span>;}
 export function Heading({title,detail,children}:{title:string;detail?:string;children?:ReactNode}){return <div className="page-heading"><div><h1>{title}</h1>{detail&&<p>{detail}</p>}</div><div className="actions">{children}</div></div>;}

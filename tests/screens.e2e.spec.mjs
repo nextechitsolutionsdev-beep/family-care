@@ -29,6 +29,23 @@ test('all owner screens render at desk and phone sizes',async({page})=>{
    expect(await page.evaluate(()=>document.documentElement.scrollWidth),`${name} page overflow`).toBeLessThanOrEqual(390);
    await page.screenshot({path:`docs/review/${name}-phone.jpg`,type:'jpeg'});
  }
+ await page.goto('/specialties');
+ const firstAction=page.locator('.table-wrap td.action-column button').first();
+ await expect(firstAction).toBeVisible();
+ const actionBox=await firstAction.boundingBox();
+ expect(actionBox?.x).toBeGreaterThanOrEqual(0);
+ expect((actionBox?.x??0)+(actionBox?.width??0)).toBeLessThanOrEqual(390);
+ await page.goto('/settings');
+ await expect(page.getByText('حرّك الجدول يمينًا ويسارًا لعرض بقية الأعمدة').first()).toBeVisible();
+ await page.getByRole('button',{name:'نسخة أسعار جديدة'}).first().click();
+ const firstPrice=page.locator('dialog .price-editor input').first();
+ await expect(firstPrice).toBeVisible();
+ const box=await firstPrice.boundingBox();
+ expect(box?.width).toBeGreaterThanOrEqual(80);
+ expect(box?.x).toBeGreaterThanOrEqual(0);
+ expect((box?.x??0)+(box?.width??0)).toBeLessThanOrEqual(390);
+ await page.screenshot({path:'docs/review/price-editor-phone.jpg',type:'jpeg'});
+ await page.getByRole('button',{name:'إغلاق'}).click();
  await page.getByRole('button',{name:'القائمة'}).click();
  await expect(page.getByRole('link',{name:'الإعدادات'})).toBeVisible();
 });

@@ -1,0 +1,62 @@
+.table-scroll-hint { display: none; }
+
+@media (max-width: 650px) {
+  .table-scroll-hint {
+    display: block;
+    margin: 0 2px 6px;
+    color: #55645a;
+    font-size: 11px;
+  }
+
+  .table-wrap th.action-column,
+  .table-wrap td.action-column {
+    position: sticky;
+    inset-inline-end: 0;
+    width: 116px;
+    min-width: 84px;
+    max-width: 116px;
+    padding-inline: 7px;
+    white-space: normal;
+    box-shadow: 1px 0 0 #d9dfda;
+  }
+
+  .table-wrap th.action-column {
+    z-index: 3;
+    background: #edf1eb;
+  }
+
+  .table-wrap td.action-column {
+    z-index: 2;
+    background: #fff;
+  }
+
+  .table-wrap tr:hover td.action-column { background: #f7f9f4; }
+
+  .table-wrap td.action-column .actions {
+    max-width: 100px;
+    flex-wrap: wrap;
+  }
+
+  .price-editor table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .price-editor th,
+  .price-editor td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .price-editor th:first-child,
+  .price-editor td:first-child { width: 62%; }
+
+  .price-editor th:last-child,
+  .price-editor td:last-child { width: 38%; }
+
+  .price-editor input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+}
