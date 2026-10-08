@@ -4,8 +4,36 @@ import {db,text,today,date,readableError,label,type Profile} from './api';
 import {ClinicProvider,useClinic} from './store';
 import Today from './Today';import Patients from './Patients';import Visit from './Visit';import FollowUps from './FollowUps';import Doctors from './Doctors';import Insurance from './Insurance';import Messages from './Messages';import Settings from './Settings';import Reports from './Reports';
 function Login(){
- const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false);const [show,setShow]=useState(false);
- return <main className="login-page"><div className="login-brand"><img src="/logo.jpg" width="96" height="96" alt="فاميلي كير"/><h1>فاميلي كير</h1><p>إدارة العيادة</p></div><form className="login-form" onSubmit={event=>{event.preventDefault();setBusy(true);setError('');void db.auth.signInWithPassword({email:email.trim(),password}).then(({error})=>{if(error)setError(error.code==='invalid_credentials'?'البريد أو كلمة المرور غير صحيحة.':'تعذر تسجيل الدخول. راجع اتصال الإنترنت.');}).catch(()=>setError('تعذر الاتصال. حاول مرة أخرى.')).finally(()=>setBusy(false));}}><h2>تسجيل الدخول</h2><label htmlFor="login-email">البريد الإلكتروني</label><input id="login-email" type="email" dir="ltr" required autoComplete="username" value={email} onChange={event=>setEmail(event.target.value)}/><label htmlFor="login-password">كلمة المرور</label><input id="login-password" type={show?'text':'password'} dir="ltr" autoComplete="current-password" required value={password} onChange={event=>setPassword(event.target.value)}/><label className="check"><input type="checkbox" checked={show} onChange={event=>setShow(event.target.checked)}/>إظهار كلمة المرور</label>{error&&<p className="error" role="alert">{error}</p>}<button className="primary" disabled={busy}>{busy?'جارٍ الدخول…':'دخول'}</button></form></main>;
+ const [email,setEmail]=useState('');
+ const [password,setPassword]=useState('');
+ const [error,setError]=useState('');
+ const [busy,setBusy]=useState(false);
+ const [show,setShow]=useState(false);
+ const signIn=(event:React.FormEvent<HTMLFormElement>)=>{
+  event.preventDefault();setBusy(true);setError('');
+  void db.auth.signInWithPassword({email:email.trim(),password})
+   .then(({error})=>{if(error)setError(error.code==='invalid_credentials'?'البريد أو كلمة المرور غير صحيحة.':'تعذر تسجيل الدخول. راجع اتصال الإنترنت.');})
+   .catch(()=>setError('تعذر الاتصال. حاول مرة أخرى.'))
+   .finally(()=>setBusy(false));
+ };
+ return <main className="login-page"><div className="login-shell">
+  <section className="login-brand" aria-label="فاميلي كير">
+   <div className="login-brand-top"><span className="login-brand-logo"><img src="/logo.jpg" width="64" height="64" alt=""/></span><div><strong>فاميلي كير</strong><small>FAMILY CARE</small></div></div>
+   <div className="login-brand-center"><span className="login-brand-kicker">إدارة العيادة</span><p className="login-brand-statement">كل تفاصيل العيادة<br/>في مكان واحد.</p><p className="login-brand-description">العملاء والزيارات والحسابات، بواجهة واضحة لفريق فاميلي كير.</p></div>
+   <div className="login-brand-bottom"><span>بوابة فريق العمل</span><span>للحسابات المصرّح لها فقط</span></div>
+  </section>
+  <section className="login-content">
+   <div className="login-mobile-brand"><img src="/logo.jpg" width="52" height="52" alt=""/><div><strong>فاميلي كير</strong><small>إدارة العيادة</small></div></div>
+   <div className="login-content-inner"><div className="login-heading"><span className="login-eyebrow">بوابة الموظفين</span><h1>تسجيل الدخول</h1><p>ادخل بيانات حسابك لبدء العمل.</p></div>
+    <form className="login-form" onSubmit={signIn}>
+     <div className="login-field"><label htmlFor="login-email">البريد الإلكتروني</label><input id="login-email" type="email" dir="ltr" required autoComplete="username" value={email} onChange={event=>setEmail(event.target.value)}/></div>
+     <div className="login-field"><label htmlFor="login-password">كلمة المرور</label><div className="login-password-field"><input id="login-password" type={show?'text':'password'} dir="ltr" autoComplete="current-password" required value={password} onChange={event=>setPassword(event.target.value)}/><button type="button" aria-label={show?'إخفاء كلمة المرور':'إظهار كلمة المرور'} aria-pressed={show} onClick={()=>setShow(value=>!value)}>{show?'إخفاء':'إظهار'}</button></div></div>
+     {error&&<p className="error" role="alert">{error}</p>}
+     <button className="primary login-submit" disabled={busy}>{busy?'جارٍ الدخول…':'دخول'}</button>
+    </form><p className="login-help">محتاج حساب أو نسيت كلمة المرور؟ تواصل مع مالك العيادة.</p>
+   </div><p className="login-content-footer">فاميلي كير · نظام إدارة العيادة</p>
+  </section>
+ </div></main>;
 }
 function Layout(){
  const {profile,rows,refresh}=useClinic();const navigate=useNavigate();const [search,setSearch]=useState('');const [menu,setMenu]=useState(false);const [error,setError]=useState('');const searchInput=useRef<HTMLInputElement>(null);

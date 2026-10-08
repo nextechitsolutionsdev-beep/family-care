@@ -141,7 +141,8 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  expect((await admin.from('offers').update({demo_batch_id:batch.id}).eq('id',offer.id)).error).toBeNull();
  const futureDate=`${Number(day.slice(0,4))+1}-${day.slice(5)}`;
  query(`select private.run_jobs('${futureDate}T12:00:00+00'::timestamptz);`);
- await expect.poll(async()=>{const {count}=await admin.from('message_outbox').select('id',{count:'exact',head:true}).eq('patient_id',patientId).eq('kind','birthday').eq('status','simulated');return count;}).toBe(1);
+ const birthdayKey=`birthday:${patientId}:${Number(day.slice(0,4))+1}`;
+ await expect.poll(async()=>{const {count}=await admin.from('message_outbox').select('id',{count:'exact',head:true}).eq('dedupe_key',birthdayKey).eq('kind','birthday').eq('status','simulated');return count;}).toBe(1);
  await page.getByLabel('العرض').selectOption(offer.id);
  await page.getByRole('button',{name:'معاينة المستلمين'}).click();
  await expect(page.getByText(/عدد المستلمين الموافقين:/)).toBeVisible();

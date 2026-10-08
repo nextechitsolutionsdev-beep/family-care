@@ -41,6 +41,7 @@
 
 - [x] Desk layout, role navigation and global name/phone/specialty-code search with keyboard support.
 - [x] Secure login and loading/error/session expiry states.
+- [x] Polish the login screen for desktop and phone; review screenshots and password visibility control.
 - [x] Today/reception: client search, queue, overdue/today/upcoming reminders, no fake KPIs.
 - [x] Client file: details, specialty codes, consent, visits, payments and balances.
 - [x] Visit/billing: service selection, charged prices, gifts/bundles, home fee, offer, deposit, payment/receipt.
