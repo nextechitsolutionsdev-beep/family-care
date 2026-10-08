@@ -18,20 +18,20 @@ function Login(){
  };
  return <main className="login-page"><div className="login-shell">
   <section className="login-brand" aria-label="فاميلي كير">
-   <div className="login-brand-top"><span className="login-brand-logo"><img src="/logo.jpg" width="64" height="64" alt=""/></span><div><strong>فاميلي كير</strong><small>FAMILY CARE</small></div></div>
-   <div className="login-brand-center"><span className="login-brand-kicker">إدارة العيادة</span><p className="login-brand-statement">كل تفاصيل العيادة<br/>في مكان واحد.</p><p className="login-brand-description">العملاء والزيارات والحسابات، بواجهة واضحة لفريق فاميلي كير.</p></div>
-   <div className="login-brand-bottom"><span>بوابة فريق العمل</span><span>للحسابات المصرّح لها فقط</span></div>
+   <div className="login-brand-top"><span className="login-brand-logo"><img src="/logo.jpg" width="64" height="64" alt=""/></span><div><strong>فاميلي كير</strong><small>FAMILY CARE MEDICAL CENTER</small></div></div>
+   <div className="login-brand-center"><span className="login-brand-kicker">مساحة عمل فريق العيادة</span><p className="login-brand-statement">رعاية منظمة. <br/>يوم عمل أوضح.</p><p className="login-brand-description">ملفات العملاء، الزيارات، والمواعيد والحسابات في مكان واحد لفريق فاميلي كير.</p></div>
+   <div className="login-brand-bottom"><span>نظام إدارة العيادة</span><span>لأعضاء الفريق المصرّح لهم</span></div>
   </section>
   <section className="login-content">
-   <div className="login-mobile-brand"><img src="/logo.jpg" width="52" height="52" alt=""/><div><strong>فاميلي كير</strong><small>إدارة العيادة</small></div></div>
-   <div className="login-content-inner"><div className="login-heading"><span className="login-eyebrow">بوابة الموظفين</span><h1>تسجيل الدخول</h1><p>ادخل بيانات حسابك لبدء العمل.</p></div>
+   <div className="login-content-top"><span className="login-content-mark" aria-hidden="true"/>بوابة فريق العمل</div>
+   <div className="login-content-inner"><div className="login-heading"><span className="login-eyebrow">مرحبًا بعودتك</span><h1>تسجيل الدخول</h1><p>استخدم حسابك للوصول إلى مساحة عمل العيادة.</p></div>
     <form className="login-form" onSubmit={signIn}>
      <div className="login-field"><label htmlFor="login-email">البريد الإلكتروني</label><input id="login-email" type="email" dir="ltr" required autoComplete="username" value={email} onChange={event=>setEmail(event.target.value)}/></div>
      <div className="login-field"><label htmlFor="login-password">كلمة المرور</label><div className="login-password-field"><input id="login-password" type={show?'text':'password'} dir="ltr" autoComplete="current-password" required value={password} onChange={event=>setPassword(event.target.value)}/><button type="button" aria-label={show?'إخفاء كلمة المرور':'إظهار كلمة المرور'} aria-pressed={show} onClick={()=>setShow(value=>!value)}>{show?'إخفاء':'إظهار'}</button></div></div>
      {error&&<p className="error" role="alert">{error}</p>}
-     <button className="primary login-submit" disabled={busy}>{busy?'جارٍ الدخول…':'دخول'}</button>
-    </form><p className="login-help">محتاج حساب أو نسيت كلمة المرور؟ تواصل مع مالك العيادة.</p>
-   </div><p className="login-content-footer">فاميلي كير · نظام إدارة العيادة</p>
+     <button className="primary login-submit" disabled={busy}>{busy?'جارٍ الدخول…':'دخول إلى النظام'}<span aria-hidden="true">←</span></button>
+    </form><p className="login-help">ليس لديك حساب أو نسيت كلمة المرور؟<br/>تواصل مع مالك العيادة لاستعادة الوصول.</p>
+   </div><p className="login-content-footer">© فاميلي كير · بوابة الموظفين</p>
   </section>
  </div></main>;
 }
