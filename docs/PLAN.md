@@ -53,6 +53,7 @@
 - [x] Owner financial reports based solely on real ledger values, with CSV exports and print layouts.
 - [x] Arabic microcopy, logical RTL CSS, western digits, dd/mm/yyyy output, `جنيه`, Saturday-first schedule controls. Native date inputs follow the browser locale.
 - [x] Labels/contrast/focus, sticky filters/table headers, keyboard actions and confirmed destructive actions.
+- [x] Re-review all owner routes and key dialogs at desktop, phone and narrow-phone widths; expose hidden table columns and keep price inputs visible.
 
 ## Acceptance
 
@@ -66,4 +67,4 @@
 - [x] E2E: doctor sees assigned client and statement, owner-only route denied; owner screens captured at desk and phone sizes.
 - [x] Validate features in the running app against the new real development database.
 - [x] No TODO stubs, dead buttons, silent offline writes, public patient access or unlabelled active fake data.
-- [ ] Final short report: working features, run commands, assumptions to review and provider/pricing input.
+- [x] Final short report: working features, run commands, assumptions to review and provider/pricing input.
