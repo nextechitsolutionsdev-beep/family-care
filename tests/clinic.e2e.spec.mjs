@@ -156,5 +156,10 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await expect(page.getByRole('heading',{name:'ملفات العملاء'})).toBeVisible();
  await page.screenshot({path:'docs/review/patients-phone.jpg',type:'jpeg'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+ await page.goto('/reports');
+ await expect(page.getByRole('heading',{name:'التقارير المالية'})).toBeVisible();
+ const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'تصدير التحصيل CSV'}).click()]);
+ expect(download.suggestedFilename()).toBe('payments.csv');
+ expect(readFileSync(await download.path(),'utf8')).toContain(displayName);
  expect(visitId).toBeTruthy();
 });
