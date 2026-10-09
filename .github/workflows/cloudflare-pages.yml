@@ -1,0 +1,40 @@
+name: Deploy Family Care to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Check deployment settings
+        env:
+          SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$SUPABASE_ANON_KEY" || { echo 'Missing VITE_SUPABASE_ANON_KEY repository variable'; exit 1; }
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN repository secret'; exit 1; }
+      - run: npm ci
+      - name: Build and verify browser bundle
+        env:
+          VITE_SUPABASE_URL: https://xkbyxefvzlcnyefkxwsx.supabase.co
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: c532e088cb9a635531a6a61b31043d05
+          command: pages deploy dist --project-name=family-care --branch=main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

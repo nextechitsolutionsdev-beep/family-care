@@ -27,3 +27,7 @@
 ## التالي
 
 انتظار اعتماد أسعار القوائم الأربع المنسوخة وتأكيد سطري البنج والنايت جارد، واختيار مزود رسائل حقيقي قبل أي إرسال خارجي. راجع `PLAN.md` لقائمة القبول و`ASSUMPTIONS.md` للتفاصيل.
+
+## النشر — 09/10/2026
+
+نُشر تطبيق الواجهة على Cloudflare Pages باسم `family-care`، وعنوانه `https://family-care-4le.pages.dev`. رُفع الكود إلى المستودع الخاص `minadiaaaaaa/family-care`. تطبيق GitHub الخاص بـ Cloudflare مصرح له الآن بمستودع `family-care` وحده. تعذر إكمال تكامل Cloudflare الأصلي مع GitHub بسبب خطأ في ربط الحساب، ولأن مشروع Pages الحالي بدأ بالرفع المباشر؛ سير عمل GitHub Actions في `.github/workflows/cloudflare-pages.yml` ينشر إلى مشروع Pages نفسه باستخدام رمز حساب Cloudflare مخزن كسر في GitHub، ومفتاح Supabase قابل للنشر مخزن كمتغير عام. الرمز ينتهي 10/10/2027. لم تُنشر أسرار Supabase الخلفية إلى GitHub.

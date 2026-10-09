@@ -57,6 +57,8 @@
 
 ## Acceptance
 
+- [ ] Push Cloudflare Pages workflow to `main` and verify a successful automatic deployment of the existing `family-care` Pages project.
+
 - [x] Fresh-clone `install → connect → migrate → seed → deploy → start` documented in README; only env filling is manual. Idempotent connection/migration/seed path rerun against the target.
 - [x] Lint, typecheck and build pass without suppression; browser bundle contains no configured server credentials.
 - [x] Money tests: totals/partial payments/co-pay/discount limits/offer redemption/bundles/gifts/deposits/home fee.
