@@ -31,3 +31,5 @@
 ## النشر — 09/10/2026
 
 نُشر تطبيق الواجهة على Cloudflare Pages باسم `family-care`، وعنوانه `https://family-care-4le.pages.dev`. رُفع الكود إلى المستودع الخاص `minadiaaaaaa/family-care`. تطبيق GitHub الخاص بـ Cloudflare مصرح له الآن بمستودع `family-care` وحده. تعذر إكمال تكامل Cloudflare الأصلي مع GitHub بسبب خطأ في ربط الحساب، ولأن مشروع Pages الحالي بدأ بالرفع المباشر؛ سير عمل GitHub Actions في `.github/workflows/cloudflare-pages.yml` ينشر إلى مشروع Pages نفسه باستخدام رمز حساب Cloudflare مخزن كسر في GitHub، ومفتاح Supabase قابل للنشر مخزن كمتغير عام. الرمز ينتهي 10/10/2027. لم تُنشر أسرار Supabase الخلفية إلى GitHub.
+
+نجح تشغيل GitHub Actions الأول (`e543308`): `npm ci`، والبناء وفحص الحزمة، ثم نشر Wrangler إلى Pages. فُتح الرابط المنشور وظهرت شاشة الدخول، دون أخطاء JavaScript في المتصفح.
