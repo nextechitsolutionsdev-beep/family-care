@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 const env={...process.env,...dotenv.parse(readFileSync('.env'))};
 const screens=[
  ['today','/'],['patients','/patients'],['follow-ups','/follow-ups'],['specialties','/specialties'],
- ['messages','/messages'],['doctors','/doctors'],['insurance','/insurance'],['reports','/reports'],['settings','/settings'],
+ ['messages','/messages'],['doctors','/doctors'],['insurance','/insurance'],['experience','/experience'],['reports','/reports'],['settings','/settings'],
 ];
 test('all owner screens render at desk and phone sizes',async({page})=>{
  test.setTimeout(240000);

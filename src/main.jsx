@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./styles/desk.css";
+import "./styles/experience.css";
 import "./styles/login.css";
 import "./styles/tables.css";
 import App from "./App.jsx";

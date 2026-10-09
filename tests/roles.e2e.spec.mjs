@@ -41,6 +41,8 @@ test('doctor sees assigned patient and cannot open owner pages',async({page})=>{
  await expect(page.getByText('الخدمات المفوترة')).toBeVisible();
  await page.goto('/insurance');
  await expect(page).toHaveURL('/');
+ await page.goto('/experience');
+ await expect(page).toHaveURL('/');
  await page.setViewportSize({width:390,height:844});
  await page.screenshot({path:'docs/review/doctor-role-phone.jpg',type:'jpeg'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);

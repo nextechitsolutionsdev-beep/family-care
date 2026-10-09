@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import dotenv from 'dotenv';
 import {createClient} from '@supabase/supabase-js';
@@ -29,7 +29,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await page.getByLabel('البريد الإلكتروني').fill(env.OWNER_EMAIL);
  await page.getByLabel('كلمة المرور',{exact:true}).fill(env.OWNER_PASSWORD);
  await page.getByRole('button',{name:'دخول'}).click();
- await expect(page.getByRole('heading',{name:'اليوم'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'اليوم'})).toBeVisible({timeout:30000});
  await page.screenshot({path:'docs/review/today-desktop.jpg',type:'jpeg'});
 
  await page.getByRole('link',{name:'الأطباء والحسابات'}).click();
@@ -45,7 +45,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  expect(doctorError).toBeNull();doctor=createdDoctor;
  expect((await admin.from('doctors').update({demo_batch_id:batch.id}).eq('id',doctor.id)).error).toBeNull();
 
- await page.getByRole('link',{name:'العملاء'}).click();
+ await page.getByRole('link',{name:'العملاء',exact:true}).click();
  await page.getByRole('button',{name:'عميل جديد'}).click();
  form=page.locator('dialog');
  await form.getByLabel('اسم العميل').fill(displayName);
@@ -80,6 +80,53 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await expect(form.getByText('100 جنيه').first()).toBeVisible();
  await form.getByRole('button',{name:'إغلاق'}).click();
  await expect(page.getByRole('heading',{name:'إيصال التحصيل'})).toHaveCount(0);
+ await page.getByRole('button',{name:'الكشف وإنهاء الزيارة'}).click();
+ form=page.locator('dialog');
+ await form.getByLabel('التشخيص / ملاحظات الكشف').fill('فحص تجريبي');
+ await form.getByRole('button',{name:'حفظ وإنهاء الزيارة'}).click();
+ await expect(page.getByText('مكتملة').first()).toBeVisible();
+ const surveyBody=query(`select c.body from private.message_content c join public.message_outbox m on m.id=c.outbox_id where m.dedupe_key='experience:${visitId}';`)[0]?.body;
+ const surveyToken=surveyBody?.match(/#experience\/([a-f0-9]{64})/)?.[1];
+ expect(surveyToken).toBeTruthy();
+ await page.goto(`/#experience/${surveyToken}`);
+ await expect(page.getByRole('heading',{name:'كيف كانت تجربتك؟'})).toBeVisible();
+ await page.screenshot({path:'docs/review/experience-survey-desktop.jpg',type:'jpeg'});
+ await page.setViewportSize({width:390,height:844});
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+ await page.screenshot({path:'docs/review/experience-survey-phone.jpg',type:'jpeg'});
+ await page.setViewportSize({width:1366,height:768});
+ await page.getByRole('button',{name:'4 من 5'}).click();
+ await page.getByLabel('ملاحظة (اختياري)').fill('تقييم تجريبي من رحلة المتصفح');
+ await page.getByRole('button',{name:'إرسال التقييم'}).click();
+ await expect(page.getByRole('heading',{name:'شكرًا لمشاركتك'})).toBeVisible();
+ await page.reload();
+ await expect(page.getByRole('heading',{name:'تم استلام تقييمك'})).toBeVisible();
+ const ownerClient=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+ expect((await ownerClient.auth.signInWithPassword({email:env.OWNER_EMAIL,password:env.OWNER_PASSWORD})).error).toBeNull();
+ const {data:ownerFeedback,error:ownerFeedbackError}=await ownerClient.from('experience_feedback').select('rating,comment').eq('visit_id',visitId);
+ expect(ownerFeedbackError).toBeNull();expect(ownerFeedback).toEqual([{rating:4,comment:'تقييم تجريبي من رحلة المتصفح'}]);
+ const anonymous=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+ const {error:anonymousReadError}=await anonymous.from('experience_feedback').select('id').eq('visit_id',visitId);
+ expect(anonymousReadError).toBeTruthy();
+ const deniedSubmit=await anonymous.rpc('submit_experience_feedback',{p_token_hash:createHash('sha256').update(surveyToken).digest('hex'),p_rating:5,p_comment:''});
+ expect(deniedSubmit.error).toBeTruthy();
+ await page.goto('/experience');
+ await expect(page.getByRole('heading',{name:'تقييمات العملاء'})).toBeVisible();
+ await expect(page.getByText('لا توجد تقييمات مستلمة حتى الآن.')).toBeVisible();
+ for(const role of ['reception','doctor']){
+  const email=`feedback-${role}-${suffix.toLowerCase()}@familycare.example.com`;
+  const password=`Test!${randomUUID()}Aa1`;
+  const {data:user,error:userError}=await admin.auth.admin.createUser({email,password,email_confirm:true});
+  expect(userError).toBeNull();
+  try{
+   expect((await admin.from('profiles').insert({id:user.user.id,role,doctor_id:role==='doctor'?doctor.id:null,display_name:`اختبار تقييم ${role}`})).error).toBeNull();
+   const staff=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+   expect((await staff.auth.signInWithPassword({email,password})).error).toBeNull();
+   const {data:staffFeedback,error:staffFeedbackError}=await staff.from('experience_feedback').select('id').eq('visit_id',visitId);
+   expect(staffFeedbackError).toBeNull();expect(staffFeedback).toEqual([]);
+  }finally{await admin.auth.admin.deleteUser(user.user.id);}
+ }
+ await page.goto(`/visits/${visitId}`);
  await page.getByRole('button',{name:'متابعة جديدة'}).click();
  form=page.locator('dialog');
  await form.getByLabel('التاريخ').fill(tomorrow);
@@ -88,6 +135,12 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await page.getByRole('link',{name:'العروض والرسائل'}).click();
  await page.getByRole('button',{name:'تشغيل فحص التذكيرات الآن'}).click();
  await expect.poll(async()=>{const {count}=await admin.from('message_outbox').select('id',{count:'exact',head:true}).eq('patient_id',patientId).eq('kind','follow_up').eq('status','simulated');return count;}).toBe(1);
+ await expect.poll(async()=>{const {count}=await admin.from('message_outbox').select('id',{count:'exact',head:true}).eq('dedupe_key',`experience:${visitId}`).eq('status','simulated');return count;}).toBe(1);
+ expect((await admin.from('patients').update({transactional_consent:false}).eq('id',patientId)).error).toBeNull();
+ const consentRecheckKey=`experience-recheck:${visitId}`;
+ expect((await admin.from('message_outbox').insert({patient_id:patientId,kind:'experience_survey',dedupe_key:consentRecheckKey})).error).toBeNull();
+ await page.getByRole('button',{name:'تشغيل فحص التذكيرات الآن'}).click();
+ await expect.poll(async()=>{const {data}=await admin.from('message_outbox').select('status').eq('dedupe_key',consentRecheckKey).single();return data?.status;}).toBe('skipped');
 
  await page.getByRole('link',{name:'التأمين والذمم'}).click();
  await page.getByRole('button',{name:'شركة جديدة'}).click();
@@ -95,10 +148,11 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await form.getByLabel('اسم الشركة').fill(insurerName);
  await form.getByLabel('نسبة تحمل العميل (%)').fill('20');
  await form.getByRole('button',{name:'حفظ'}).click();
+ await expect(form).toHaveCount(0);
  const {data:insurer}=await admin.from('insurance_companies').select('id').eq('name',insurerName).single();
  expect(insurer?.id).toBeTruthy();
  expect((await admin.from('insurance_companies').update({demo_batch_id:batch.id}).eq('id',insurer.id)).error).toBeNull();
- await page.getByRole('link',{name:'العملاء'}).click();
+ await page.getByRole('link',{name:'العملاء',exact:true}).click();
  await page.getByRole('button',{name:'عميل جديد'}).click();
  form=page.locator('dialog');
  await form.getByLabel('اسم العميل').fill(`عميل تأمين تجريبي ${suffix}`);
@@ -150,7 +204,8 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await form.getByLabel('إلى').fill('2030-12-31');
  await form.getByLabel('يستخدم في رسالة عيد الميلاد').check();
  await form.getByRole('button',{name:'حفظ'}).click();
- const {data:offer}=await admin.from('offers').select('id').eq('code',offerCode).single();
+ await expect(form).toHaveCount(0);
+ const {data:offer}=await admin.from('offers').select('id').eq('specialty_id',dental.id).eq('code',offerCode).single();
  expect(offer?.id).toBeTruthy();
  expect((await admin.from('offers').update({demo_batch_id:batch.id}).eq('id',offer.id)).error).toBeNull();
  const futureDate=`${Number(day.slice(0,4))+1}-${day.slice(5)}`;

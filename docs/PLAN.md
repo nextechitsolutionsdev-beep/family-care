@@ -30,6 +30,7 @@
 - [x] Follow-ups with scheduled/done/rescheduled/missed states and revision history.
 - [x] Offers with specialty codes, validity, fixed/percent discounts and atomic redemption.
 - [x] Editable Arabic templates, consent-aware recipient filtering, count preview and campaign snapshots.
+- [x] Anonymous one-time service-experience survey links with database-enforced owner-only results; survey requests use transactional-message consent and mock delivery.
 - [x] Mock message provider, status logs and server-side opt-out recheck.
 - [x] Daily Cairo birthday job and configurable follow-up job with retries/idempotency.
 - [x] Audit money edits/voids; ensure no personal data in application logs.
@@ -54,6 +55,7 @@
 - [x] Arabic microcopy, logical RTL CSS, western digits, dd/mm/yyyy output, `جنيه`, Saturday-first schedule controls. Native date inputs follow the browser locale.
 - [x] Labels/contrast/focus, sticky filters/table headers, keyboard actions and confirmed destructive actions.
 - [x] Re-review all owner routes and key dialogs at desktop, phone and narrow-phone widths; expose hidden table columns and keep price inputs visible.
+- [x] Review the customer survey and owner-only feedback screen at 1366×768 and 390×844.
 
 ## Acceptance
 
