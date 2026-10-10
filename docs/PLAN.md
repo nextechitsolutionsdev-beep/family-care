@@ -60,6 +60,7 @@
 ## Acceptance
 
 - [x] إعداد دليل استخدام عربي يشرح الشاشات والصلاحيات ومسارات العمل والقيود الحالية.
+- [x] تجهيز نسخة PDF عربية مصورة وجاهزة للطباعة، ومراجعة صفحاتها الثماني بصرياً.
 
 - [x] Push Cloudflare Pages workflow to `main` and verify a successful automatic deployment of the existing `family-care` Pages project.
 
