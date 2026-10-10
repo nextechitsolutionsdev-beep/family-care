@@ -59,6 +59,8 @@
 
 ## Acceptance
 
+- [x] إعداد دليل استخدام عربي يشرح الشاشات والصلاحيات ومسارات العمل والقيود الحالية.
+
 - [x] Push Cloudflare Pages workflow to `main` and verify a successful automatic deployment of the existing `family-care` Pages project.
 
 - [x] Fresh-clone `install → connect → migrate → seed → deploy → start` documented in README; only env filling is manual. Idempotent connection/migration/seed path rerun against the target.
