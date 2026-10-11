@@ -1,1 +1,2 @@
 *.pdf binary
+supabase/migrations/20261011200151_reception_intake_unions.sql text eol=lf

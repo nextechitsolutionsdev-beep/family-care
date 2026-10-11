@@ -46,7 +46,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  expect((await admin.from('doctors').update({demo_batch_id:batch.id}).eq('id',doctor.id)).error).toBeNull();
 
  await page.getByRole('link',{name:'العملاء',exact:true}).click();
- await page.getByRole('button',{name:'عميل جديد'}).click();
+ await page.getByRole('button',{name:'عميل فقط'}).click();
  form=page.locator('dialog');
  await form.getByLabel('اسم العميل').fill(displayName);
  await form.getByLabel('رقم الموبايل').fill(phone);
@@ -153,7 +153,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  expect(insurer?.id).toBeTruthy();
  expect((await admin.from('insurance_companies').update({demo_batch_id:batch.id}).eq('id',insurer.id)).error).toBeNull();
  await page.getByRole('link',{name:'العملاء',exact:true}).click();
- await page.getByRole('button',{name:'عميل جديد'}).click();
+ await page.getByRole('button',{name:'عميل فقط'}).click();
  form=page.locator('dialog');
  await form.getByLabel('اسم العميل').fill(`عميل تأمين تجريبي ${suffix}`);
  await form.getByLabel('رقم الموبايل').fill(phone);

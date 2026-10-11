@@ -21,6 +21,9 @@
 
 ## Clients, jobs and consent
 
+- لكل عميل من نوع «نقابة» نقابة واحدة يختارها الاستقبال من قائمة يديرها المالك. الانتماء يُحفظ في الملف وتُلتقط نسخة منه عند فتح الزيارة. لا تُنشأ قوائم أسعار منفصلة لكل نقابة حتى يقدّم المالك أسعاراً مختلفة؛ القائمة الحالية الخاصة بنوع «النقابة» تطبق على الجميع. السجلات القديمة غير محددة النقابة تبقى محفوظة، وتحتاج اختيار نقابتها عند تعديل الملف.
+- زر «تسجيل + زيارة» هو المسار الرئيسي ويأخذ بيانات الحد الأدنى ويفتح زيارة عيادة؛ زر «عميل فقط» يبقي المسار المفصل، والوقت والزيارة المنزلية وموافقات الرسائل وبقية بيانات الملف تبقى في نماذجها المعتادة. لو فشل الحجز لا يُحفظ ملف عميل ناقص.
+
 - A person has one client type and multiple specialty-specific codes. Dentistry uses `DEN-000001`; other specialties have owner-editable unique prefixes. Offer codes are also specialty-scoped.
 - Marketing consent defaults to false. Birthday/campaign messages require consent; follow-up reminders have a separate transactional-message preference. An opt-out is checked again immediately before mock dispatch.
 - Experience surveys are service follow-ups, not marketing: create one unique link after visit completion only when transactional-message consent is active, and recheck consent at mock dispatch. Links expire after 30 days, accept one response per visit, and contain a random token whose hash alone is stored. The public form collects a 1–5 rating and optional comment; it never shows patient identity or submitted results. Only the owner role can read ratings through the app or Data API. Demo-batch responses stay hidden from the owner screen.

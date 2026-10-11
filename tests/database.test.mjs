@@ -30,6 +30,25 @@ test('Authenticated clinic transactions and role isolation',async t=>{
  patient=(await rpc('patient_save',{name:'عميل تجريبي واضح',phone_e164:'+200000000001',client_type_code:'family_care_cash',specialty_id:specialty,demo_batch_id:batch,marketing_consent:true,transactional_consent:true,birth_date:'2000-10-07'})).id;
  const makeVisit=async (patient_id=patient)=>(await rpc('visit_create',{patient_id,doctor_id:doctor,visit_date:today,location:'clinic'})).id;
  const add=async(visit,service,extras={})=>rpc('line_add',{visit_id:visit,service_id:services[service],doctor_id:doctor,...extras});
+ await t.test('union intake is atomic, scoped and idempotent',async()=>{
+   const unionName=`نقابة اختبار ${batch.slice(0,8)}`;
+   const savedUnion=await owner.rpc('clinic_union_save',{payload:{name:unionName,active:true}});
+   assert.equal(savedUnion.error,null);
+   const unionId=savedUnion.data.id;
+   const key=randomUUID();
+   const payload={idempotency_key:key,patient:{name:'عميل نقابة تجريبي',phone_e164:'+200000000005',client_type_code:'syndicate_cash',union_id:unionId,demo_batch_id:batch,specialty_id:specialty},visit:{doctor_id:doctor,visit_date:today,location:'clinic'}};
+   const first=await owner.rpc('clinic_patient_intake',{payload});assert.equal(first.error,null);
+   const retry=await owner.rpc('clinic_patient_intake',{payload});assert.equal(retry.error,null);assert.deepEqual(retry.data,first.data);
+   const saved=query(`select p.union_id patient_union,v.union_id visit_union from public.patients p join public.visits v on v.patient_id=p.id where p.id='${first.data.patient_id}';`)[0];
+   assert.equal(saved.patient_union,unionId);assert.equal(saved.visit_union,unionId);
+   const invalid={...payload,idempotency_key:randomUUID(),patient:{...payload.patient,phone_e164:'+200000000006'},visit:{...payload.visit,doctor_id:randomUUID()}};
+   const failed=await owner.rpc('clinic_patient_intake',{payload:invalid});assert.ok(failed.error);
+   assert.equal(query(`select count(*) n from public.patients where phone_e164='+200000000006';`)[0].n,0);
+   const missing=await owner.rpc('clinic_patient_intake',{payload:{...payload,idempotency_key:randomUUID(),patient:{...payload.patient,union_id:null}}});
+   assert.match(missing.error?.message??'',/UNION_REQUIRED/);
+   const anonymousUnion=await anonymous.from('unions').select('id');assert.ok(anonymousUnion.error||anonymousUnion.data.length===0);
+   const off=await owner.rpc('clinic_union_save',{payload:{id:unionId,name:unionName,active:false}});assert.equal(off.error,null);
+ });
  await t.test('partial receipts, retry and concurrent overpayment',async()=>{
    const visit=await makeVisit();await add(visit,'DEN-001');
    const key=randomUUID();const payload={visit_id:visit,amount_minor:10000,method:'cash',idempotency_key:key};
@@ -119,6 +138,10 @@ test('Authenticated clinic transactions and role isolation',async t=>{
    const desk=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,options);
    assert.equal((await desk.auth.signInWithPassword({email,password})).error,null);
    assert.equal((await desk.from('patients').select('id')).error,null);
+   assert.equal((await desk.from('unions').select('id')).error,null);
+   const deskIntake=await desk.rpc('clinic_patient_intake',{payload:{idempotency_key:randomUUID(),patient:{id:patient,name:'عميل تجريبي واضح',phone_e164:'+200000000001',client_type_code:'family_care_cash',specialty_id:specialty,marketing_consent:true,transactional_consent:true,birth_date:'2000-10-07'},visit:{doctor_id:doctor,visit_date:today,location:'clinic'}}});
+   assert.match(deskIntake.error?.message??'',/INVALID_EGYPTIAN_PHONE/);
+   assert.ok((await desk.rpc('clinic_union_save',{payload:{name:'نقابة غير مسموحة'}})).error);
    const restricted=await desk.from('insurance_settlements').select('id');assert.ok(restricted.error||restricted.data.length===0);
    const disabled=await owner.functions.invoke('manage-users',{body:{action:'update',id:created.data.id,role:'reception',display_name:'موظف اختبار',active:false}});
    assert.equal(disabled.error,null);

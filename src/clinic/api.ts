@@ -11,7 +11,8 @@ const messages: Record<string,string> = {
  NO_ELIGIBLE_SERVICES:'لا توجد خدمات ينطبق عليها العرض.',OFFER_LIMIT_REACHED:'العرض وصل للحد المسموح.',PREVIEW_CHANGED:'عدد المستلمين اتغير. اعمل معاينة جديدة.',
  DOCTOR_UNAVAILABLE:'الطبيب غير متاح في اليوم المختار.',SERVICES_BEFORE_OFFER:'أضف الخدمات قبل تطبيق العرض.',HOME_FEE_ONCE:'رسم الزيارة المنزلية مضاف بالفعل.',
  REVERSE_FINANCIAL_RECORDS_FIRST:'اعكس التحصيل والتسويات أولاً للحفاظ على الحسابات.',PRICE_LIST_INCOMPLETE:'القائمة لازم تشمل كل الخدمات النشطة.',
- IDEMPOTENCY_CONFLICT:'طلب التحصيل اتغير. افتح طلباً جديداً.',CAMPAIGN_SPECIALTY_REQUIRED:'اختار تخصص العرض في فلاتر الحملة.',
+ IDEMPOTENCY_CONFLICT:'الطلب اتغير. افتح النموذج من جديد.',CAMPAIGN_SPECIALTY_REQUIRED:'اختار تخصص العرض في فلاتر الحملة.',
+ UNION_REQUIRED:'اختار النقابة.',UNION_INACTIVE:'النقابة غير نشطة. اختار نقابة أخرى.',UNION_NOT_APPLICABLE:'النقابة متاحة لعميل النقابة فقط.',
  };
 export function readableError(error: unknown): string {
  if (error instanceof Error && !('code' in error)) return error.message;
@@ -25,6 +26,11 @@ export function readableError(error: unknown): string {
 }
 export async function command(action: string,payload: Record<string,unknown>): Promise<Record<string,unknown>> {
  const {data,error}=await db.rpc('clinic_command',{action,payload});
+ if(error) throw error;
+ return data as Record<string,unknown>;
+}
+export async function patientIntake(payload: Record<string,unknown>): Promise<Record<string,unknown>> {
+ const {data,error}=await db.rpc('clinic_patient_intake',{payload});
  if(error) throw error;
  return data as Record<string,unknown>;
 }
