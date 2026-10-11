@@ -59,6 +59,10 @@
 
 ## Acceptance
 
+- [x] Test doctor percentage, per-service override, cash/insurance collections and working-day refusal/acceptance against the development database.
+- [x] Use Family Care prices for new insurance charges and show the insurer/patient percentages; verify exact split and historical snapshots.
+- [x] Put union administration next to insurance companies in one owner page while preserving union selection in reception.
+
 - [x] تسجيل عميل وفتح زيارة في خطوة استقبال واحدة، مع حفظ ذري وتجربة كمبيوتر وهاتف.
 - [x] إدارة النقابات من حساب المالك واختيار النقابة المشروط بنوع العميل؛ حفظ الانتساب في الملف والزيارة دون حذف البيانات القديمة.
 

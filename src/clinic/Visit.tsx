@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {Link,useParams} from 'react-router-dom';
-import {command,date,label,text,today,type Row} from './api';
+import {command,date,label,text,today,percentLabel,type Row} from './api';
 import {useClinic,patientPaid} from './store';
 import {Dialog,Form,Heading,Table,Badge,useTask} from './ui';
 import {money} from '../domain/money';
@@ -19,6 +19,7 @@ export default function Visit(){
  const activeServices=rows('services').filter(row=>row.active&&row.specialty_id===v.specialty_id&&row.pricing_kind!=='home');
  return <><Heading title={`زيارة ${name('patients',v.patient_id)}`} detail={`${date(v.visit_date)} · ${name('doctors',v.doctor_id)} · ${label(v.location)}`}><Link className="button" to={`/patients/${text(v.patient_id)}`}>ملف العميل</Link><Badge>{label(v.status)}</Badge></Heading>{task.feedback}
  {patient?.demo_batch_id&&<p className="notice">زيارة تجريبية — بيانات اختبار.</p>}
+ {v.client_type_code==='insurance_credit'&&!isDoctor&&<p className="notice">شركة التأمين: {name('insurance_companies',v.insurer_id)} · العميل يتحمل {percentLabel(v.co_pay_bps)} · الشركة تغطي {percentLabel(10000-Number(v.co_pay_bps))}. السعر المثبت لكل خدمة موضح أدناه.</p>}
  {!isDoctor&&<><div className="ledger-summary"><span>الإجمالي <strong>{money(v.total_minor)}</strong></span><span>حصة العميل <strong>{money(v.co_pay_minor)}</strong></span><span>التأمين <strong>{money(v.covered_minor)}</strong></span><span>المحصّل <strong>{money(paid)}</strong></span><span>المتبقي <strong>{money(remaining)}</strong></span></div>
  {!v.confirmed&&<p className="notice">الحجز بانتظار ديبوزيت {money(v.deposit_required_minor)}. التحصيل المسجل {money(paid)}.</p>}
  {v.deposit_exemption_reason==='fully_covered_insurance'&&<p className="notice">التأمين يغطي الزيارة بالكامل؛ لا توجد حصة أو ديبوزيت على العميل.</p>}

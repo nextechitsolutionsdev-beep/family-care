@@ -77,14 +77,28 @@ test('Authenticated clinic transactions and role isolation',async t=>{
  });
  await t.test('insurance allocation and actual doctor collections',async()=>{
    const credit=(await rpc('patient_save',{name:'عميل تأمين تجريبي',phone_e164:'+200000000002',client_type_code:'insurance_credit',insurer_id:insurer,specialty_id:specialty,demo_batch_id:batch})).id;
-   const visit=await makeVisit(credit);await add(visit,'DEN-001');await add(visit,'DEN-002');
+   const visit=await makeVisit(credit);
+   await rpc('insurer_save',{id:insurer,name:`شركة اختبار ${batch.slice(0,8)}`,co_pay_bps:3000,active:true});
+   await add(visit,'DEN-001');await add(visit,'DEN-002');
    const v=query(`select total_minor,co_pay_minor,covered_minor from public.visits where id='${visit}';`)[0];assert.deepEqual(v,{total_minor:40000,co_pay_minor:8000,covered_minor:32000});
+   assert.equal(query(`select co_pay_bps from public.visits where id='${visit}';`)[0].co_pay_bps,2000);
+   const priceSources=query(`select distinct pl.client_type_code from public.visit_lines l join public.price_list_versions pv on pv.id=l.list_version_id join public.price_lists pl on pl.id=pv.list_id where l.visit_id='${visit}';`);
+   assert.deepEqual(priceSources,[{client_type_code:'family_care_cash'}]);
+   assert.equal(BigInt(v.total_minor),BigInt(v.co_pay_minor)+BigInt(v.covered_minor));
    await rpc('payment',{visit_id:visit,amount_minor:4000,method:'cash',idempotency_key:randomUUID()});
    await rpc('visit_complete',{visit_id:visit,diagnosis:'تشخيص اختبار',instructions:'تعليمات اختبار'});
    const payload={insurer_id:insurer,amount_minor:16000,idempotency_key:randomUUID()};
    const first=await rpc('insurance_settle',payload);const again=await rpc('insurance_settle',payload);assert.equal(first.id,again.id);
    const rows=query(`select sum(a.amount_minor) amount from public.settlement_allocations a where settlement_id='${first.id}';`);assert.equal(BigInt(rows[0].amount),16000n);
    await assert.rejects(rpc('insurance_settle',{...payload,amount_minor:20000,idempotency_key:randomUUID()}),/INVALID_SETTLEMENT_AMOUNT/);
+ });
+ await t.test('doctor schedule accepts only selected weekdays',async()=>{
+   const tomorrow=new Date(`${today}T12:00:00Z`);tomorrow.setUTCDate(tomorrow.getUTCDate()+1);
+   const allowed=tomorrow.toISOString().slice(0,10);
+   await rpc('doctor_save',{id:secondDoctor,name:'طبيب تجريبي ثان',specialty_id:specialty,category:'dentist',default_share_bps:0,schedule:[tomorrow.getUTCDay()],active:true});
+   await assert.rejects(rpc('visit_create',{patient_id:patient,doctor_id:secondDoctor,visit_date:today,location:'clinic'}),/DOCTOR_UNAVAILABLE/);
+   const accepted=await rpc('visit_create',{patient_id:patient,doctor_id:secondDoctor,visit_date:allowed,location:'clinic'});
+   assert.ok(accepted.id);
  });
  await t.test('offer discount and immutable prices',async()=>{
    const offer=(await rpc('offer_save',{specialty_id:specialty,title:'خصم اختبار',code:`T-${batch.slice(0,8).toUpperCase()}`,discount_kind:'percent',discount_bps:1250,valid_from:today,valid_until:'2030-12-31',birthday:true})).id;
@@ -122,6 +136,13 @@ test('Authenticated clinic transactions and role isolation',async t=>{
    assert.equal(BigInt(statement.data.rent[0].amount_minor),10001n);
    assert.equal(BigInt(statement.data.rent[0].paid_minor),5000n);
  });
+ await t.test('per-service doctor percentage overrides default only for new lines',async()=>{
+   await rpc('doctor_service_share',{doctor_id:doctor,service_id:services['DEN-001'],share_bps:1250});
+   const visit=await makeVisit();await add(visit,'DEN-001');
+   assert.equal(query(`select doctor_share_bps from public.visit_lines where visit_id='${visit}';`)[0].doctor_share_bps,1250);
+   await rpc('payment',{visit_id:visit,amount_minor:10000,method:'cash',idempotency_key:randomUUID()});
+   assert.equal(BigInt(query(`select sum(a.doctor_share_minor) share from public.payment_allocations a join public.payments p on p.id=a.payment_id where p.visit_id='${visit}';`)[0].share),1250n);
+ });
  await t.test('birthday leap day, repeat runs and consent',async()=>{
    const leap=(await rpc('patient_save',{name:'عميل فبراير تجريبي',phone_e164:'+200000000003',client_type_code:'family_care_cash',specialty_id:specialty,demo_batch_id:batch,marketing_consent:true,birth_date:'2000-02-29'})).id;
    const optedOut=(await rpc('patient_save',{name:'عميل فبراير بدون موافقة',phone_e164:'+200000000004',client_type_code:'family_care_cash',specialty_id:specialty,demo_batch_id:batch,marketing_consent:false,birth_date:'2000-02-29'})).id;
@@ -155,11 +176,13 @@ test('Authenticated clinic transactions and role isolation',async t=>{
    const {data:user,error}=await admin.auth.admin.createUser({email,password,email_confirm:true});assert.equal(error,null);
    await admin.from('profiles').insert({id:user.user.id,role:'doctor',doctor_id:secondDoctor,display_name:'طبيب اختبار'});
    const doc=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,options);await doc.auth.signInWithPassword({email,password});
-   assert.deepEqual((await doc.from('patients').select('id')).data,[]);
+   const unassigned=(await rpc('patient_save',{name:'عميل غير مرتبط بالطبيب',phone_e164:'+200000000009',client_type_code:'family_care_cash',specialty_id:specialty,demo_batch_id:batch})).id;
+   assert.deepEqual((await doc.from('patients').select('id').eq('id',unassigned)).data,[]);
+   assert.deepEqual((await doc.from('patients').select('id').eq('id',patient)).data,[{id:patient}]);
    const denied=await doc.rpc('clinic_command',{action:'insurer_save',payload:{name:'غير مسموح',co_pay_bps:0}});assert.ok(denied.error);
    const deniedStatement=await doc.rpc('doctor_statement',{doctor,starts:today,ends:today});assert.ok(deniedStatement.error);
    await doc.auth.updateUser({data:{role:'owner',doctor_id:doctor}});
-   assert.deepEqual((await doc.from('patients').select('id')).data,[]);
+   assert.deepEqual((await doc.from('patients').select('id').eq('id',unassigned)).data,[]);
    assert.ok((await owner.from('patients').update({name:'غير مسموح'}).eq('id',patient)).error);
  });
 });

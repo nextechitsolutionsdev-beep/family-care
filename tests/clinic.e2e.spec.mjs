@@ -142,8 +142,8 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await page.getByRole('button',{name:'تشغيل فحص التذكيرات الآن'}).click();
  await expect.poll(async()=>{const {data}=await admin.from('message_outbox').select('status').eq('dedupe_key',consentRecheckKey).single();return data?.status;}).toBe('skipped');
 
- await page.getByRole('link',{name:'التأمين والذمم'}).click();
- await page.getByRole('button',{name:'شركة جديدة'}).click();
+ await page.getByRole('link',{name:'التأمين والنقابات'}).click();
+ await page.getByRole('button',{name:'إضافة شركة تأمين'}).click();
  form=page.locator('dialog');
  await form.getByLabel('اسم الشركة').fill(insurerName);
  await form.getByLabel('نسبة تحمل العميل (%)').fill('20');
@@ -188,7 +188,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await expect(page.getByText('مكتملة').first()).toBeVisible();
  const {data:invoice}=await admin.from('insurance_invoices').select('id,billed_minor').eq('visit_id',creditVisit).single();
  expect(Number(invoice.billed_minor)).toBe(24000);
- await page.getByRole('link',{name:'التأمين والذمم'}).click();
+ await page.getByRole('link',{name:'التأمين والنقابات'}).click();
  await page.locator('tr').filter({hasText:insurerName}).getByRole('button',{name:'تسوية'}).click();
  form=page.locator('dialog');await form.getByLabel('المبلغ بالجنيه').fill('120');
  await form.getByRole('button',{name:'تسجيل التسوية'}).click();

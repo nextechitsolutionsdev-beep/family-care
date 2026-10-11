@@ -55,3 +55,8 @@ export const date=(value: unknown)=>{
 };
 export const labels: Record<string,string>={owner:'المالك',reception:'الاستقبال',doctor:'الطبيب',dentist:'أطباء الأسنان',percentage:'أطباء النسبة',renting:'الأطباء المستأجرين',open:'مفتوحة',completed:'مكتملة',void:'ملغاة',pending:'بانتظار الديبوزيت',confirmed:'مؤكدة',arrived:'حضر',cancelled:'ملغي',scheduled:'محددة',done:'تمت',rescheduled:'اتغير موعدها',missed:'لم يحضر',simulated:'مسجلة تجريبياً',queued:'في الانتظار',skipped:'لم تُرسل',failed:'تعذرت',payment:'تحصيل',deposit:'ديبوزيت',refund:'رد مبلغ',cash:'نقدي',card:'بطاقة',transfer:'تحويل',birthday:'عيد ميلاد',campaign:'حملة',follow_up:'متابعة',experience_survey:'تقييم تجربة',clinic:'العيادة',home:'منزلية'};
 export const label=(value:unknown)=>labels[text(value)]??text(value);
+export const percentLabel=(basisPoints:unknown)=>{
+ const value=Number(basisPoints);
+ const fraction=value%100;
+ return `${Math.trunc(value/100)}${fraction?'.'+String(fraction).padStart(2,'0').replace(/0+$/,''):''}%`;
+};

@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {Link,useNavigate,useParams} from 'react-router-dom';
-import {command,patientIntake,text,date,label,today,type Row} from './api';
+import {command,patientIntake,text,date,label,today,percentLabel,type Row} from './api';
 import {useClinic,patientPaid} from './store';
 import {Badge,Dialog,Form,Heading,Table,type Field} from './ui';
 import {money} from '../domain/money';
@@ -8,7 +8,7 @@ export function patientFields(types:Row[],insurers:Row[],unions:Row[],specialtie
  {key:'name',label:'اسم العميل',required:true},{key:'phone_e164',label:'رقم الموبايل',required:true,hint:'01xxxxxxxxx أو +20. أرقام التجربة +200000000001 لسجل تجريبي فقط.'},
  {key:'birth_date',label:'تاريخ الميلاد',type:'date'},
  {key:'client_type_code',label:'نوع العميل',type:'select',required:true,options:types.map(row=>({value:text(row.code),label:text(row.name)}))},
- {key:'insurer_id',label:'شركة التأمين',type:'select',required:true,when:values=>values.client_type_code==='insurance_credit',options:insurers.filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
+ {key:'insurer_id',label:'شركة التأمين',type:'select',required:true,when:values=>values.client_type_code==='insurance_credit',options:insurers.filter(row=>row.active).map(row=>({value:row.id,label:`${text(row.name)} — العميل ${percentLabel(row.co_pay_bps)} · الشركة ${percentLabel(10000-Number(row.co_pay_bps))}`}))},
  {key:'union_id',label:'النقابة',type:'select',required:true,when:values=>values.client_type_code==='syndicate_cash',options:unions.filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'specialty_id',label:'التخصص وكود العميل',type:'select',options:specialties.filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'marketing_consent',label:'وافق على رسائل العروض وأعياد الميلاد',type:'checkbox'},

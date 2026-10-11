@@ -30,9 +30,8 @@ test('owner configures a union and reception intake opens one visit on desktop a
  const {data:doctor,error:doctorError}=await admin.from('doctors').select('id').eq('name',`طبيب تسجيل تجريبي ${suffix}`).single();
  expect(doctorError).toBeNull();
  expect((await admin.from('doctors').update({demo_batch_id:batch.id}).eq('id',doctor.id)).error).toBeNull();
- await page.goto('/settings');
- await page.getByRole('tab',{name:'النقابات'}).click();
- await page.getByRole('button',{name:'نقابة جديدة'}).click();
+ await page.goto('/insurance');
+ await page.getByRole('button',{name:'إضافة نقابة'}).click();
  form=page.locator('dialog');
  await form.getByLabel('اسم النقابة').fill(`نقابة اختبار ${suffix}`);
  await form.getByRole('button',{name:'حفظ'}).click();
@@ -62,8 +61,7 @@ test('owner configures a union and reception intake opens one visit on desktop a
  expect(patientError).toBeNull();expect(patient.union_id).toBe(union.id);expect(patient.demo_batch_id).toBe(batch.id);
  await page.goto(`/patients/${visit.patient_id}`);
  await expect(page.getByText(`النقابة: نقابة اختبار ${suffix}`)).toBeVisible();
- await page.goto('/settings');
- await page.getByRole('tab',{name:'النقابات'}).click();
+ await page.goto('/insurance');
  await page.locator('tr').filter({hasText:`نقابة اختبار ${suffix}`}).getByRole('button',{name:'تعديل'}).click();
  form=page.locator('dialog');
  await form.getByLabel('نشطة ومتاحة للاستقبال').uncheck();
