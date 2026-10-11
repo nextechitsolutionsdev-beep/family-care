@@ -1,5 +1,13 @@
 # Delivery checklist
 
+## Reception intake with service
+
+- [x] Add a specialty-filtered service selector to quick customer intake while keeping the detailed flows.
+- [x] Save customer, visit and selected service atomically with the existing idempotency key.
+- [x] Apply the forward-only migration and test successful and rejected intake against the development database.
+- [x] Verify desktop and phone screens, lint, typecheck and build.
+- [ ] Publish the tested change and verify the deployed build.
+
 ## Read and prepare
 
 - [x] Read all application source, manifests, schema, config and env example.

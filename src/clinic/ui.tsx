@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {text,readableError,type Row} from './api';
 import {minor,percent,decimal} from '../domain/money';
-export type Field={key:string;label:string;type?:'text'|'email'|'password'|'date'|'time'|'number'|'money'|'percent'|'checkbox'|'textarea'|'select'|'weekdays';required?:boolean;options?:{value:string;label:string}[];when?:(values:Record<string,unknown>)=>boolean;hint?:string;min?:number;max?:number};
+export type Field={key:string;label:string;type?:'text'|'email'|'password'|'date'|'time'|'number'|'money'|'percent'|'checkbox'|'textarea'|'select'|'weekdays';required?:boolean;options?:{value:string;label:string}[]|((values:Record<string,unknown>)=>{value:string;label:string}[]);when?:(values:Record<string,unknown>)=>boolean;clearOnChange?:string[];hint?:string;min?:number;max?:number};
 export function Form({fields,initial={},submit,label='حفظ',children}:{fields:Field[];initial?:Record<string,unknown>;submit:(values:Record<string,unknown>)=>Promise<void>;label?:string;children?:ReactNode}) {
  const [values,setValues]=useState<Record<string,unknown>>(()=>Object.fromEntries(fields.map(field=>[field.key,
    field.type==='money'||field.type==='percent'?decimal(initial[field.key]??0):initial[field.key]??(field.type==='checkbox'?false:field.type==='weekdays'?[]:'')])));
@@ -15,10 +15,10 @@ export function Form({fields,initial={},submit,label='حفظ',children}:{fields:
    void submit(normalized).catch(error=>setError(readableError(error))).finally(()=>setBusy(false));
  }}>
    {fields.filter(field=>!field.when||field.when(values)).map(field=>{
-     const id=`field-${field.key}`;const set=(value:unknown)=>setValues(current=>({...current,[field.key]:value}));
+     const id=`field-${field.key}`;const set=(value:unknown)=>setValues(current=>({...current,[field.key]:value,...Object.fromEntries((field.clearOnChange??[]).map(key=>[key,'']))}));
      return <div className={field.type==='textarea'?'field wide':'field'} key={field.key}>
        {field.type==='checkbox'?<label className="check"><input type="checkbox" checked={Boolean(values[field.key])} onChange={event=>set(event.target.checked)}/>{field.label}</label>:<><label htmlFor={id}>{field.label}{field.required?' *':''}</label>
-       {field.type==='select'?<select id={id} required={field.required} value={text(values[field.key])} onChange={event=>set(event.target.value)}><option value="">اختار…</option>{field.options?.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>:
+       {field.type==='select'?<select id={id} required={field.required} value={text(values[field.key])} onChange={event=>set(event.target.value)}><option value="">اختار…</option>{(typeof field.options==='function'?field.options(values):field.options)?.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>:
         field.type==='textarea'?<textarea id={id} required={field.required} value={text(values[field.key])} onChange={event=>set(event.target.value)} rows={3}/>:
         field.type==='weekdays'?<fieldset className="days" id={id}><legend>الأيام المتاحة</legend>{[{day:'السبت',index:6},{day:'الأحد',index:0},{day:'الإثنين',index:1},{day:'الثلاثاء',index:2},{day:'الأربعاء',index:3},{day:'الخميس',index:4},{day:'الجمعة',index:5}].map(({day,index})=><label key={day}><input type="checkbox" checked={(values[field.key] as number[]).includes(index)} onChange={event=>set(event.target.checked?[...(values[field.key] as number[]),index]:(values[field.key] as number[]).filter(value=>value!==index))}/>{day}</label>)}</fieldset>:
         <input id={id} type={field.type==='money'||field.type==='percent'?'text':field.type??'text'} inputMode={['money','percent'].includes(field.type??'')?'decimal':undefined} required={field.required} min={field.min} max={field.max} value={text(values[field.key])} onChange={event=>set(event.target.value)} autoComplete={field.type==='password'?'new-password':undefined}/>}

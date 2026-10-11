@@ -59,7 +59,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await expect(companyRow).toContainText('20%');await expect(companyRow).toContainText('80%');
 
  await page.goto('/patients');
- await page.getByRole('button',{name:'تسجيل + زيارة'}).click();
+ await page.getByRole('button',{name:'تسجيل عميل وخدمة'}).click();
  form=page.locator('dialog');
  await form.getByLabel('اسم العميل').fill(patientName);
  await form.getByLabel('رقم الموبايل').fill('+200000000008');
@@ -67,23 +67,19 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await form.getByLabel('شركة التأمين').selectOption(insurer.id);
  await expect(form.getByLabel('شركة التأمين').locator('option:checked')).toContainText('العميل 20% · الشركة 80%');
  await form.getByLabel('الطبيب والتخصص').selectOption(doctor.id);
+ await form.getByLabel('الخدمة').selectOption(service.id);
  await form.getByLabel('مجموعة تجريبية (اختياري)').selectOption(batch.id);
  await form.getByLabel('تاريخ الزيارة').fill(today);
- await form.getByRole('button',{name:'تسجيل وفتح الزيارة'}).click();
+ await form.getByRole('button',{name:'تسجيل العميل والخدمة'}).click();
  await expect(form.getByRole('alert')).toContainText('الطبيب غير متاح');
  const {count:rolledBack}=await admin.from('patients').select('id',{count:'exact',head:true}).eq('name',patientName);
  expect(rolledBack).toBe(0);
  await form.getByLabel('تاريخ الزيارة').fill(tomorrow);
- await form.getByRole('button',{name:'تسجيل وفتح الزيارة'}).click();
+ await form.getByRole('button',{name:'تسجيل العميل والخدمة'}).click();
  await expect(page).toHaveURL(/\/visits\/[0-9a-f-]+$/);
  const visitId=new URL(page.url()).pathname.split('/').at(-1);
  await expect(page.getByText(/العميل يتحمل 20% · الشركة تغطي 80%/)).toBeVisible();
 
- await page.getByRole('button',{name:'إضافة خدمة'}).click();
- form=page.locator('dialog');
- await form.getByLabel('الخدمة').selectOption(service.id);
- await form.getByRole('button',{name:'إضافة الخدمة'}).click();
- await expect(form).toHaveCount(0);
  const charged=query(`select l.unit_price_minor,l.doctor_share_bps,pl.client_type_code from public.visit_lines l join public.price_list_versions pv on pv.id=l.list_version_id join public.price_lists pl on pl.id=pv.list_id where l.visit_id='${visitId}' and l.service_id='${service.id}';`)[0];
  expect(charged.client_type_code).toBe('family_care_cash');
  expect(charged.unit_price_minor).toBe(30000);expect(charged.doctor_share_bps).toBe(3333);

@@ -31,7 +31,11 @@ export default function Patients() {
  const patient=rows('patients').find(row=>row.id===id);
  const fields=patientFields(rows('client_types'),rows('insurance_companies'),rows('unions'),rows('specialties'),rows('demo_batches'));
  const quickFields:Field[]=[...fields.filter(field=>['name','phone_e164','client_type_code','insurer_id','union_id'].includes(field.key)),
-  {key:'doctor_id',label:'الطبيب والتخصص',type:'select',required:true,options:rows('doctors').filter(row=>row.active).map(row=>({value:row.id,label:`${text(row.name)} — ${name('specialties',row.specialty_id)}`}))},
+  {key:'doctor_id',label:'الطبيب والتخصص',type:'select',required:true,clearOnChange:['service_id'],options:rows('doctors').filter(row=>row.active).map(row=>({value:row.id,label:`${text(row.name)} — ${name('specialties',row.specialty_id)}`}))},
+  {key:'service_id',label:'الخدمة',type:'select',required:true,when:values=>Boolean(values.doctor_id),options:values=>{
+   const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
+   return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
+  }},
   {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true},
   ...(profile.role==='owner'?fields.filter(field=>field.key==='demo_batch_id'&&rows('demo_batches').some(row=>!row.archived_at)):[])];
  const codes=(patientId:string)=>rows('patient_specialty_codes').filter(row=>row.patient_id===patientId).map(row=>text(row.code)).join(' · ');
@@ -44,7 +48,7 @@ export default function Patients() {
  <Heading title={patient?text(patient.name):'ملفات العملاء'} detail={patient?`${text(patient.phone_e164)} · ${name('client_types',patient.client_type_code)}`:'بحث بالاسم أو رقم الموبايل أو كود التخصص'}>
    {id&&<Link className="button" to="/patients">كل العملاء</Link>}
    {patient&&profile.role!=='doctor'&&<button className="primary" onClick={()=>{setEditKey(crypto.randomUUID());setEditing(patient);}}>تعديل البيانات</button>}
-   {!patient&&profile.role!=='doctor'&&<><button className="primary" onClick={()=>setQuickKey(crypto.randomUUID())}>تسجيل + زيارة</button><button onClick={()=>{setEditKey(crypto.randomUUID());setEditing(null);}}>عميل فقط</button></>}
+   {!patient&&profile.role!=='doctor'&&<><button className="primary" onClick={()=>setQuickKey(crypto.randomUUID())}>تسجيل عميل وخدمة</button><button onClick={()=>{setEditKey(crypto.randomUUID());setEditing(null);}}>عميل فقط</button></>}
    {patient&&profile.role!=='doctor'&&<button onClick={()=>setBooking(patient)}>زيارة جديدة</button>}
  </Heading>
  {id&&!patient?<p className="empty">الملف غير موجود أو غير متاح لحسابك.</p>:patient?<>
@@ -71,12 +75,12 @@ export default function Patients() {
    if(!values.specialty_id)delete values.specialty_id;
    const result=await patientIntake({idempotency_key:editKey,patient:{...values,...(editing?{id:editing.id}:{})}});await refresh();setEditing(undefined);setEditKey(null);navigate(`/patients/${text(result.patient_id)}`);
  }}/></Dialog>}
- {quickKey&&<Dialog title="تسجيل عميل وفتح زيارة" close={()=>setQuickKey(null)}><div className="quick-intake"><Form fields={quickFields} initial={{client_type_code:'family_care_cash',visit_date:today()}} label="تسجيل وفتح الزيارة" submit={async values=>{
+ {quickKey&&<Dialog title="تسجيل عميل وزيارة وخدمة" close={()=>setQuickKey(null)}><div className="quick-intake"><Form fields={quickFields} initial={{client_type_code:'family_care_cash',visit_date:today()}} label="تسجيل العميل والخدمة" submit={async values=>{
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
    if(!doctor)throw new Error('اختار طبيباً نشطاً.');
    const patient:Record<string,unknown>={...values,specialty_id:doctor.specialty_id,insurer_id:values.client_type_code==='insurance_credit'?values.insurer_id:null,union_id:values.client_type_code==='syndicate_cash'?values.union_id:null};
-   for(const key of ['doctor_id','visit_date'])delete patient[key];
-   const result=await patientIntake({idempotency_key:quickKey,patient,visit:{doctor_id:values.doctor_id,visit_date:values.visit_date,location:'clinic'}});
+   for(const key of ['doctor_id','service_id','visit_date'])delete patient[key];
+   const result=await patientIntake({idempotency_key:quickKey,patient,visit:{doctor_id:values.doctor_id,visit_date:values.visit_date,location:'clinic'},service:{service_id:values.service_id}});
    await refresh();setQuickKey(null);navigate(`/visits/${text(result.visit_id)}`);
  }}/></div></Dialog>}
  {booking&&<VisitBooking patient={booking} close={()=>setBooking(null)}/>}

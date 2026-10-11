@@ -1,3 +1,4 @@
 *.pdf binary
 supabase/migrations/20261011200151_reception_intake_unions.sql text eol=lf
 supabase/migrations/20261011202819_insurance_family_care_base_price.sql text eol=lf
+supabase/migrations/20261011205815_intake_with_service.sql text eol=lf

@@ -13,6 +13,7 @@ const messages: Record<string,string> = {
  REVERSE_FINANCIAL_RECORDS_FIRST:'اعكس التحصيل والتسويات أولاً للحفاظ على الحسابات.',PRICE_LIST_INCOMPLETE:'القائمة لازم تشمل كل الخدمات النشطة.',
  IDEMPOTENCY_CONFLICT:'الطلب اتغير. افتح النموذج من جديد.',CAMPAIGN_SPECIALTY_REQUIRED:'اختار تخصص العرض في فلاتر الحملة.',
  UNION_REQUIRED:'اختار النقابة.',UNION_INACTIVE:'النقابة غير نشطة. اختار نقابة أخرى.',UNION_NOT_APPLICABLE:'النقابة متاحة لعميل النقابة فقط.',
+ SERVICE_REQUIRED:'اختار الخدمة.',
  };
 export function readableError(error: unknown): string {
  if (error instanceof Error && !('code' in error)) return error.message;
