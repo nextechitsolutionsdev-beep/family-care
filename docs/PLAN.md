@@ -6,7 +6,7 @@
 - [x] Save customer, visit and selected service atomically with the existing idempotency key.
 - [x] Apply the forward-only migration and test successful and rejected intake against the development database.
 - [x] Verify desktop and phone screens, lint, typecheck and build.
-- [ ] Publish the tested change and verify the deployed build.
+- [x] Publish the tested change and verify the deployed build.
 
 ## Read and prepare
 
