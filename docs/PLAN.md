@@ -1,5 +1,9 @@
 # Delivery checklist
 
+- [x] Perform owner's explicitly requested data cleanup, retain only the admin login and preserve catalog/pricing/settings with a private local backup.
+- [x] Clarify doctor/reception account creation with email, owner-entered password and visibility toggle; verify without creating data after cleanup.
+- [ ] Publish the account form improvements and verify the live build.
+
 - [x] Allow additional services and quantities in both quick intake and returning-patient visit forms, with live totals and draft cancellation.
 - [x] Verify multi-service atomicity, idempotency, cancellation and desktop/phone E2E; 16 money/database tests and all six browser journeys passed after updating the doctor field selector.
 - [x] Publish the multi-service change and verify the live build `index-B9zO23lt.js`.

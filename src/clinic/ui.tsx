@@ -6,6 +6,7 @@ export function Form({fields,initial={},submit,label='حفظ',children}:{fields:
  const [values,setValues]=useState<Record<string,unknown>>(()=>Object.fromEntries(fields.map(field=>[field.key,
    field.blankInitially&&initial[field.key]==null?'':field.type==='money'||field.type==='percent'?decimal(initial[field.key]??0):initial[field.key]??(field.type==='checkbox'?false:field.type==='weekdays'?[]:'')])));
  const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+ const [visiblePasswords,setVisiblePasswords]=useState<Record<string,boolean>>({});
  return <form className="editor" onSubmit={event=>{event.preventDefault();setError('');setBusy(true);const normalized={...values};
    try {for(const field of fields) {
      if(field.when&&!field.when(values))continue;
@@ -22,7 +23,7 @@ export function Form({fields,initial={},submit,label='حفظ',children}:{fields:
        {field.type==='select'?<select id={id} required={field.required} value={text(values[field.key])} onChange={event=>set(event.target.value)}><option value="">اختار…</option>{(typeof field.options==='function'?field.options(values):field.options)?.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>:
         field.type==='textarea'?<textarea id={id} required={field.required} value={text(values[field.key])} onChange={event=>set(event.target.value)} rows={3}/>:
         field.type==='weekdays'?<fieldset className="days" id={id}><legend>الأيام المتاحة</legend>{[{day:'السبت',index:6},{day:'الأحد',index:0},{day:'الإثنين',index:1},{day:'الثلاثاء',index:2},{day:'الأربعاء',index:3},{day:'الخميس',index:4},{day:'الجمعة',index:5}].map(({day,index})=><label key={day}><input type="checkbox" checked={(values[field.key] as number[]).includes(index)} onChange={event=>set(event.target.checked?[...(values[field.key] as number[]),index]:(values[field.key] as number[]).filter(value=>value!==index))}/>{day}</label>)}</fieldset>:
-        <input id={id} type={field.type==='money'||field.type==='percent'?'text':field.type??'text'} inputMode={['money','percent'].includes(field.type??'')?'decimal':undefined} required={field.required} min={field.min} max={field.max} value={text(values[field.key])} onChange={event=>set(event.target.value)} autoComplete={field.type==='password'?'new-password':undefined}/>}
+        <><input id={id} type={field.type==='password'&&visiblePasswords[field.key]?'text':field.type==='money'||field.type==='percent'?'text':field.type??'text'} inputMode={['money','percent'].includes(field.type??'')?'decimal':undefined} required={field.required} min={field.min} max={field.max} value={text(values[field.key])} onChange={event=>set(event.target.value)} autoComplete={field.type==='password'?'new-password':undefined}/>{field.type==='password'&&<button type="button" aria-controls={id} aria-pressed={Boolean(visiblePasswords[field.key])} onClick={()=>setVisiblePasswords(current=>({...current,[field.key]:!current[field.key]}))}>{visiblePasswords[field.key]?'إخفاء كلمة المرور':'إظهار كلمة المرور'}</button>}</>}
        </>}{field.hint&&<small>{field.hint}</small>}
      </div>;
    })}
