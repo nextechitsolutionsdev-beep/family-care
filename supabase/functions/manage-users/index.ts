@@ -14,6 +14,7 @@ Deno.serve(async request=>{
  if(!profile?.active||profile.role!=='owner')return response({error:'ACCESS_DENIED'},403);
  let payload:Record<string,unknown>;
  try{payload=await request.json();}catch{return response({error:'INVALID_INPUT'},400);}
+ if(!payload||typeof payload!=='object'||Array.isArray(payload))return response({error:'INVALID_INPUT'},400);
  const actor=createClient(url,Deno.env.get('SUPABASE_ANON_KEY')!,{global:{headers:{Authorization:authorization}},auth:{persistSession:false,autoRefreshToken:false}});
  if(payload.action==='list') {
   const {data:profiles,error}=await admin.from('profiles').select('*');if(error)return response({error:'USER_LIST_FAILED'},500);

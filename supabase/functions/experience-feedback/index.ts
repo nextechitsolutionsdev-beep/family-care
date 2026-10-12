@@ -31,6 +31,7 @@ Deno.serve(async request=>{
  if(raw.length>8192)return result({error:'INVALID_INPUT'},413,headers);
  let payload:Record<string,unknown>;
  try{payload=JSON.parse(raw) as Record<string,unknown>;}catch{return result({error:'INVALID_INPUT'},400,headers);}
+ if(!payload||typeof payload!=='object'||Array.isArray(payload))return result({error:'INVALID_INPUT'},400,headers);
  if(typeof payload.token!=='string'||!/^[a-f0-9]{64}$/.test(payload.token))return result({error:'INVALID_INPUT'},400,headers);
 
  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(payload.token));
