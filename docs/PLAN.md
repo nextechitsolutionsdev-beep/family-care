@@ -2,7 +2,7 @@
 
 - [x] Calculate doctor entitlement from completed service prices after discount independently of collections; preserve stored rates and prevent double counting receipts.
 - [x] Verify full E2E and desktop/phone screens for doctor entitlement; 16 database/money tests and all six browser journeys passed (role label assertion updated and rerun).
-- [ ] Publish the doctor entitlement change and verify the live build.
+- [x] Publish the doctor entitlement change and verify the live build `index-zO3aOl_A.js`.
 
 - [x] Default new visit forms to today's Cairo date while allowing manual changes; verify without creating records.
 
