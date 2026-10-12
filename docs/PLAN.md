@@ -1,5 +1,9 @@
 # Delivery checklist
 
+- [x] Allow additional services and quantities in both quick intake and returning-patient visit forms, with live totals and draft cancellation.
+- [x] Verify multi-service atomicity, idempotency, cancellation and desktop/phone E2E; 16 money/database tests and all six browser journeys passed after updating the doctor field selector.
+- [ ] Publish the multi-service change and verify the live build.
+
 - [x] Calculate doctor entitlement from completed service prices after discount independently of collections; preserve stored rates and prevent double counting receipts.
 - [x] Verify full E2E and desktop/phone screens for doctor entitlement; 16 database/money tests and all six browser journeys passed (role label assertion updated and rerun).
 - [x] Publish the doctor entitlement change and verify the live build `index-zO3aOl_A.js`.

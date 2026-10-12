@@ -54,10 +54,15 @@ test('Authenticated clinic transactions and role isolation',async t=>{
    const unionPayer=query(`select id from public.insurance_companies where union_id='${unionId}';`)[0].id;
    const settlement=await rpc('insurance_settle',{insurer_id:unionPayer,amount_minor:24000,idempotency_key:randomUUID()});
    assert.ok(settlement.id);
-   const returningPayload={idempotency_key:randomUUID(),visit:{patient_id:first.data.patient_id,doctor_id:doctor,visit_date:today,location:'clinic',co_pay_bps:5000},service:{service_id:services['DEN-001']}};
+   const returningPayload={idempotency_key:randomUUID(),visit:{patient_id:first.data.patient_id,doctor_id:doctor,visit_date:today,location:'clinic',co_pay_bps:5000},service:{service_id:services['DEN-001']},additional_services:[{service_id:services['DEN-001'],quantity:2}]};
    const returning=await owner.rpc('clinic_visit_intake',{payload:returningPayload});assert.equal(returning.error,null);
    const second=query(`select co_pay_bps,co_pay_minor,covered_minor from public.visits where id='${returning.data.visit_id}';`)[0];
-   assert.deepEqual(second,{co_pay_bps:5000,co_pay_minor:15000,covered_minor:15000});
+   assert.deepEqual(second,{co_pay_bps:5000,co_pay_minor:45000,covered_minor:45000});
+   const retryMulti=await owner.rpc('clinic_visit_intake',{payload:returningPayload});assert.deepEqual(retryMulti.data,returning.data);
+   const extraLine=query(`select id from public.visit_lines where visit_id='${returning.data.visit_id}' and quantity=2;`)[0].id;
+   await rpc('line_remove',{id:extraLine});
+   assert.equal(query(`select total_minor from public.visits where id='${returning.data.visit_id}';`)[0].total_minor,30000);
+   const invalidExtra=await owner.rpc('clinic_visit_intake',{payload:{...returningPayload,idempotency_key:randomUUID(),additional_services:[{service_id:randomUUID()}]}});assert.ok(invalidExtra.error);
    assert.equal(query(`select co_pay_bps from public.visits where id='${first.data.visit_id}';`)[0].co_pay_bps,2000);
    const missingReturning=await owner.rpc('clinic_visit_intake',{payload:{...returningPayload,idempotency_key:randomUUID(),visit:{...returningPayload.visit,co_pay_bps:undefined}}});
    assert.match(missingReturning.error?.message??'',/COPAY_REQUIRED/);

@@ -12,6 +12,8 @@
 
 ## Financial and doctor rules
 
+- Quick intake and returning-patient visits accept a primary service and up to 29 additional service rows with quantities, saved atomically before the optional receipt. Additional rows use the selected visit doctor. Removing a draft service recalculates the visit; bundled lines are removed as one bundle. Posted/paid/completed visits retain their financial records and require the owner's existing audited full-visit reversal/correction flow rather than deleting a charged service.
+
 - Monetary amounts are integer piastres. Percentages are integer basis points (10000 = 100%). Round half-up once at the final share, then subtract to calculate the other share.
 - Doctor categories are dentist, percentage and renting, with Arabic labels exactly requested. Dentists default to no revenue share; optional share configuration works like percentage doctors. Per-service rates override the doctor's default. Renting doctors have configurable calendar-month rent by default, with custom start/end periods supported; no automatic prorating.
 - Starting 12/10/2026, the owner explicitly chose doctor entitlement on visit completion, based on each line's price after discounts and its stored percentage, independent of patient receipts and payer settlements. Round each line half-up to a piastre. Open and void visits contribute no entitlement. Completion time determines the statement period; old completed visits with no completion timestamp use their service date. Existing receipt/settlement allocations remain untouched as historical collection records. Rent due/paid stays separate. No doctor payout is implied by showing entitlement.

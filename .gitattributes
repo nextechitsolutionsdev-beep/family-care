@@ -4,3 +4,4 @@ supabase/migrations/20261011202819_insurance_family_care_base_price.sql text eol
 supabase/migrations/20261011205815_intake_with_service.sql text eol=lf
 supabase/migrations/20261012000801_visit_copay_payers.sql text eol=lf
 supabase/migrations/20261012183143_doctor_completed_service_earnings.sql text eol=lf
+supabase/migrations/20261012192243_intake_multiple_services.sql text eol=lf

@@ -4,6 +4,7 @@ import {command,patientIntake,visitIntake,text,date,label,today,percentLabel,typ
 import {useClinic,patientPaid} from './store';
 import {Badge,Dialog,Form,Heading,Table,type Field} from './ui';
 import {money,minor,percent,roundShare} from '../domain/money';
+import ExtraServices,{type SelectedService} from './ExtraServices';
 const covered=(type:unknown)=>type==='insurance_credit'||type==='syndicate_cash';
 const copayField:Field={key:'co_pay_bps',label:'نسبة تحمّل العميل من الكارنيه (%)',type:'percent',required:true,blankInitially:true,
  when:values=>covered(values.client_type_code),hint:'اكتب النسبة المكتوبة على الكارنيه لكل زيارة. مثال: 20 يعني العميل 20% والجهة 80%.'};
@@ -12,7 +13,7 @@ const paymentFields:Field[]=[
  {key:'method',label:'طريقة الدفع',type:'select',required:true,when:values=>Number(values.amount_minor)>0,
   options:[{value:'cash',label:'نقدي'},{value:'card',label:'بطاقة'},{value:'transfer',label:'تحويل'}]}
 ];
-function IntakePreview({values,clientType}:{values:Record<string,unknown>;clientType?:string}){
+function IntakePreview({values,clientType,extras=[]}:{values:Record<string,unknown>;clientType?:string;extras?:SelectedService[]}){
  const {rows}=useClinic();const type=clientType??text(values.client_type_code);
  if(!values.service_id)return null;
  const listType=covered(type)?'family_care_cash':type;
@@ -26,7 +27,9 @@ function IntakePreview({values,clientType}:{values:Record<string,unknown>;client
   const homeService=rows('services').find(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind==='home');
   const homePrice=values.location==='home'?rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===homeService?.id):null;
   if(values.location==='home'&&!homePrice)return <p className="notice wide">رسم الزيارة المنزلية غير متاح لهذا التاريخ. راجع قائمة الأسعار.</p>;
-  const total=BigInt(text(price.price_minor))+BigInt(text(homePrice?.price_minor||0));const patient=roundShare(total,bps);
+  let total=BigInt(text(price.price_minor))+BigInt(text(homePrice?.price_minor||0));
+  for(const item of extras){if(!item.service_id)continue;const extraPrice=rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===item.service_id);if(!extraPrice)return <p className="notice wide">سعر إحدى الخدمات غير متاح لهذا التاريخ.</p>;total+=BigInt(text(extraPrice.price_minor))*BigInt(item.quantity);}
+  const patient=roundShare(total,bps);
   const paid=minor(text(values.amount_minor||'0'));
   return <p className="notice wide">{values.location==='home'?'إجمالي الخدمة والزيارة المنزلية':'سعر الخدمة'} {money(total)} · العميل عليه {money(patient)} ({percentLabel(bps)}) · على الجهة {money(total-patient)} · المدفوع الآن {money(paid)} · المتبقي على العميل {money(patient-BigInt(paid))}</p>;
  }catch{return null;}
@@ -45,6 +48,7 @@ export function patientFields(types:Row[],insurers:Row[],unions:Row[],specialtie
 ];}
 export function VisitBooking({patient,close}:{patient:Row;close:()=>void}) {
  const {rows,refresh}=useClinic();const navigate=useNavigate();const [key]=useState(()=>crypto.randomUUID());
+ const [extras,setExtras]=useState<SelectedService[]>([]);
  return <Dialog title={`زيارة وخدمة — ${text(patient.name)}`} close={close}><Form initial={{visit_date:today(),location:'clinic',method:'cash',amount_minor:0}} fields={[
  {key:'doctor_id',label:'الطبيب',required:true,type:'select',clearOnChange:['service_id'],options:rows('doctors').filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'service_id',label:'الخدمة',type:'select',required:true,when:values=>Boolean(values.doctor_id),options:values=>{
@@ -57,10 +61,10 @@ export function VisitBooking({patient,close}:{patient:Row;close:()=>void}) {
  ]} submit={async values=>{
   const result=await visitIntake({idempotency_key:key,
    visit:{patient_id:patient.id,doctor_id:values.doctor_id,visit_date:values.visit_date,visit_time:values.visit_time,location:values.location,...(covered(patient.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
-   service:{service_id:values.service_id},
+   service:{service_id:values.service_id},additional_services:extras,
    ...(Number(values.amount_minor)>0?{payment:{amount_minor:values.amount_minor,method:values.method}}:{})});
   await refresh();close();navigate(`/visits/${text(result.visit_id)}`);
- }} label="تسجيل الزيارة والخدمة">{values=><IntakePreview values={values} clientType={text(patient.client_type_code)}/>}</Form></Dialog>;
+ }} label="تسجيل الزيارة والخدمة">{values=><><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras} clientType={text(patient.client_type_code)}/></>}</Form></Dialog>;
 }
 function BookingOnly({patient,close}:{patient:Row;close:()=>void}){
  const {rows,refresh}=useClinic();const navigate=useNavigate();
@@ -75,6 +79,7 @@ export default function Patients() {
  const {id}=useParams();const navigate=useNavigate();const {data,rows,name,profile,refresh}=useClinic();
  const [search,setSearch]=useState('');const [editing,setEditing]=useState<Row|null|undefined>();const [booking,setBooking]=useState<Row|null>(null);const [bookingOnly,setBookingOnly]=useState<Row|null>(null);
  const [quickKey,setQuickKey]=useState<string|null>(null);const [editKey,setEditKey]=useState<string|null>(null);
+ const [extras,setExtras]=useState<SelectedService[]>([]);
  const patient=rows('patients').find(row=>row.id===id);
  const fields=patientFields(rows('client_types'),rows('insurance_companies'),rows('unions'),rows('specialties'),rows('demo_batches'));
  const quickFields:Field[]=[...fields.filter(field=>['name','phone_e164','client_type_code','insurer_id','union_id'].includes(field.key)),
@@ -137,10 +142,10 @@ export default function Patients() {
    for(const key of ['doctor_id','service_id','visit_date','co_pay_bps','amount_minor','method'])delete patient[key];
    const result=await patientIntake({idempotency_key:quickKey,patient,
     visit:{doctor_id:values.doctor_id,visit_date:values.visit_date,location:'clinic',...(covered(values.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
-    service:{service_id:values.service_id},
+    service:{service_id:values.service_id},additional_services:extras,
     ...(Number(values.amount_minor)>0?{payment:{amount_minor:values.amount_minor,method:values.method}}:{})});
    await refresh();setQuickKey(null);navigate(`/visits/${text(result.visit_id)}`);
- }}>{values=><IntakePreview values={values}/>}</Form></div></Dialog>}
+ }}>{values=><><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras}/></>}</Form></div></Dialog>}
  {booking&&<VisitBooking patient={booking} close={()=>setBooking(null)}/>}
  {bookingOnly&&<BookingOnly patient={bookingOnly} close={()=>setBookingOnly(null)}/>}
  </>;
