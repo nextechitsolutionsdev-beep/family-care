@@ -86,6 +86,17 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  expect(charged.unit_price_minor).toBe(30000);expect(charged.doctor_share_bps).toBe(3333);
  const {data:split,error:splitError}=await admin.from('visits').select('total_minor,co_pay_minor,covered_minor,co_pay_bps').eq('id',visitId).single();
  expect(splitError).toBeNull();expect(split).toMatchObject({total_minor:30000,co_pay_minor:6000,covered_minor:24000,co_pay_bps:2000});
+ await page.goto('/insurance');
+ let accountRow=page.locator('.table-wrap').first().locator('tr').filter({hasText:insurerName});
+ await expect(accountRow).toContainText('إجمالي حصة الشركة: 240 جنيه');
+ await expect(accountRow).toContainText('240 جنيه');
+ await expect(accountRow).toContainText('0 جنيه');
+ await expect(accountRow.getByRole('button',{name:'تسوية'})).toBeDisabled();
+ await page.setViewportSize({width:390,height:844});
+ await expect(accountRow.getByRole('button',{name:/إجمالي حصة الشركة/})).toBeInViewport();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ await page.screenshot({path:'scratch/insurance-account-phone.png'});
+ await page.setViewportSize({width:1366,height:768});
 
  await page.goto('/doctors');
  await page.locator('tr').filter({hasText:doctorName}).getByRole('button',{name:'تعديل'}).click();
@@ -106,11 +117,15 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await form.getByRole('button',{name:'حفظ وإنهاء الزيارة'}).click();
  await expect(form).toHaveCount(0);
  await page.goto('/insurance');
- await page.locator('tr').filter({hasText:insurerName}).getByRole('button',{name:'تسوية'}).click();
+ accountRow=page.locator('.table-wrap').first().locator('tr').filter({hasText:insurerName});
+ await expect(accountRow).toContainText('إجمالي حصة الشركة: 240 جنيه');
+ await expect(accountRow.getByRole('button',{name:'تسوية'})).toBeEnabled();
+ await accountRow.getByRole('button',{name:'تسوية'}).click();
  form=page.locator('dialog');
  await form.getByLabel('المبلغ بالجنيه').fill('240');
  await form.getByRole('button',{name:'تسجيل التسوية'}).click();
  await expect(form).toHaveCount(0);
+ await expect(accountRow).toContainText('إجمالي حصة الشركة: 0 جنيه');
  const shares=query(`select (select coalesce(sum(a.doctor_share_minor),0) from public.payment_allocations a join public.payments p on p.id=a.payment_id where p.visit_id='${visitId}' and p.kind<>'refund') patient_share,(select coalesce(sum(a.doctor_share_minor),0) from public.settlement_allocations a join public.insurance_invoices i on i.id=a.invoice_id join public.insurance_settlements s on s.id=a.settlement_id where i.visit_id='${visitId}' and s.reverses_settlement_id is null) insurer_share;`)[0];
  expect(BigInt(shares.patient_share)).toBe(2000n);
  expect(BigInt(shares.insurer_share)).toBe(7999n);
