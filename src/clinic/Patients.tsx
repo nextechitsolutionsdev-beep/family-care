@@ -51,7 +51,7 @@ export function VisitBooking({patient,close}:{patient:Row;close:()=>void}) {
   const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
   return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
  }},
- {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true},{key:'visit_time',label:'الوقت',type:'time'},
+ {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true,hint:'اليوم تلقائيًا بتوقيت القاهرة؛ يمكنك تغيير التاريخ.'},{key:'visit_time',label:'الوقت',type:'time'},
  {key:'location',label:'مكان الزيارة',type:'select',required:true,options:[{value:'clinic',label:'العيادة'},{value:'home',label:'منزلية (+ 1,000 جنيه)'}]},
  {...copayField,when:()=>covered(patient.client_type_code)},...paymentFields
  ]} submit={async values=>{
@@ -66,7 +66,7 @@ function BookingOnly({patient,close}:{patient:Row;close:()=>void}){
  const {rows,refresh}=useClinic();const navigate=useNavigate();
  return <Dialog title={`حجز بدون خدمة — ${text(patient.name)}`} close={close}><Form initial={{visit_date:today(),location:'clinic'}} fields={[
   {key:'doctor_id',label:'الطبيب',required:true,type:'select',options:rows('doctors').filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
-  {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true},{key:'visit_time',label:'الوقت',type:'time'},
+  {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true,hint:'اليوم تلقائيًا بتوقيت القاهرة؛ يمكنك تغيير التاريخ.'},{key:'visit_time',label:'الوقت',type:'time'},
   {key:'location',label:'مكان الزيارة',type:'select',required:true,options:[{value:'clinic',label:'العيادة'},{value:'home',label:'منزلية (+ 1,000 جنيه)'}]},
   {...copayField,when:()=>covered(patient.client_type_code)}
  ]} submit={async values=>{const result=await command('visit_create',{...values,patient_id:patient.id,...(!covered(patient.client_type_code)?{co_pay_bps:undefined}:{})});await refresh();close();navigate(`/visits/${text(result.id)}`);}} label="حفظ الحجز"/></Dialog>;
@@ -83,7 +83,7 @@ export default function Patients() {
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
    return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
   }},
-  {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true},
+  {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true,hint:'اليوم تلقائيًا بتوقيت القاهرة؛ يمكنك تغيير التاريخ.'},
   copayField,...paymentFields,
   ...(profile.role==='owner'?fields.filter(field=>field.key==='demo_batch_id'&&rows('demo_batches').some(row=>!row.archived_at)):[])];
  const codes=(patientId:string)=>rows('patient_specialty_codes').filter(row=>row.patient_id===patientId).map(row=>text(row.code)).join(' · ');

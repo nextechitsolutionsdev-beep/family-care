@@ -1,5 +1,7 @@
 # Delivery checklist
 
+- [x] Default new visit forms to today's Cairo date while allowing manual changes; verify without creating records.
+
 - [x] Show pending payer visits with customer, services and payer shares before invoice issuance; verify transition on completion.
 
 ## Payer account visibility

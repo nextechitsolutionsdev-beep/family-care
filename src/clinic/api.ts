@@ -51,7 +51,11 @@ export async function all(table: string): Promise<Row[]> {
  }
 }
 export const text=(value: unknown)=>String(value??'');
-export const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
+export const today=()=>{
+ const parts=new Intl.DateTimeFormat('en',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit',numberingSystem:'latn'}).formatToParts(new Date());
+ const value=(type:string)=>parts.find(part=>part.type===type)?.value;
+ return `${value('year')}-${value('month')}-${value('day')}`;
+};
 export const date=(value: unknown)=>{
  const raw=text(value);
  if(/^\d{4}-\d\d-\d\d$/.test(raw))return raw.split('-').reverse().join('/');
