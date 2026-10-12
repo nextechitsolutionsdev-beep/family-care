@@ -22,7 +22,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  expect(batchError).toBeNull();
  const {data:dental,error:dentalError}=await admin.from('specialties').select('id').eq('client_prefix','DEN').single();
  expect(dentalError).toBeNull();
- const {data:service,error:serviceError}=await admin.from('services').select('id').eq('seed_code','DEN-001').single();
+ const {data:service,error:serviceError}=await admin.from('services').select('id,name').eq('seed_code','DEN-001').single();
  expect(serviceError).toBeNull();
  await page.goto('/');
  await page.getByLabel('البريد الإلكتروني').fill(env.OWNER_EMAIL);
@@ -92,6 +92,10 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await expect(accountRow).toContainText('240 جنيه');
  await expect(accountRow).toContainText('0 جنيه');
  await expect(accountRow.getByRole('button',{name:'تسوية'})).toBeDisabled();
+ let pendingRow=page.locator('.table-wrap').nth(1).locator('tr').filter({hasText:patientName});
+ await expect(pendingRow).toContainText(insurerName);
+ await expect(pendingRow).toContainText(service.name);
+ await expect(pendingRow).toContainText('على الجهة 240 جنيه');
  await page.setViewportSize({width:390,height:844});
  await expect(accountRow.getByRole('button',{name:/إجمالي حصة الشركة/})).toBeInViewport();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
@@ -120,6 +124,8 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  accountRow=page.locator('.table-wrap').first().locator('tr').filter({hasText:insurerName});
  await expect(accountRow).toContainText('إجمالي حصة الشركة: 240 جنيه');
  await expect(accountRow.getByRole('button',{name:'تسوية'})).toBeEnabled();
+ pendingRow=page.locator('.table-wrap').nth(1).locator('tr').filter({hasText:patientName});
+ await expect(pendingRow).toHaveCount(0);
  await accountRow.getByRole('button',{name:'تسوية'}).click();
  form=page.locator('dialog');
  await form.getByLabel('المبلغ بالجنيه').fill('240');

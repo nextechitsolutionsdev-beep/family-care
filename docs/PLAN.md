@@ -1,5 +1,7 @@
 # Delivery checklist
 
+- [x] Show pending payer visits with customer, services and payer shares before invoice issuance; verify transition on completion.
+
 ## Payer account visibility
 
 - [x] Show each insurer and union's total share prominently, including covered open visits and outstanding invoices.
