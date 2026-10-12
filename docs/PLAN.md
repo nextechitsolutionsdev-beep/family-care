@@ -7,7 +7,7 @@
 - [x] Show a price and share preview, optional immediate receipt, and visit balances in reception views.
 - [x] Keep a booking-only path for returning patients and record payer contact details for the owner.
 - [x] Verify database and desktop/phone E2E, lint, typecheck, build and migration checksum.
-- [ ] Publish the tested change and verify the deployed build.
+- [x] Publish the tested change and verify the deployed build.
 
 ## Reception intake with service
 
