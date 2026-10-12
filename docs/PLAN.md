@@ -5,7 +5,7 @@
 - [x] Show each insurer and union's total share prominently, including covered open visits and outstanding invoices.
 - [x] Separate open-visit share from invoiced debt and settlements; keep settlement limited to issued invoices.
 - [x] Verify the existing insurer's real balance, desktop/phone rendering, and browser accounting flow.
-- [ ] Publish the verified screen and check the live build.
+- [x] Publish the verified screen and check the live build.
 
 ## Card percentage at reception
 
