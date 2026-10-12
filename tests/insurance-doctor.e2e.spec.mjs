@@ -36,7 +36,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await form.getByLabel('اسم الطبيب').fill(doctorName);
  await form.getByLabel('التخصص').selectOption(dental.id);
  await form.getByLabel('الفئة').selectOption('percentage');
- await form.getByLabel('النسبة من التحصيل (%)').fill('33.33');
+ await form.getByLabel('النسبة من قيمة الخدمة (%)').fill('33.33');
  await form.getByRole('checkbox',{name:dayNames[tomorrowDate.getUTCDay()]}).check();
  await form.getByRole('button',{name:'حفظ'}).click();
  await expect(form).toHaveCount(0);
@@ -105,7 +105,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await page.goto('/doctors');
  await page.locator('tr').filter({hasText:doctorName}).getByRole('button',{name:'تعديل'}).click();
  form=page.locator('dialog');
- await form.getByLabel('النسبة من التحصيل (%)').fill('50');
+ await form.getByLabel('النسبة من قيمة الخدمة (%)').fill('50');
  await form.getByRole('button',{name:'حفظ'}).click();
  await expect(form).toHaveCount(0);
  await page.goto(`/visits/${visitId}`);

@@ -149,13 +149,20 @@ test('Authenticated clinic transactions and role isolation',async t=>{
    await rpc('follow_up_status',{id:follow,status:'rescheduled',due_date:'2026-12-01'});
    await rpc('run_jobs',{});assert.equal(query(`select status from public.follow_ups where id='${follow}';`)[0].status,'rescheduled');
  });
- await t.test('doctor statement uses collected shares and rent tracks due versus paid',async()=>{
+ await t.test('doctor earns on completion regardless of receipts and rent tracks due versus paid',async()=>{
    const before=await owner.rpc('doctor_statement',{doctor,starts:today,ends:today});assert.equal(before.error,null);
    const visit=await makeVisit();await add(visit,'DEN-001');
-   await rpc('payment',{visit_id:visit,amount_minor:10000,method:'cash',idempotency_key:randomUUID()});
+   const opened=await owner.rpc('doctor_statement',{doctor,starts:today,ends:today});assert.equal(opened.error,null);
+   assert.equal(BigInt(opened.data.doctor_share_minor),BigInt(before.data.doctor_share_minor));
+   await rpc('visit_complete',{visit_id:visit});
    const after=await owner.rpc('doctor_statement',{doctor,starts:today,ends:today});assert.equal(after.error,null);
-   assert.equal(BigInt(after.data.doctor_share_minor)-BigInt(before.data.doctor_share_minor),3333n);
-   assert.equal(BigInt(after.data.collected_minor)-BigInt(before.data.collected_minor),10000n);
+   assert.equal(BigInt(after.data.doctor_share_minor)-BigInt(before.data.doctor_share_minor),9999n);
+   assert.equal(BigInt(after.data.collected_minor)-BigInt(before.data.collected_minor),0n);
+   await rpc('payment',{visit_id:visit,amount_minor:10000,method:'cash',idempotency_key:randomUUID()});
+   await rpc('visit_complete',{visit_id:visit});
+   const paid=await owner.rpc('doctor_statement',{doctor,starts:today,ends:today});assert.equal(paid.error,null);
+   assert.equal(BigInt(paid.data.doctor_share_minor),BigInt(after.data.doctor_share_minor));
+   assert.equal(BigInt(paid.data.collected_minor)-BigInt(before.data.collected_minor),10000n);
    const tenant=(await rpc('doctor_save',{name:`طبيب مستأجر تجريبي ${batch.slice(0,8)}`,specialty_id:specialty,category:'renting',default_share_bps:0})).id;
    await tag('doctors',tenant);
    await rpc('rent_contract',{doctor_id:tenant,amount_minor:10001,period:'monthly',starts_on:today,room_label:'غرفة اختبار'});

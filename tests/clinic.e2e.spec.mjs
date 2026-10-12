@@ -38,7 +38,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await form.getByLabel('اسم الطبيب').fill(`طبيب واجهة تجريبي ${suffix}`);
  await form.getByLabel('التخصص').selectOption(dental.id);
  await form.getByLabel('الفئة').selectOption('percentage');
- await form.getByLabel('النسبة من التحصيل (%)').fill('30');
+ await form.getByLabel('النسبة من قيمة الخدمة (%)').fill('30');
  await form.getByRole('button',{name:'حفظ'}).click();
  await expect(form).toHaveCount(0);
  const {data:createdDoctor,error:doctorError}=await admin.from('doctors').select('id,name').eq('name',`طبيب واجهة تجريبي ${suffix}`).single();

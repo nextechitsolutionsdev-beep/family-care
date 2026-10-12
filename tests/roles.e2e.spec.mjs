@@ -38,7 +38,7 @@ test('doctor sees assigned patient and cannot open owner pages',async({page})=>{
  await page.getByRole('link',{name:'حسابي'}).click();
  await expect(page.getByRole('heading',{name:'حسابي'})).toBeVisible();
  await page.getByRole('button',{name:'عرض الحساب'}).click();
- await expect(page.getByText('الخدمات المفوترة')).toBeVisible();
+ await expect(page.getByText('الخدمات المنفذة')).toBeVisible();
  await page.goto('/insurance');
  await expect(page).toHaveURL('/');
  await page.goto('/experience');
