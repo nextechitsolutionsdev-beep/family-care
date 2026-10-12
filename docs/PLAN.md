@@ -1,5 +1,13 @@
 # Delivery checklist
 
+## QA audit — 13/10/2026
+
+- [x] Map existing routes, roles, RPCs and dependencies; verify authorized target and clean Git baseline.
+- [x] Establish lint/typecheck/build and real database baseline (16 tests passed).
+- [x] Run existing browser regression after installing its missing Chromium executable.
+- [x] Verify cross-page financial and patient propagation, error handling, role security and responsive interactions.
+- [x] Reproduce/fix confirmed defects, add regression tests, and complete final validation and audit report (`docs/qa-audit-report.md`); retain its explicitly documented coverage limits.
+
 - [x] Perform owner's explicitly requested data cleanup, retain only the admin login and preserve catalog/pricing/settings with a private local backup.
 - [x] Clarify doctor/reception account creation with email, owner-entered password and visibility toggle; verify without creating data after cleanup.
 - [x] Publish the account form improvements and verify the live build `index-CYQ2a7eH.js`.

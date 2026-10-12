@@ -1,5 +1,11 @@
 # Assumptions and owner review
 
+## QA decisions — 13/10/2026
+
+- A financially void visit keeps its original charged-price/co-pay snapshots for audit but has zero outstanding patient balance in the visit, client history and Today. Cancelling an appointment alone does not void its financial visit or erase debt.
+- Changing a doctor statement's period clears the previously displayed/exportable statement; fetch again with the explicit account button. Filters are disabled during retrieval so a response cannot be shown under a different selected period.
+- QA uses synthetic records in the previously authorized development project only. Generated screenshots/traces are local artifacts; preserve the tracked user-guide screenshots. No automatic realtime guarantee is introduced: mutations and explicit refresh/reload are the supported synchronization points.
+
 ## Prices to confirm
 
 - Seed `اول ساعة` at 3500 جنيه and `ثاني ساعة` at 300 جنيه exactly as provided, both requiring a booking deposit. The second-hour price looks unusual and needs review.
@@ -36,5 +42,7 @@
 - Mock provider persists a simulated result only. It never sends SMS/WhatsApp and never logs patient names, phones, clinical text or message content to application/console logs. An actual provider needs a chosen vendor/channel, server credentials, approved sender/template setup and webhook verification.
 - Test/demo clients use visibly fictional Arabic names and reserved invalid mobile values rather than reachable Egyptian numbers. Production clients must pass Egyptian phone validation. Demo seeding is labelled and isolated; its removal command archives only the identified demo dataset, never existing real records.
 - UI acceptance tests may create a specialty and service and then deactivate them; retain the inactive catalog rows and all financial reversal records for audit rather than deleting history. Health checks count the 43 seeded services separately from later custom services.
+- QA fixtures explicitly tag a union's insurance payer with its demo batch; archive follows that ownership and retains all financial history. CSV acceptance creates its own receipt and does not depend on existing operational records.
+- Concurrent workspace development requires an isolated copied build and separate Playwright artifact directory. Use an already permitted local origin (127.0.0.1:3001), without expanding Edge Function CORS merely for a test runner.
 
 - المصروفات مبالغ مدفوعة فعلياً وليست التزامات مستقبلية: الاستقبال يسجل ويرى عملياته فقط، المالك يرى الإجمالي والتفصيل ويلغي بسبب محفوظ. لا تؤثر المصروفات على مستحق الطبيب؛ تخصم مستقلة في التقرير. لا يسمح بتاريخ مستقبلي، والمبلغ بالقروش، وإعادة المحاولة لا تكرر السجل.
