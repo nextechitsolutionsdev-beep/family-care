@@ -49,14 +49,14 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await page.getByRole('button',{name:'إضافة شركة تأمين'}).click();
  form=page.locator('dialog');
  await form.getByLabel('اسم الشركة').fill(insurerName);
- await form.getByLabel('نسبة تحمل العميل (%)').fill('20');
+ await form.getByLabel('بيانات التواصل').fill('رقم اختبار داخلي');
  await form.getByRole('button',{name:'حفظ'}).click();
  await expect(form).toHaveCount(0);
- const {data:insurer,error:insurerError}=await admin.from('insurance_companies').select('id,co_pay_bps').eq('name',insurerName).single();
- expect(insurerError).toBeNull();expect(insurer.co_pay_bps).toBe(2000);
+ const {data:insurer,error:insurerError}=await admin.from('insurance_companies').select('id,contact').eq('name',insurerName).single();
+ expect(insurerError).toBeNull();expect(insurer.contact).toBe('رقم اختبار داخلي');
  expect((await admin.from('insurance_companies').update({demo_batch_id:batch.id}).eq('id',insurer.id)).error).toBeNull();
  const companyRow=page.locator('tr').filter({hasText:insurerName});
- await expect(companyRow).toContainText('20%');await expect(companyRow).toContainText('80%');
+ await expect(companyRow).toContainText('رقم اختبار داخلي');
 
  await page.goto('/patients');
  await page.getByRole('button',{name:'تسجيل عميل وخدمة'}).click();
@@ -65,9 +65,10 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await form.getByLabel('رقم الموبايل').fill('+200000000008');
  await form.getByLabel('نوع العميل').selectOption('insurance_credit');
  await form.getByLabel('شركة التأمين').selectOption(insurer.id);
- await expect(form.getByLabel('شركة التأمين').locator('option:checked')).toContainText('العميل 20% · الشركة 80%');
+ await form.getByLabel('نسبة تحمّل العميل من الكارنيه (%)').fill('20');
  await form.getByLabel('الطبيب والتخصص').selectOption(doctor.id);
  await form.getByLabel('الخدمة').selectOption(service.id);
+ await expect(form.getByText(/العميل عليه 60 جنيه.*على الجهة 240 جنيه/)).toBeVisible();
  await form.getByLabel('مجموعة تجريبية (اختياري)').selectOption(batch.id);
  await form.getByLabel('تاريخ الزيارة').fill(today);
  await form.getByRole('button',{name:'تسجيل العميل والخدمة'}).click();
@@ -78,7 +79,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await form.getByRole('button',{name:'تسجيل العميل والخدمة'}).click();
  await expect(page).toHaveURL(/\/visits\/[0-9a-f-]+$/);
  const visitId=new URL(page.url()).pathname.split('/').at(-1);
- await expect(page.getByText(/العميل يتحمل 20% · الشركة تغطي 80%/)).toBeVisible();
+ await expect(page.getByText(/العميل يتحمل 20% · الجهة تغطي 80%/)).toBeVisible();
 
  const charged=query(`select l.unit_price_minor,l.doctor_share_bps,pl.client_type_code from public.visit_lines l join public.price_list_versions pv on pv.id=l.list_version_id join public.price_lists pl on pl.id=pv.list_id where l.visit_id='${visitId}' and l.service_id='${service.id}';`)[0];
  expect(charged.client_type_code).toBe('family_care_cash');

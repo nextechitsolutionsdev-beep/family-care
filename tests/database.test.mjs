@@ -25,10 +25,10 @@ test('Authenticated clinic transactions and role isolation',async t=>{
  const tag=async(table,id)=>assert.equal((await admin.from(table).update({demo_batch_id:batch}).eq('id',id)).error,null);
  doctor=(await rpc('doctor_save',{name:'طبيب تجريبي أول',specialty_id:specialty,category:'percentage',default_share_bps:3333})).id;
  secondDoctor=(await rpc('doctor_save',{name:'طبيب تجريبي ثان',specialty_id:specialty,category:'dentist',default_share_bps:0})).id;
- insurer=(await rpc('insurer_save',{name:`شركة اختبار ${batch.slice(0,8)}`,co_pay_bps:2000})).id;
+ insurer=(await rpc('insurer_save',{name:`شركة اختبار ${batch.slice(0,8)}`,contact:'اختبار تواصل',notes:'اختبار جهة'})).id;
  await tag('doctors',doctor);await tag('doctors',secondDoctor);await tag('insurance_companies',insurer);
  patient=(await rpc('patient_save',{name:'عميل تجريبي واضح',phone_e164:'+200000000001',client_type_code:'family_care_cash',specialty_id:specialty,demo_batch_id:batch,marketing_consent:true,transactional_consent:true,birth_date:'2000-10-07'})).id;
- const makeVisit=async (patient_id=patient)=>(await rpc('visit_create',{patient_id,doctor_id:doctor,visit_date:today,location:'clinic'})).id;
+ const makeVisit=async (patient_id=patient,co_pay_bps)=>(await rpc('visit_create',{patient_id,doctor_id:doctor,visit_date:today,location:'clinic',...(co_pay_bps===undefined?{}:{co_pay_bps})})).id;
  const add=async(visit,service,extras={})=>rpc('line_add',{visit_id:visit,service_id:services[service],doctor_id:doctor,...extras});
  await t.test('union intake is atomic, scoped and idempotent',async()=>{
    const unionName=`نقابة اختبار ${batch.slice(0,8)}`;
@@ -36,7 +36,7 @@ test('Authenticated clinic transactions and role isolation',async t=>{
    assert.equal(savedUnion.error,null);
    const unionId=savedUnion.data.id;
    const key=randomUUID();
-   const payload={idempotency_key:key,patient:{name:'عميل نقابة تجريبي',phone_e164:'+200000000005',client_type_code:'syndicate_cash',union_id:unionId,demo_batch_id:batch,specialty_id:specialty},visit:{doctor_id:doctor,visit_date:today,location:'clinic'},service:{service_id:services['DEN-001']}};
+   const payload={idempotency_key:key,patient:{name:'عميل نقابة تجريبي',phone_e164:'+200000000005',client_type_code:'syndicate_cash',union_id:unionId,demo_batch_id:batch,specialty_id:specialty},visit:{doctor_id:doctor,visit_date:today,location:'clinic',co_pay_bps:2000},service:{service_id:services['DEN-001']},payment:{amount_minor:6000,method:'cash'}};
    const first=await owner.rpc('clinic_patient_intake',{payload});assert.equal(first.error,null);
    const retry=await owner.rpc('clinic_patient_intake',{payload});assert.equal(retry.error,null);assert.deepEqual(retry.data,first.data);
    const saved=query(`select p.union_id patient_union,v.union_id visit_union from public.patients p join public.visits v on v.patient_id=p.id where p.id='${first.data.patient_id}';`)[0];
@@ -44,6 +44,23 @@ test('Authenticated clinic transactions and role isolation',async t=>{
    const charged=query(`select service_id from public.visit_lines where visit_id='${first.data.visit_id}';`);
    assert.deepEqual(charged,[{service_id:services['DEN-001']}]);
    assert.equal(first.data.line_id!==null,true);
+   const syndicate=query(`select v.total_minor,v.co_pay_minor,v.covered_minor,v.co_pay_bps,i.payer_kind,i.union_id from public.visits v join public.insurance_companies i on i.id=v.insurer_id where v.id='${first.data.visit_id}';`)[0];
+   assert.deepEqual(syndicate,{total_minor:30000,co_pay_minor:6000,covered_minor:24000,co_pay_bps:2000,payer_kind:'union',union_id:unionId});
+   assert.equal(query(`select private.patient_paid('${first.data.visit_id}') paid;`)[0].paid,6000);
+   assert.ok(first.data.payment_id);
+   await rpc('visit_complete',{visit_id:first.data.visit_id,diagnosis:'تشخيص تجريبي'});
+   const unionInvoice=query(`select billed_minor from public.insurance_invoices where visit_id='${first.data.visit_id}';`)[0];
+   assert.equal(unionInvoice.billed_minor,24000);
+   const unionPayer=query(`select id from public.insurance_companies where union_id='${unionId}';`)[0].id;
+   const settlement=await rpc('insurance_settle',{insurer_id:unionPayer,amount_minor:24000,idempotency_key:randomUUID()});
+   assert.ok(settlement.id);
+   const returningPayload={idempotency_key:randomUUID(),visit:{patient_id:first.data.patient_id,doctor_id:doctor,visit_date:today,location:'clinic',co_pay_bps:5000},service:{service_id:services['DEN-001']}};
+   const returning=await owner.rpc('clinic_visit_intake',{payload:returningPayload});assert.equal(returning.error,null);
+   const second=query(`select co_pay_bps,co_pay_minor,covered_minor from public.visits where id='${returning.data.visit_id}';`)[0];
+   assert.deepEqual(second,{co_pay_bps:5000,co_pay_minor:15000,covered_minor:15000});
+   assert.equal(query(`select co_pay_bps from public.visits where id='${first.data.visit_id}';`)[0].co_pay_bps,2000);
+   const missingReturning=await owner.rpc('clinic_visit_intake',{payload:{...returningPayload,idempotency_key:randomUUID(),visit:{...returningPayload.visit,co_pay_bps:undefined}}});
+   assert.match(missingReturning.error?.message??'',/COPAY_REQUIRED/);
    const invalidName=`عميل حجز مرفوض ${batch.slice(0,8)}`;
    const invalid={...payload,idempotency_key:randomUUID(),patient:{...payload.patient,name:invalidName,phone_e164:'+200000000006'},visit:{...payload.visit,doctor_id:randomUUID()}};
    const failed=await owner.rpc('clinic_patient_intake',{payload:invalid});assert.ok(failed.error);
@@ -52,6 +69,8 @@ test('Authenticated clinic transactions and role isolation',async t=>{
    const wrongService={...payload,idempotency_key:randomUUID(),patient:{...payload.patient,name:wrongServiceName,phone_e164:'+200000000009'},service:{service_id:randomUUID()}};
    const rejectedService=await owner.rpc('clinic_patient_intake',{payload:wrongService});assert.ok(rejectedService.error);
    assert.equal(query(`select count(*) n from public.patients where name='${wrongServiceName}';`)[0].n,0);
+   const missingRate=await owner.rpc('clinic_patient_intake',{payload:{...payload,idempotency_key:randomUUID(),patient:{...payload.patient,name:`عميل بدون نسبة ${batch.slice(0,8)}`},visit:{...payload.visit,co_pay_bps:undefined}}});
+   assert.match(missingRate.error?.message??'',/COPAY_REQUIRED/);
    const missing=await owner.rpc('clinic_patient_intake',{payload:{...payload,idempotency_key:randomUUID(),patient:{...payload.patient,union_id:null}}});
    assert.match(missing.error?.message??'',/UNION_REQUIRED/);
    const anonymousUnion=await anonymous.from('unions').select('id');assert.ok(anonymousUnion.error||anonymousUnion.data.length===0);
@@ -85,8 +104,9 @@ test('Authenticated clinic transactions and role isolation',async t=>{
  });
  await t.test('insurance allocation and actual doctor collections',async()=>{
    const credit=(await rpc('patient_save',{name:'عميل تأمين تجريبي',phone_e164:'+200000000002',client_type_code:'insurance_credit',insurer_id:insurer,specialty_id:specialty,demo_batch_id:batch})).id;
-   const visit=await makeVisit(credit);
-   await rpc('insurer_save',{id:insurer,name:`شركة اختبار ${batch.slice(0,8)}`,co_pay_bps:3000,active:true});
+   await assert.rejects(makeVisit(credit),/COPAY_REQUIRED/);
+   const visit=await makeVisit(credit,2000);
+   await rpc('insurer_save',{id:insurer,name:`شركة اختبار ${batch.slice(0,8)}`,contact:'محدّث',notes:'ملاحظات',active:true});
    await add(visit,'DEN-001');await add(visit,'DEN-002');
    const v=query(`select total_minor,co_pay_minor,covered_minor from public.visits where id='${visit}';`)[0];assert.deepEqual(v,{total_minor:40000,co_pay_minor:8000,covered_minor:32000});
    assert.equal(query(`select co_pay_bps from public.visits where id='${visit}';`)[0].co_pay_bps,2000);

@@ -1,13 +1,14 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {text,readableError,type Row} from './api';
 import {minor,percent,decimal} from '../domain/money';
-export type Field={key:string;label:string;type?:'text'|'email'|'password'|'date'|'time'|'number'|'money'|'percent'|'checkbox'|'textarea'|'select'|'weekdays';required?:boolean;options?:{value:string;label:string}[]|((values:Record<string,unknown>)=>{value:string;label:string}[]);when?:(values:Record<string,unknown>)=>boolean;clearOnChange?:string[];hint?:string;min?:number;max?:number};
-export function Form({fields,initial={},submit,label='حفظ',children}:{fields:Field[];initial?:Record<string,unknown>;submit:(values:Record<string,unknown>)=>Promise<void>;label?:string;children?:ReactNode}) {
+export type Field={key:string;label:string;type?:'text'|'email'|'password'|'date'|'time'|'number'|'money'|'percent'|'checkbox'|'textarea'|'select'|'weekdays';required?:boolean;options?:{value:string;label:string}[]|((values:Record<string,unknown>)=>{value:string;label:string}[]);when?:(values:Record<string,unknown>)=>boolean;clearOnChange?:string[];blankInitially?:boolean;hint?:string;min?:number;max?:number};
+export function Form({fields,initial={},submit,label='حفظ',children}:{fields:Field[];initial?:Record<string,unknown>;submit:(values:Record<string,unknown>)=>Promise<void>;label?:string;children?:ReactNode|((values:Record<string,unknown>)=>ReactNode)}) {
  const [values,setValues]=useState<Record<string,unknown>>(()=>Object.fromEntries(fields.map(field=>[field.key,
-   field.type==='money'||field.type==='percent'?decimal(initial[field.key]??0):initial[field.key]??(field.type==='checkbox'?false:field.type==='weekdays'?[]:'')])));
+   field.blankInitially&&initial[field.key]==null?'':field.type==='money'||field.type==='percent'?decimal(initial[field.key]??0):initial[field.key]??(field.type==='checkbox'?false:field.type==='weekdays'?[]:'')])));
  const [busy,setBusy]=useState(false);const [error,setError]=useState('');
  return <form className="editor" onSubmit={event=>{event.preventDefault();setError('');setBusy(true);const normalized={...values};
    try {for(const field of fields) {
+     if(field.when&&!field.when(values))continue;
      if(field.type==='money')normalized[field.key]=minor(text(values[field.key]));
      if(field.type==='percent')normalized[field.key]=percent(text(values[field.key]));
      if(field.type==='number')normalized[field.key]=values[field.key]===''?null:Number(values[field.key]);
@@ -25,7 +26,7 @@ export function Form({fields,initial={},submit,label='حفظ',children}:{fields:
        </>}{field.hint&&<small>{field.hint}</small>}
      </div>;
    })}
-   {children}{error&&<p className="error wide" role="alert">{error}</p>}<div className="form-actions wide"><button className="primary" disabled={busy} type="submit">{busy?'جارٍ الحفظ…':label}</button></div>
+   {typeof children==='function'?children(values):children}{error&&<p className="error wide" role="alert">{error}</p>}<div className="form-actions wide"><button className="primary" disabled={busy} type="submit">{busy?'جارٍ الحفظ…':label}</button></div>
  </form>;
 }
 export function Dialog({title,close,children}:{title:string;close:()=>void;children:ReactNode}) {

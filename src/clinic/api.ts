@@ -14,6 +14,7 @@ const messages: Record<string,string> = {
  IDEMPOTENCY_CONFLICT:'الطلب اتغير. افتح النموذج من جديد.',CAMPAIGN_SPECIALTY_REQUIRED:'اختار تخصص العرض في فلاتر الحملة.',
  UNION_REQUIRED:'اختار النقابة.',UNION_INACTIVE:'النقابة غير نشطة. اختار نقابة أخرى.',UNION_NOT_APPLICABLE:'النقابة متاحة لعميل النقابة فقط.',
  SERVICE_REQUIRED:'اختار الخدمة.',
+ COPAY_REQUIRED:'اكتب نسبة تحمّل العميل من الكارنيه قبل فتح الزيارة.',INVALID_COPAY:'النسبة لازم تكون من 0 إلى 100%.',COPAY_NOT_APPLICABLE:'نسبة التحمل متاحة للنقابة أو التأمين فقط.',
  };
 export function readableError(error: unknown): string {
  if (error instanceof Error && !('code' in error)) return error.message;
@@ -32,6 +33,11 @@ export async function command(action: string,payload: Record<string,unknown>): P
 }
 export async function patientIntake(payload: Record<string,unknown>): Promise<Record<string,unknown>> {
  const {data,error}=await db.rpc('clinic_patient_intake',{payload});
+ if(error) throw error;
+ return data as Record<string,unknown>;
+}
+export async function visitIntake(payload: Record<string,unknown>): Promise<Record<string,unknown>> {
+ const {data,error}=await db.rpc('clinic_visit_intake',{payload});
  if(error) throw error;
  return data as Record<string,unknown>;
 }

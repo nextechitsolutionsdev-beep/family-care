@@ -49,6 +49,9 @@ test('owner configures a union and reception intake opens one visit on desktop a
  const {data:service,error:serviceError}=await admin.from('services').select('id').eq('seed_code','DEN-001').single();
  expect(serviceError).toBeNull();
  await form.getByLabel('الخدمة').selectOption(service.id);
+ await form.getByLabel('نسبة تحمّل العميل من الكارنيه (%)').fill('20');
+ await form.getByLabel('المدفوع الآن بالجنيه (اختياري)').fill('60');
+ await expect(form.getByText(/العميل عليه 60 جنيه.*على الجهة 240 جنيه.*المدفوع الآن 60 جنيه/)).toBeVisible();
  await form.getByLabel('تاريخ الزيارة').fill(today);
  await form.getByLabel('مجموعة تجريبية (اختياري)').selectOption(batch.id);
  await page.screenshot({path:'docs/review/intake-desktop.jpg',type:'jpeg'});
@@ -58,8 +61,10 @@ test('owner configures a union and reception intake opens one visit on desktop a
  await form.getByRole('button',{name:'تسجيل العميل والخدمة'}).click();
  await expect(page).toHaveURL(/\/visits\/[0-9a-f-]+$/);
  const visitId=new URL(page.url()).pathname.split('/').at(-1);
- const {data:visit,error:visitError}=await admin.from('visits').select('patient_id,union_id').eq('id',visitId).single();
- expect(visitError).toBeNull();expect(visit.union_id).toBe(union.id);
+ const {data:visit,error:visitError}=await admin.from('visits').select('patient_id,union_id,co_pay_bps,co_pay_minor,covered_minor').eq('id',visitId).single();
+ expect(visitError).toBeNull();expect(visit).toMatchObject({union_id:union.id,co_pay_bps:2000,co_pay_minor:6000,covered_minor:24000});
+ const {data:payment,error:paymentError}=await admin.from('payments').select('amount_minor').eq('visit_id',visitId).single();
+ expect(paymentError).toBeNull();expect(payment.amount_minor).toBe(6000);
  const {data:lines,error:linesError}=await admin.from('visit_lines').select('service_id').eq('visit_id',visitId);
  expect(linesError).toBeNull();expect(lines).toHaveLength(1);expect(lines[0].service_id).toBe(service.id);
  const {data:patient,error:patientError}=await admin.from('patients').select('union_id,demo_batch_id').eq('id',visit.patient_id).single();

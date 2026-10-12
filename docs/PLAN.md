@@ -1,5 +1,14 @@
 # Delivery checklist
 
+## Card percentage at reception
+
+- [x] Move patient share entry from insurer administration to each covered visit, and keep old financial snapshots.
+- [x] Track syndicate share as a payer receivable with owner-only settlement.
+- [x] Show a price and share preview, optional immediate receipt, and visit balances in reception views.
+- [x] Keep a booking-only path for returning patients and record payer contact details for the owner.
+- [x] Verify database and desktop/phone E2E, lint, typecheck, build and migration checksum.
+- [ ] Publish the tested change and verify the deployed build.
+
 ## Reception intake with service
 
 - [x] Add a specialty-filtered service selector to quick customer intake while keeping the detailed flows.
