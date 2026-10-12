@@ -44,6 +44,6 @@ test('doctor sees assigned patient and cannot open owner pages',async({page})=>{
  await page.goto('/experience');
  await expect(page).toHaveURL('/');
  await page.setViewportSize({width:390,height:844});
- await page.screenshot({path:'docs/review/doctor-role-phone.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/doctor-role-phone.jpg',type:'jpeg'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

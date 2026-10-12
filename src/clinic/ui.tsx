@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState,type ReactNode} from 'react';
+import {useEffect,useId,useRef,useState,type ReactNode} from 'react';
 import {text,readableError,type Row} from './api';
 import {minor,percent,decimal} from '../domain/money';
 export type Field={key:string;label:string;type?:'text'|'email'|'password'|'date'|'time'|'number'|'money'|'percent'|'checkbox'|'textarea'|'select'|'weekdays';required?:boolean;options?:{value:string;label:string}[]|((values:Record<string,unknown>)=>{value:string;label:string}[]);when?:(values:Record<string,unknown>)=>boolean;clearOnChange?:string[];blankInitially?:boolean;hint?:string;min?:number;max?:number};
@@ -32,8 +32,9 @@ export function Form({fields,initial={},submit,label='حفظ',children}:{fields:
 }
 export function Dialog({title,close,children}:{title:string;close:()=>void;children:ReactNode}) {
  const ref=useRef<HTMLDialogElement>(null);
- useEffect(()=>{const dialog=ref.current;dialog?.showModal();return()=>dialog?.close();},[]);
- return <dialog ref={ref} onCancel={close}><header className="dialog-head"><h2>{title}</h2><button type="button" aria-label="إغلاق" onClick={close}>×</button></header>{children}</dialog>;
+ const titleId=useId();
+ useEffect(()=>{const dialog=ref.current;const opener=document.activeElement;dialog?.showModal();return()=>{dialog?.close();if(opener instanceof HTMLElement&&opener.isConnected)opener.focus();};},[]);
+ return <dialog ref={ref} aria-labelledby={titleId} onCancel={event=>{event.preventDefault();close();}}><header className="dialog-head"><h2 id={titleId}>{title}</h2><button type="button" aria-label="إغلاق" onClick={close}>×</button></header>{children}</dialog>;
 }
 export type Column={label:string;render:(row:Row)=>ReactNode;numeric?:boolean};
 export function Table({rows,columns,empty='لا توجد سجلات هنا.'}:{rows:Row[];columns:Column[];empty?:string}) {

@@ -35,6 +35,7 @@ test('Authenticated clinic transactions and role isolation',async t=>{
    const savedUnion=await owner.rpc('clinic_union_save',{payload:{name:unionName,active:true}});
    assert.equal(savedUnion.error,null);
    const unionId=savedUnion.data.id;
+   assert.equal((await admin.from('insurance_companies').update({demo_batch_id:batch}).eq('union_id',unionId)).error,null);
    const key=randomUUID();
    const payload={idempotency_key:key,patient:{name:'عميل نقابة تجريبي',phone_e164:'+200000000005',client_type_code:'syndicate_cash',union_id:unionId,demo_batch_id:batch,specialty_id:specialty},visit:{doctor_id:doctor,visit_date:today,location:'clinic',co_pay_bps:2000},service:{service_id:services['DEN-001']},payment:{amount_minor:6000,method:'cash'}};
    const first=await owner.rpc('clinic_patient_intake',{payload});assert.equal(first.error,null);

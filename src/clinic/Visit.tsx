@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Link,useParams} from 'react-router-dom';
 import {command,date,label,text,today,percentLabel,type Row} from './api';
-import {useClinic,patientPaid} from './store';
+import {useClinic,patientPaid,patientRemaining} from './store';
 import {Dialog,Form,Heading,Table,Badge,useTask} from './ui';
 import {money} from '../domain/money';
 function Receipt({payment,close}:{payment:Row;close:()=>void}) {
@@ -14,7 +14,7 @@ export default function Visit(){
  const v=rows('visits').find(row=>row.id===id);if(!v)return <p className="empty">الزيارة غير موجودة أو غير متاحة لحسابك.</p>;
  const patient=rows('patients').find(row=>row.id===v.patient_id);const lines=rows('visit_lines').filter(row=>row.visit_id===id).sort((a,b)=>Number(a.sequence)-Number(b.sequence));
  const payments=rows('payments').filter(row=>row.visit_id===id);const isDoctor=profile.role==='doctor';
- const paid=patientPaid(data,id);const remaining=BigInt(text(v.co_pay_minor||0))-paid;
+ const paid=patientPaid(data,id);const remaining=patientRemaining(data,v);
  const locked=payments.length>0||rows('insurance_invoices').some(row=>row.visit_id===id)||v.status!=='open';
  const activeServices=rows('services').filter(row=>row.active&&row.specialty_id===v.specialty_id&&row.pricing_kind!=='home');
  return <><Heading title={`زيارة ${name('patients',v.patient_id)}`} detail={`${date(v.visit_date)} · ${name('doctors',v.doctor_id)} · ${label(v.location)}`}><Link className="button" to={`/patients/${text(v.patient_id)}`}>ملف العميل</Link><Badge>{label(v.status)}</Badge></Heading>{task.feedback}

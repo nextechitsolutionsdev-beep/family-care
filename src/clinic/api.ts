@@ -15,6 +15,7 @@ const messages: Record<string,string> = {
  UNION_REQUIRED:'اختار النقابة.',UNION_INACTIVE:'النقابة غير نشطة. اختار نقابة أخرى.',UNION_NOT_APPLICABLE:'النقابة متاحة لعميل النقابة فقط.',
  INVALID_EXPENSE:'راجع المبلغ والسبب والتاريخ؛ لا يمكن تسجيل مصروف بتاريخ مستقبلي.',
  SERVICE_REQUIRED:'اختار الخدمة.',
+ INVALID_PERIOD:'تاريخ البداية لازم يكون قبل تاريخ النهاية أو نفس اليوم.',
  COPAY_REQUIRED:'اكتب نسبة تحمّل العميل من الكارنيه قبل فتح الزيارة.',INVALID_COPAY:'النسبة لازم تكون من 0 إلى 100%.',COPAY_NOT_APPLICABLE:'نسبة التحمل متاحة للنقابة أو التأمين فقط.',
  };
 export function readableError(error: unknown): string {

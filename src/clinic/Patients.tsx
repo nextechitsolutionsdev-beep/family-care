@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Link,useNavigate,useParams} from 'react-router-dom';
 import {command,patientIntake,visitIntake,text,date,label,today,percentLabel,type Row} from './api';
-import {useClinic,patientPaid} from './store';
+import {useClinic,patientPaid,patientRemaining} from './store';
 import {Badge,Dialog,Form,Heading,Table,type Field} from './ui';
 import {money,minor,percent,roundShare} from '../domain/money';
 import ExtraServices,{type SelectedService} from './ExtraServices';
@@ -117,7 +117,7 @@ export default function Patients() {
      {label:'إجمالي الزيارة',numeric:true,render:(row:Row)=>money(row.total_minor)},
      {label:'حصة العميل',numeric:true,render:(row:Row)=>money(row.co_pay_minor)},
      {label:'المدفوع',numeric:true,render:(row:Row)=>money(patientPaid(data,row.id))},
-     {label:'المتبقي على العميل',numeric:true,render:(row:Row)=>money(BigInt(text(row.co_pay_minor))-patientPaid(data,row.id))},
+     {label:'المتبقي على العميل',numeric:true,render:(row:Row)=>money(patientRemaining(data,row))},
      {label:'على الجهة',numeric:true,render:(row:Row)=>money(row.covered_minor)}]),
     {label:'فتح',render:row=><Link to={`/visits/${row.id}`}>فتح الزيارة</Link>}
    ]}/>

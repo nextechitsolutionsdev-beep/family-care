@@ -22,6 +22,8 @@ update public.profiles profile set active=false from public.doctors d join publi
 update public.rent_contracts contract set active=false from public.doctors d join public.demo_batches b on b.id=d.demo_batch_id
   where contract.doctor_id=d.id ${scope};
 update public.doctors d set active=false from public.demo_batches b where d.demo_batch_id=b.id ${scope};
+update public.unions u set active=false from public.insurance_companies i join public.demo_batches b on b.id=i.demo_batch_id
+  where i.union_id=u.id ${scope};
 update public.insurance_companies i set active=false from public.demo_batches b where i.demo_batch_id=b.id ${scope};
 update public.offers o set active=false from public.demo_batches b where o.demo_batch_id=b.id ${scope};
 commit;`);

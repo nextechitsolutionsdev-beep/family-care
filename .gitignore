@@ -9,6 +9,7 @@ supabase/.branches/
 coverage/
 playwright-report/
 test-results/
+output/playwright/
 *.log
 tmp/pdfs/
 

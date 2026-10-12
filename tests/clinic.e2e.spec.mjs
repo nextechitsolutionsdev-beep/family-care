@@ -30,7 +30,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await page.getByLabel('كلمة المرور',{exact:true}).fill(env.OWNER_PASSWORD);
  await page.getByRole('button',{name:'دخول'}).click();
  await expect(page.getByRole('heading',{name:'اليوم'})).toBeVisible({timeout:30000});
- await page.screenshot({path:'docs/review/today-desktop.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/today-desktop.jpg',type:'jpeg'});
 
  await page.getByRole('link',{name:'الأطباء والحسابات'}).click();
  await page.getByRole('button',{name:'طبيب جديد'}).click();
@@ -87,10 +87,10 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  expect(surveyToken).toBeTruthy();
  await page.goto(`/#experience/${surveyToken}`);
  await expect(page.getByRole('heading',{name:'كيف كانت تجربتك؟'})).toBeVisible();
- await page.screenshot({path:'docs/review/experience-survey-desktop.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/experience-survey-desktop.jpg',type:'jpeg'});
  await page.setViewportSize({width:390,height:844});
  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
- await page.screenshot({path:'docs/review/experience-survey-phone.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/experience-survey-phone.jpg',type:'jpeg'});
  await page.setViewportSize({width:1366,height:768});
  await page.getByRole('button',{name:'4 من 5'}).click();
  await page.getByLabel('ملاحظة (اختياري)').fill('تقييم تجريبي من رحلة المتصفح');
@@ -253,7 +253,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.goto('/patients');
  await expect(page.getByRole('heading',{name:'ملفات العملاء'})).toBeVisible();
- await page.screenshot({path:'docs/review/patients-phone.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/patients-phone.jpg',type:'jpeg'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
  await page.goto('/reports');
  await expect(page.getByRole('heading',{name:'التقارير المالية'})).toBeVisible();

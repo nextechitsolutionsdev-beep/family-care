@@ -38,6 +38,7 @@ test('owner configures a union and reception intake opens one visit on desktop a
  await expect(form).toHaveCount(0);
  const {data:union,error:unionError}=await admin.from('unions').select('id').eq('name',`نقابة اختبار ${suffix}`).single();
  expect(unionError).toBeNull();
+ expect((await admin.from('insurance_companies').update({demo_batch_id:batch.id}).eq('union_id',union.id)).error).toBeNull();
  await page.goto('/patients');
  await page.getByRole('button',{name:'تسجيل عميل وخدمة'}).click();
  form=page.locator('dialog');
@@ -54,10 +55,10 @@ test('owner configures a union and reception intake opens one visit on desktop a
  await expect(form.getByText(/العميل عليه 60 جنيه.*على الجهة 240 جنيه.*المدفوع الآن 60 جنيه/)).toBeVisible();
  await form.getByLabel('تاريخ الزيارة').fill(today);
  await form.getByLabel('مجموعة تجريبية (اختياري)').selectOption(batch.id);
- await page.screenshot({path:'docs/review/intake-desktop.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/intake-desktop.jpg',type:'jpeg'});
  await page.setViewportSize({width:390,height:844});
  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
- await page.screenshot({path:'docs/review/intake-phone.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/intake-phone.jpg',type:'jpeg'});
  await form.getByRole('button',{name:'تسجيل العميل والخدمة'}).click();
  await expect(page).toHaveURL(/\/visits\/[0-9a-f-]+$/);
  const visitId=new URL(page.url()).pathname.split('/').at(-1);
@@ -82,9 +83,9 @@ test('owner configures a union and reception intake opens one visit on desktop a
  await expect(form.getByText(/العميل عليه 180 جنيه.*على الجهة 720 جنيه/)).toBeVisible();
  await form.getByLabel('الخدمة الإضافية 1').scrollIntoViewIfNeeded();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
- await page.screenshot({path:'docs/review/multiple-services-phone.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/multiple-services-phone.jpg',type:'jpeg'});
  await page.setViewportSize({width:1366,height:768});
- await page.screenshot({path:'docs/review/multiple-services-desktop.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/multiple-services-desktop.jpg',type:'jpeg'});
  await form.getByRole('button',{name:'إلغاء الخدمة 1',exact:true}).click();
  await expect(form.getByText(/العميل عليه 60 جنيه.*على الجهة 240 جنيه/)).toBeVisible();
  await form.getByRole('button',{name:'إضافة خدمة أخرى'}).click();

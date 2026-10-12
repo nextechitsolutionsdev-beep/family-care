@@ -97,6 +97,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await expect(pendingRow).toContainText(service.name);
  await expect(pendingRow).toContainText('على الجهة 240 جنيه');
  await page.setViewportSize({width:390,height:844});
+ await accountRow.getByRole('button',{name:/إجمالي حصة الشركة/}).scrollIntoViewIfNeeded();
  await expect(accountRow.getByRole('button',{name:/إجمالي حصة الشركة/})).toBeInViewport();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  await page.screenshot({path:'scratch/insurance-account-phone.png'});

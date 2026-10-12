@@ -9,6 +9,7 @@ function hideArchivedDemo(next:Record<string,Row[]>){
  const hiddenPatients=new Set((next.patients??[]).filter(row=>row.demo_batch_id&&row.active===false).map(row=>row.id));
  const hiddenDoctors=new Set((next.doctors??[]).filter(row=>row.demo_batch_id&&row.active===false).map(row=>row.id));
  const hiddenInsurers=new Set((next.insurance_companies??[]).filter(row=>row.demo_batch_id&&row.active===false).map(row=>row.id));
+ const hiddenUnions=new Set((next.insurance_companies??[]).filter(row=>hiddenInsurers.has(row.id)&&row.union_id).map(row=>text(row.union_id)));
  const hiddenOffers=new Set((next.offers??[]).filter(row=>row.demo_batch_id&&row.active===false).map(row=>row.id));
  if(!hiddenPatients.size&&!hiddenDoctors.size&&!hiddenInsurers.size&&!hiddenOffers.size)return next;
  const hiddenVisits=new Set((next.visits??[]).filter(row=>hiddenPatients.has(text(row.patient_id))).map(row=>row.id));
@@ -26,6 +27,7 @@ function hideArchivedDemo(next:Record<string,Row[]>){
  next.patients=next.patients.filter(row=>!hiddenPatients.has(row.id));
  if(next.doctors)next.doctors=next.doctors.filter(row=>!hiddenDoctors.has(row.id));
  if(next.insurance_companies)next.insurance_companies=next.insurance_companies.filter(row=>!hiddenInsurers.has(row.id));
+ if(next.unions)next.unions=next.unions.filter(row=>!hiddenUnions.has(row.id));
  if(next.offers)next.offers=next.offers.filter(row=>!hiddenOffers.has(row.id));
  for(const table of ['patient_specialty_codes','visits','appointments','follow_ups','payments','message_outbox','campaign_recipients','consent_events'])
    if(next[table])next[table]=next[table].filter(keepPatient);
@@ -82,4 +84,7 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
 export function useClinic(){const context=useContext(Context);if(!context)throw new Error('Clinic context missing');return context;}
 export function patientPaid(data:Record<string,Row[]>,visit:unknown):bigint {
  return (data.payments??[]).filter(row=>row.visit_id===visit).reduce((sum,row)=>sum+(row.kind==='refund'?-1n:1n)*BigInt(text(row.amount_minor)),0n);
+}
+export function patientRemaining(data:Record<string,Row[]>,visit:Row|undefined):bigint {
+ return !visit||visit.status==='void'?0n:BigInt(text(visit.co_pay_minor||0))-patientPaid(data,visit.id);
 }

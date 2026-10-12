@@ -20,14 +20,14 @@ test('all owner screens render at desk and phone sizes',async({page})=>{
    await page.goto(url);
    await expect(page.locator('main.page h1')).toBeVisible();
    await expect(page.locator('main.page')).not.toContainText('تعذر تنفيذ الإجراء');
-   await page.screenshot({path:`docs/review/${name}-desktop.jpg`,type:'jpeg'});
+   await page.screenshot({path:`output/playwright/regression/${name}-desktop.jpg`,type:'jpeg'});
  }
  await page.setViewportSize({width:390,height:844});
  for(const [name,url] of screens){
    await page.goto(url);
    await expect(page.locator('main.page h1')).toBeVisible();
    expect(await page.evaluate(()=>document.documentElement.scrollWidth),`${name} page overflow`).toBeLessThanOrEqual(390);
-   await page.screenshot({path:`docs/review/${name}-phone.jpg`,type:'jpeg'});
+   await page.screenshot({path:`output/playwright/regression/${name}-phone.jpg`,type:'jpeg'});
  }
  await page.goto('/specialties');
  const firstAction=page.locator('.table-wrap td.action-column button').first();
@@ -44,7 +44,7 @@ test('all owner screens render at desk and phone sizes',async({page})=>{
  expect(box?.width).toBeGreaterThanOrEqual(80);
  expect(box?.x).toBeGreaterThanOrEqual(0);
  expect((box?.x??0)+(box?.width??0)).toBeLessThanOrEqual(390);
- await page.screenshot({path:'docs/review/price-editor-phone.jpg',type:'jpeg'});
+ await page.screenshot({path:'output/playwright/regression/price-editor-phone.jpg',type:'jpeg'});
  await page.getByRole('button',{name:'إغلاق'}).click();
  await page.getByRole('button',{name:'القائمة'}).click();
  await expect(page.getByRole('link',{name:'الإعدادات'})).toBeVisible();
