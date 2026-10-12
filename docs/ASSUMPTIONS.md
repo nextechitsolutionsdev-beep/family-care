@@ -36,3 +36,5 @@
 - Mock provider persists a simulated result only. It never sends SMS/WhatsApp and never logs patient names, phones, clinical text or message content to application/console logs. An actual provider needs a chosen vendor/channel, server credentials, approved sender/template setup and webhook verification.
 - Test/demo clients use visibly fictional Arabic names and reserved invalid mobile values rather than reachable Egyptian numbers. Production clients must pass Egyptian phone validation. Demo seeding is labelled and isolated; its removal command archives only the identified demo dataset, never existing real records.
 - UI acceptance tests may create a specialty and service and then deactivate them; retain the inactive catalog rows and all financial reversal records for audit rather than deleting history. Health checks count the 43 seeded services separately from later custom services.
+
+- المصروفات مبالغ مدفوعة فعلياً وليست التزامات مستقبلية: الاستقبال يسجل ويرى عملياته فقط، المالك يرى الإجمالي والتفصيل ويلغي بسبب محفوظ. لا تؤثر المصروفات على مستحق الطبيب؛ تخصم مستقلة في التقرير. لا يسمح بتاريخ مستقبلي، والمبلغ بالقروش، وإعادة المحاولة لا تكرر السجل.

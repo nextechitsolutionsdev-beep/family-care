@@ -123,3 +123,9 @@
 - [x] Enter test data through the UI for catalog, doctor categories and rent, staff account, patient edit, follow-up actions, and audited payment/settlement reversals; archive demo batches after verification.
 - [x] No TODO stubs, dead buttons, silent offline writes, public patient access or unlabelled active fake data.
 - [x] Final short report: working features, run commands, assumptions to review and provider/pricing input.
+
+## المصروفات — 13/10/2026
+- [x] تسجيل مبلغ وسبب وبند ومستلم وطريقة وتاريخ للاستقبال.
+- [x] إجمالي وتفصيل الفترة والبنود والتصدير والطباعة للمالك فقط.
+- [x] إلغاء مسجل للمالك وصلاحيات قاعدة البيانات ومنع التكرار.
+- [x] اختبار قاعدة متراجع واختبار واجهة حقيقي على الكمبيوتر والهاتف؛ الفحوص والبناء.

@@ -3,7 +3,7 @@ import {all,db,readableError,text,type Row,type Profile} from './api';
 type Store={profile:Profile;data:Record<string,Row[]>;refresh:()=>Promise<void>;name:(table:string,id:unknown)=>string;rows:(table:string)=>Row[]};
 const Context=createContext<Store|null>(null);
 const shared=['patients','patient_specialty_codes','specialties','doctors','client_types','services','bundle_components','price_lists','price_list_versions','service_prices','clinic_settings','follow_ups','appointments'];
-const desk=['visits','payments','payment_allocations','insurance_companies','unions','offers','offer_redemptions','message_templates','campaigns','campaign_recipients','message_outbox','message_attempts','consent_events'];
+const desk=['expenses','visits','payments','payment_allocations','insurance_companies','unions','offers','offer_redemptions','message_templates','campaigns','campaign_recipients','message_outbox','message_attempts','consent_events'];
 const owner=['profiles','insurance_invoices','insurance_settlements','settlement_allocations','rent_contracts','rent_dues','rent_payments','rent_allocations','doctor_service_terms','audit_log','demo_batches','experience_feedback'];
 function hideArchivedDemo(next:Record<string,Row[]>){
  const hiddenPatients=new Set((next.patients??[]).filter(row=>row.demo_batch_id&&row.active===false).map(row=>row.id));
