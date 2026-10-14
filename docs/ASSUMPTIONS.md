@@ -46,3 +46,6 @@
 - Concurrent workspace development requires an isolated copied build and separate Playwright artifact directory. Use an already permitted local origin (127.0.0.1:3001), without expanding Edge Function CORS merely for a test runner.
 
 - المصروفات مبالغ مدفوعة فعلياً وليست التزامات مستقبلية: الاستقبال يسجل ويرى عملياته فقط، المالك يرى الإجمالي والتفصيل ويلغي بسبب محفوظ. لا تؤثر المصروفات على مستحق الطبيب؛ تخصم مستقلة في التقرير. لا يسمح بتاريخ مستقبلي، والمبلغ بالقروش، وإعادة المحاولة لا تكرر السجل.
+
+- اسم الحساب المحصّل يُعرض من payments.recorded_by المرتبط بملف الموظف الموثوق، وليس الحساب المفتوح حالياً؛ في إيصال الرد يظهر منفذ الرد نفسه.
+

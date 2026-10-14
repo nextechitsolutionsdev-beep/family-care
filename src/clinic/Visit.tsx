@@ -36,6 +36,7 @@ export default function Visit(){
  {!isDoctor&&<><h2>التحصيل والإيصالات</h2><Table rows={payments} columns={[
  {label:'الإيصال',render:row=><bdi>{text(row.receipt_number)}</bdi>},{label:'التاريخ',render:row=>date(row.paid_at)},{label:'النوع',render:row=>label(row.kind)},
  {label:'المبلغ',numeric:true,render:row=>money(row.amount_minor)},{label:'الطريقة',render:row=>label(row.method)},
+ ...(profile.role==='owner'?[{label:'سجّل التحصيل',render:(row:Row)=>name('profiles',row.recorded_by)}]:[]),
  {label:'الإجراء',render:row=><div className="actions"><button onClick={()=>setReceipt(row)}>عرض / طباعة</button>{profile.role==='owner'&&row.kind!=='refund'&&!payments.some(pay=>pay.reverses_payment_id===row.id)&&<button disabled={task.busy} onClick={()=>{if(window.confirm('رد هذا التحصيل بالكامل؟ سيُسجل إيصال عكس مع الحفاظ على الإيصال الأصلي.'))void task.run(()=>command('payment_reverse',{id:row.id,idempotency_key:crypto.randomUUID()}));}}>رد المبلغ</button>}</div>}
  ]}/></>}
  {dialog==='service'&&<Dialog title="إضافة خدمة للزيارة" close={()=>setDialog('')}><Form initial={{doctor_id:v.doctor_id,quantity:1,is_gift:false}} fields={[
