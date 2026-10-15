@@ -21,5 +21,12 @@ export const specialtyPresets=[
  ['MICRO','ميكروبيولوجيا طبية'],['VIRO','فيروسات طبية'],['GEN','وراثة طبية'],['PHARM','أدوية إكلينيكية'],['OCC','طب مهني'],['PUB','صحة عامة'],['FOR','طب شرعي'],['FPSY','طب نفسي شرعي'],['AERO','طب الطيران والفضاء'],
  ['ORTHO','تقويم الأسنان'],['ENDOENT','علاج جذور الأسنان'],['PERIO','علاج اللثة'],['PROST','تركيبات الأسنان'],['PDEN','أسنان أطفال'],['OMFS','جراحة الفم والوجه والفكين'],['OMED','طب الفم'],['OPATH','باثولوجيا الفم'],['ORAD','أشعة الفم والوجه والفكين'],['OFP','آلام الفم والوجه'],['DANA','تخدير الأسنان'],['DPUB','صحة الفم العامة'],
 ] as const;
+// The owner's Family Care poster determines the primary picker.
+export const familyCarePresets=[
+ ['DEN','أسنان'],['DERM','جلدية'],['PLAS','تجميل'],['NUT','تغذية'],
+ ['PSY','نفسية وعصبية'],['PHYS','علاج طبيعي وحجامة'],['LAB','معمل تحاليل'],
+ ['PED','أطفال وحديثي الولادة'],['PSURG','جراحة أطفال'],['ONCSURG','جراحة أورام'],
+ ['OBG','نساء وتوليد وتأخر إنجاب'],['PCARD','قلب أطفال'],['ENDO','غدد صماء وسكر'],['IM','باطنة'],
+] as const;
 export const normalizeSpecialty=(value:string)=>value.trim().replace(/أ|إ|آ/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\p{M}|\s|ـ/gu,'').toLowerCase();
 export const makeSpecialtyPrefix=()=> 'SP'+crypto.randomUUID().replaceAll('-','').slice(0,6).replace(/[0-9]/g,char=>'GHIJKLMNOP'[Number(char)]).toUpperCase();
