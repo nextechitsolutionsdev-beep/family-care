@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint src scripts tests supabase/functions",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/money.test.mjs tests/database.test.mjs tests/edge-validation.test.mjs tests/expenses.test.mjs",
+    "test": "node --test tests/money.test.mjs tests/database.test.mjs tests/edge-validation.test.mjs tests/expenses.test.mjs tests/quick-service.test.mjs",
     "test:e2e": "playwright test",
     "connect": "node scripts/connect.mjs",
     "migrate": "node scripts/migrate.mjs",
