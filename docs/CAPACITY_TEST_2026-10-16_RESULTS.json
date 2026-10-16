@@ -1,0 +1,490 @@
+{
+  "run": {
+    "startedAt": "2026-10-16T18:18:02.352Z",
+    "scope": {
+      "site": "https://family-care-4le.pages.dev",
+      "api": "https://xkbyxefvzlcnyefkxwsx.supabase.co",
+      "rates": [
+        5,
+        10,
+        20,
+        40,
+        80,
+        100
+      ],
+      "secondsPerStage": 60,
+      "maxDurationSeconds": 900,
+      "maxRequests": 20000,
+      "maxConnections": 20
+    },
+    "thresholds": {
+      "cpuPercent": 85,
+      "availableMemoryPercent": 15,
+      "freeDiskPercent": 20,
+      "connectionsPercent": 90,
+      "http5xxPercent": 2,
+      "p95Ms": 2000,
+      "latencySustainSeconds": 60
+    },
+    "stages": [
+      {
+        "targetRps": 5,
+        "durationSeconds": 60.523,
+        "sent": 293,
+        "completed": 288,
+        "observedRps": 4.7585215537894685,
+        "p50Ms": 128.5501,
+        "p95Ms": 253.0069,
+        "p99Ms": 2442.9764,
+        "errors": 0,
+        "timeouts": 0,
+        "statusCodes": {
+          "200": {
+            "count": 288
+          }
+        },
+        "bytes": 1569470
+      },
+      {
+        "targetRps": 10,
+        "durationSeconds": 60.551,
+        "sent": 610,
+        "completed": 600,
+        "observedRps": 9.909002328615546,
+        "p50Ms": 125.7824,
+        "p95Ms": 261.2272,
+        "p99Ms": 602.9294,
+        "errors": 0,
+        "timeouts": 0,
+        "statusCodes": {
+          "200": {
+            "count": 600
+          }
+        },
+        "bytes": 3269849
+      },
+      {
+        "targetRps": 20,
+        "durationSeconds": 60.58,
+        "sent": 1220,
+        "completed": 1200,
+        "observedRps": 19.808517662594916,
+        "p50Ms": 139.8492,
+        "p95Ms": 271.6726,
+        "p99Ms": 575.6651,
+        "errors": 0,
+        "timeouts": 0,
+        "statusCodes": {
+          "200": {
+            "count": 1200
+          }
+        },
+        "bytes": 6539750
+      },
+      {
+        "targetRps": 40,
+        "durationSeconds": 60.558,
+        "sent": 2420,
+        "completed": 2400,
+        "observedRps": 39.631427722183695,
+        "p50Ms": 120.4866,
+        "p95Ms": 215.555,
+        "p99Ms": 562.4494,
+        "errors": 0,
+        "timeouts": 0,
+        "statusCodes": {
+          "200": {
+            "count": 2400
+          }
+        },
+        "bytes": 13079423
+      },
+      {
+        "targetRps": 80,
+        "durationSeconds": 60.54,
+        "sent": 4754,
+        "completed": 4734,
+        "observedRps": 78.1962338949455,
+        "p50Ms": 118.613,
+        "p95Ms": 189.8477,
+        "p99Ms": 511.8555,
+        "errors": 0,
+        "timeouts": 0,
+        "statusCodes": {
+          "200": {
+            "count": 4734
+          }
+        },
+        "bytes": 25801609
+      },
+      {
+        "targetRps": 100,
+        "durationSeconds": 60.481,
+        "sent": 5593,
+        "completed": 5573,
+        "observedRps": 92.14464046560076,
+        "p50Ms": 108.3307,
+        "p95Ms": 210.31,
+        "p99Ms": 1065.7117,
+        "errors": 0,
+        "timeouts": 0,
+        "statusCodes": {
+          "200": {
+            "count": 5573
+          }
+        },
+        "bytes": 30361208
+      }
+    ],
+    "metrics": [
+      {
+        "time": "2026-10-16T18:18:06.543Z",
+        "cpuTotal": 1567210.1800000002,
+        "cpuIdle": 1532367.94,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 173780992,
+        "memoryAvailablePercent": 38.37429111531191,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021205504,
+            "availablePercent": 28.87815874865319
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783721984,
+            "availablePercent": 85.87669444564956
+          }
+        ],
+        "connections": 16,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 688537600,
+        "networkReceiveBytes": 644576017,
+        "networkTransmitBytes": 2242715344,
+        "diskIoSeconds": 12919.564,
+        "label": "baseline-start"
+      },
+      {
+        "time": "2026-10-16T18:19:07.313Z",
+        "cpuTotal": 1567331.4599999997,
+        "cpuIdle": 1532487.08,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 178745344,
+        "memoryAvailablePercent": 39.47051853727807,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021197312,
+            "availablePercent": 28.878080445513543
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783721984,
+            "availablePercent": 85.87669444564956
+          }
+        ],
+        "connections": 15,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 689278976,
+        "networkReceiveBytes": 644629175,
+        "networkTransmitBytes": 2243130679,
+        "diskIoSeconds": 12920.448999999999,
+        "cpuBusyPercent": 1.7645118728888631,
+        "sampleIntervalSeconds": 60.77,
+        "label": "baseline-end"
+      },
+      {
+        "time": "2026-10-16T18:20:10.417Z",
+        "cpuTotal": 1567457.2000000002,
+        "cpuIdle": 1532609.1600000001,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 146124800,
+        "memoryAvailablePercent": 32.26725518039815,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021197312,
+            "availablePercent": 28.878080445513543
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783721984,
+            "availablePercent": 85.87669444564956
+          }
+        ],
+        "connections": 15,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 716771328,
+        "networkReceiveBytes": 644948077,
+        "networkTransmitBytes": 2243821367,
+        "diskIoSeconds": 12921.317000000001,
+        "cpuBusyPercent": 2.91076825224158,
+        "sampleIntervalSeconds": 63.104,
+        "label": "after-5-rps"
+      },
+      {
+        "time": "2026-10-16T18:21:13.650Z",
+        "cpuTotal": 1567582.9299999997,
+        "cpuIdle": 1532729.35,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 165441536,
+        "memoryAvailablePercent": 36.53277376290012,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021197312,
+            "availablePercent": 28.878080445513543
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783721984,
+            "availablePercent": 85.87669444564956
+          }
+        ],
+        "connections": 14,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 692408320,
+        "networkReceiveBytes": 645584578,
+        "networkTransmitBytes": 2245171956,
+        "diskIoSeconds": 12922.643,
+        "cpuBusyPercent": 4.406267398069619,
+        "sampleIntervalSeconds": 63.233,
+        "label": "after-10-rps"
+      },
+      {
+        "time": "2026-10-16T18:22:16.748Z",
+        "cpuTotal": 1567708.67,
+        "cpuIdle": 1532848.31,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 149557248,
+        "memoryAvailablePercent": 33.0252078038368,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021197312,
+            "availablePercent": 28.878080445513543
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783721984,
+            "availablePercent": 85.87669444564956
+          }
+        ],
+        "connections": 14,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 694362112,
+        "networkReceiveBytes": 646769035,
+        "networkTransmitBytes": 2247410871,
+        "diskIoSeconds": 12923.142,
+        "cpuBusyPercent": 5.39207889315152,
+        "sampleIntervalSeconds": 63.098,
+        "label": "after-20-rps"
+      },
+      {
+        "time": "2026-10-16T18:23:19.917Z",
+        "cpuTotal": 1567834.36,
+        "cpuIdle": 1532961.06,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 136105984,
+        "memoryAvailablePercent": 30.0549018189054,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021197312,
+            "availablePercent": 28.878080445513543
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783721984,
+            "availablePercent": 85.87669444564956
+          }
+        ],
+        "connections": 14,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 695046144,
+        "networkReceiveBytes": 649080922,
+        "networkTransmitBytes": 2251615789,
+        "diskIoSeconds": 12924.242,
+        "cpuBusyPercent": 10.29517065809431,
+        "sampleIntervalSeconds": 63.169,
+        "label": "after-40-rps"
+      },
+      {
+        "time": "2026-10-16T18:24:22.981Z",
+        "cpuTotal": 1567959.6800000002,
+        "cpuIdle": 1533064.06,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 135143424,
+        "memoryAvailablePercent": 29.842349472237046,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021197312,
+            "availablePercent": 28.878080445513543
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783721984,
+            "availablePercent": 85.87669444564956
+          }
+        ],
+        "connections": 15,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 692924416,
+        "networkReceiveBytes": 653662911,
+        "networkTransmitBytes": 2259684410,
+        "diskIoSeconds": 12924.704000000002,
+        "cpuBusyPercent": 17.81040536231534,
+        "sampleIntervalSeconds": 63.064,
+        "label": "after-80-rps"
+      },
+      {
+        "time": "2026-10-16T18:25:26.561Z",
+        "cpuTotal": 1568085.2100000004,
+        "cpuIdle": 1533143.02,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 187936768,
+        "memoryAvailablePercent": 41.50016732844312,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021189120,
+            "availablePercent": 28.878002142373898
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783721984,
+            "availablePercent": 85.87669444564956
+          }
+        ],
+        "connections": 14,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 670429184,
+        "networkReceiveBytes": 659064684,
+        "networkTransmitBytes": 2269300411,
+        "diskIoSeconds": 12934.219,
+        "cpuBusyPercent": 37.09870150577653,
+        "sampleIntervalSeconds": 63.58,
+        "label": "after-100-rps"
+      },
+      {
+        "time": "2026-10-16T18:26:27.228Z",
+        "cpuTotal": 1568207.11,
+        "cpuIdle": 1533263.0899999999,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 159330304,
+        "memoryAvailablePercent": 35.1832924810738,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021189120,
+            "availablePercent": 28.878002142373898
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783721984,
+            "availablePercent": 85.87669444564956
+          }
+        ],
+        "connections": 14,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 679923712,
+        "networkReceiveBytes": 659090908,
+        "networkTransmitBytes": 2269415723,
+        "diskIoSeconds": 12935.026,
+        "cpuBusyPercent": 1.5012305166911988,
+        "sampleIntervalSeconds": 60.667,
+        "label": "recovery"
+      }
+    ],
+    "health": [
+      {
+        "endpoint": "homepage",
+        "status": 200,
+        "ms": 398
+      },
+      {
+        "endpoint": "authenticated-read",
+        "status": 200
+      }
+    ],
+    "events": [],
+    "stopReason": null,
+    "tool": "autocannon 8.0.0, one process, no workers",
+    "limitations": [
+      "Hosted Cloudflare hardware and edge-wide capacity are not observable.",
+      "Visible CPU count is not a guarantee of dedicated CPUs.",
+      "No write stress or maximum-capacity claim.",
+      "Low payload read requests, not concurrent end-to-end browser sessions."
+    ],
+    "finishedAt": "2026-10-16T18:26:28.067Z",
+    "completed": true,
+    "requestBudgetUsed": 14903,
+    "elapsedSeconds": 505.714
+  },
+  "postCheck": {
+    "time": "2026-10-16T18:27:24.917Z",
+    "writeCountersUnchanged": true,
+    "health": {
+      "connections": 17,
+      "lock_waiters": 0
+    },
+    "queryStats": {
+      "calls": 249783,
+      "executionMs": 105122.84479299991,
+      "hits": 239363,
+      "reads": 0,
+      "tempRead": 0,
+      "tempWritten": 0,
+      "meanExecutionMs": 0.4208566827726463,
+      "bufferHitPercent": 100
+    },
+    "queryStatsWindowStart": "2026-10-16T18:18:29.994Z"
+  },
+  "maximumCapacityReached": false
+}
