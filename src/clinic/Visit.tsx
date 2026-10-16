@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {Link,useParams} from 'react-router-dom';
-import {command,date,label,text,today,percentLabel,type Row} from './api';
+import {command,visitOperation,date,label,text,today,percentLabel,type Row} from './api';
 import {useClinic,patientPaid,patientRemaining} from './store';
 import {Dialog,Form,Heading,Table,Badge,useTask} from './ui';
 import {money} from '../domain/money';
@@ -10,12 +10,13 @@ function Receipt({payment,close}:{payment:Row;close:()=>void}) {
 }
 export default function Visit(){
  const {id}=useParams();const {data,rows,name,profile,refresh}=useClinic();const task=useTask(refresh);
- const [dialog,setDialog]=useState('');const [paymentKey,setPaymentKey]=useState('');const [receipt,setReceipt]=useState<Row|null>(null);
+ const [dialog,setDialog]=useState('');const [paymentKey,setPaymentKey]=useState('');const [serviceKey,setServiceKey]=useState('');const [receipt,setReceipt]=useState<Row|null>(null);
  const v=rows('visits').find(row=>row.id===id);if(!v)return <p className="empty">الزيارة غير موجودة أو غير متاحة لحسابك.</p>;
  const patient=rows('patients').find(row=>row.id===v.patient_id);const lines=rows('visit_lines').filter(row=>row.visit_id===id).sort((a,b)=>Number(a.sequence)-Number(b.sequence));
  const payments=rows('payments').filter(row=>row.visit_id===id);const isDoctor=profile.role==='doctor';
  const paid=patientPaid(data,id);const remaining=patientRemaining(data,v);
  const locked=payments.length>0||rows('insurance_invoices').some(row=>row.visit_id===id)||v.status!=='open';
+ const canAdd=v.status==='open'&&!rows('insurance_invoices').some(row=>row.visit_id===id);
  const activeServices=rows('services').filter(row=>row.active&&row.specialty_id===v.specialty_id&&row.pricing_kind!=='home');
  return <><Heading title={`زيارة ${name('patients',v.patient_id)}`} detail={`${date(v.visit_date)} · ${name('doctors',v.doctor_id)} · ${label(v.location)}`}><Link className="button" to={`/patients/${text(v.patient_id)}`}>ملف العميل</Link><Badge>{label(v.status)}</Badge></Heading>{task.feedback}
  {patient?.demo_batch_id&&<p className="notice">زيارة تجريبية — بيانات اختبار.</p>}
@@ -23,7 +24,7 @@ export default function Visit(){
  {!isDoctor&&<><div className="ledger-summary"><span>الإجمالي <strong>{money(v.total_minor)}</strong></span><span>حصة العميل <strong>{money(v.co_pay_minor)}</strong></span><span>على الجهة <strong>{money(v.covered_minor)}</strong></span><span>المحصّل <strong>{money(paid)}</strong></span><span>المتبقي <strong>{money(remaining)}</strong></span></div>
  {!v.confirmed&&<p className="notice">الحجز بانتظار ديبوزيت {money(v.deposit_required_minor)}. التحصيل المسجل {money(paid)}.</p>}
  {v.deposit_exemption_reason==='fully_covered_insurance'&&<p className="notice">الجهة تغطي الزيارة بالكامل؛ لا توجد حصة أو ديبوزيت على العميل.</p>}
- <div className="toolbar"><button className="primary" disabled={locked||Boolean(v.offer_id)} onClick={()=>setDialog('service')}>إضافة خدمة</button><button disabled={locked||Boolean(v.offer_id)||!lines.length} onClick={()=>setDialog('offer')}>تطبيق كود عرض</button><button disabled={remaining<=0||v.status==='void'} onClick={()=>{setPaymentKey(crypto.randomUUID());setDialog('payment');}}>تسجيل تحصيل</button><span>{locked?'الفاتورة مثبتة؛ إلغاء خدمة بعد التحصيل أو إنهاء الزيارة يحتاج تصحيحًا ماليًا مسجلًا من الأدمن.':v.offer_id?'العرض اتطبق على الخدمات الحالية.':'اختار الخدمات، وبعدها طبّق العرض وسجّل التحصيل.'}</span></div></>}
+ <div className="toolbar"><button className="primary" disabled={!canAdd} onClick={()=>{setServiceKey(crypto.randomUUID());setDialog('service');}}>إضافة خدمة</button><button disabled={locked||Boolean(v.offer_id)||!lines.length} onClick={()=>setDialog('offer')}>تطبيق كود عرض</button><button disabled={remaining<=0||v.status==='void'} onClick={()=>{setPaymentKey(crypto.randomUUID());setDialog('payment');}}>تسجيل تحصيل</button><button onClick={()=>setDialog('invoice')}>عرض / طباعة الفاتورة</button><span>{canAdd&&payments.length>0?'تقدر تضيف خدمة زيادة وتحصل باقي الحساب. الإيصالات السابقة محفوظة.':locked?'الفاتورة مثبتة؛ إلغاء خدمة بعد التحصيل أو إنهاء الزيارة يحتاج تصحيحًا ماليًا مسجلًا من الأدمن.':v.offer_id?'العرض محفوظ على خدماته الأصلية؛ الخدمات الإضافية بسعرها بدون إعادة تطبيق العرض.':'اختار الخدمات، وبعدها طبّق العرض وسجّل التحصيل.'}</span></div></>}
  <h2>الخدمات</h2><Table rows={lines} columns={[
  {label:'الخدمة',render:row=><>{name('services',row.service_id)} {row.is_gift?<Badge tone="success">هدية</Badge>:row.is_bundle?<Badge>باقة</Badge>:null}</>},
  {label:'الطبيب',render:row=>name('doctors',row.doctor_id)},{label:'العدد',numeric:true,render:row=>text(row.quantity)},
@@ -43,7 +44,7 @@ export default function Visit(){
  {key:'service_id',label:'الخدمة',type:'select',required:true,options:activeServices.map(row=>({value:row.id,label:text(row.name)}))},
  {key:'doctor_id',label:'الطبيب المنفذ',type:'select',required:true,options:rows('doctors').filter(row=>row.active&&row.specialty_id===v.specialty_id).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'quantity',label:'العدد',type:'number',required:true,min:1,max:1000},{key:'is_gift',label:'هدية بدون مقابل',type:'checkbox'}
- ]} submit={async values=>{await command('line_add',{...values,visit_id:id});await refresh();setDialog('');}} label="إضافة الخدمة"/></Dialog>}
+ ]} submit={async values=>{await visitOperation('clinic_append_service',{...values,visit_id:id,idempotency_key:serviceKey});await refresh();setDialog('');}} label="إضافة الخدمة"/></Dialog>}
  {dialog==='offer'&&<Dialog title="تطبيق عرض" close={()=>setDialog('')}><Form fields={[{key:'code',label:'كود العرض',required:true}]} submit={async values=>{await command('offer_apply',{...values,visit_id:id});await refresh();setDialog('');}} label="تطبيق العرض"/></Dialog>}
  {dialog==='payment'&&<Dialog title="تسجيل تحصيل" close={()=>setDialog('')}><Form initial={{amount_minor:Number(remaining),method:'cash',kind:!v.confirmed?'deposit':'payment'}} fields={[
  {key:'amount_minor',label:'المبلغ بالجنيه',type:'money',required:true,hint:`المتبقي ${money(remaining)}`},
@@ -56,6 +57,7 @@ export default function Visit(){
  {key:'follow_up_purpose',label:'غرض المتابعة',required:true,when:values=>Boolean(values.follow_up_date)}
  ]} submit={async values=>{await command(v.status==='completed'?'clinical_save':'visit_complete',{...values,visit_id:id});await refresh();setDialog('');}} label={v.status==='completed'?'حفظ الكشف':'حفظ وإنهاء الزيارة'}/></Dialog>}
  {dialog==='followup'&&<Dialog title="متابعة جديدة" close={()=>setDialog('')}><Form initial={{due_date:today()}} fields={[{key:'due_date',label:'التاريخ',type:'date',required:true},{key:'due_time',label:'الوقت',type:'time'},{key:'purpose',label:'الغرض',required:true}]} submit={async values=>{await command('follow_up_save',{...values,visit_id:id});await refresh();setDialog('');}}/></Dialog>}
+ {dialog==='invoice'&&<Dialog title="فاتورة الزيارة" close={()=>setDialog('')}><div className="print-receipt"><h2>فاميلي كير — فاتورة الزيارة</h2><p>العميل: {name('patients',v.patient_id)}</p><p>تاريخ الزيارة: {date(v.visit_date)} · رقم الزيارة: <bdi>{v.id}</bdi></p><p>نسخة الفاتورة: {text(v.version)}</p><Table rows={lines} columns={[{label:'الخدمة',render:row=>name('services',row.service_id)},{label:'العدد',render:row=>text(row.quantity)},{label:'سعر الوحدة',render:row=>money(row.unit_price_minor)},{label:'الخصم',render:row=>money(row.discount_minor)},{label:'الإجمالي',render:row=>money(row.line_total_minor)}]}/><p>الإجمالي: {money(v.total_minor)} · حصة العميل: {money(v.co_pay_minor)} · على الجهة: {money(v.covered_minor)}</p><p>المدفوع: {money(paid)} · المتبقي: {money(remaining)}</p><p>الفاتورة ملخص محدث للحساب، وإيصالات التحصيل السابقة محفوظة.</p></div><button className="primary no-print" onClick={()=>window.print()}>طباعة الفاتورة</button></Dialog>}
  {receipt&&<Receipt payment={receipt} close={()=>setReceipt(null)}/>}
  </>;
 }

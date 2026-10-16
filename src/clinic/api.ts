@@ -15,6 +15,7 @@ const messages: Record<string,string> = {
  UNION_REQUIRED:'اختار النقابة.',UNION_INACTIVE:'النقابة غير نشطة. اختار نقابة أخرى.',UNION_NOT_APPLICABLE:'النقابة متاحة لعميل النقابة فقط.',
  INVALID_EXPENSE:'راجع المبلغ والسبب والتاريخ؛ لا يمكن تسجيل مصروف بتاريخ مستقبلي.',
  SERVICE_REQUIRED:'اختار الخدمة.',
+ VISIT_NOT_OPEN:'الزيارة انتهت أو اتلغت. افتح زيارة متابعة بخدمة جديدة لو فيه خدمة إضافية.',
  INVALID_PERIOD:'تاريخ البداية لازم يكون قبل تاريخ النهاية أو نفس اليوم.',
  COPAY_REQUIRED:'اكتب نسبة تحمّل العميل من الكارنيه قبل فتح الزيارة.',INVALID_COPAY:'النسبة لازم تكون من 0 إلى 100%.',COPAY_NOT_APPLICABLE:'نسبة التحمل متاحة للنقابة أو التأمين فقط.',
  };
@@ -32,6 +33,9 @@ export async function command(action: string,payload: Record<string,unknown>): P
  const {data,error}=await db.rpc('clinic_command',{action,payload});
  if(error) throw error;
  return data as Record<string,unknown>;
+}
+export async function visitOperation(operation:'clinic_append_service'|'clinic_open_followup',payload:Record<string,unknown>):Promise<Record<string,unknown>> {
+ const {data,error}=await db.rpc(operation,{payload});if(error)throw error;return data as Record<string,unknown>;
 }
 export async function patientIntake(payload: Record<string,unknown>): Promise<Record<string,unknown>> {
  const {data,error}=await db.rpc('clinic_patient_intake',{payload});
