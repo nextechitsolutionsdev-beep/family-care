@@ -1,0 +1,296 @@
+{
+  "run": {
+    "startedAt": "2026-10-16T18:06:05.769Z",
+    "scope": {
+      "site": "https://family-care-4le.pages.dev",
+      "api": "https://xkbyxefvzlcnyefkxwsx.supabase.co",
+      "rates": [
+        1,
+        2,
+        5
+      ],
+      "secondsPerStage": 60,
+      "maxDurationSeconds": 300,
+      "maxRequests": 600,
+      "maxConnections": 3
+    },
+    "thresholds": {
+      "cpuPercent": 85,
+      "availableMemoryPercent": 15,
+      "freeDiskPercent": 20,
+      "connectionsPercent": 90,
+      "http5xxPercent": 2,
+      "p95Ms": 2000,
+      "latencySustainSeconds": 60
+    },
+    "stages": [
+      {
+        "targetRps": 1,
+        "durationSeconds": 60.51,
+        "sent": 60,
+        "completed": 60,
+        "observedRps": 0.991571641051066,
+        "p50Ms": 126.3136,
+        "p95Ms": 290.0548,
+        "p99Ms": 525.1402,
+        "errors": 0,
+        "timeouts": 0,
+        "statusCodes": {
+          "200": {
+            "count": 60
+          }
+        },
+        "bytes": 326992
+      },
+      {
+        "targetRps": 2,
+        "durationSeconds": 60.57,
+        "sent": 120,
+        "completed": 120,
+        "observedRps": 1.9811788013868252,
+        "p50Ms": 113.0907,
+        "p95Ms": 189.199,
+        "p99Ms": 1103.0408,
+        "errors": 0,
+        "timeouts": 0,
+        "statusCodes": {
+          "200": {
+            "count": 120
+          }
+        },
+        "bytes": 653966
+      },
+      {
+        "targetRps": 5,
+        "durationSeconds": 60.439,
+        "sent": 257,
+        "completed": 256,
+        "observedRps": 4.235675639901388,
+        "p50Ms": 116.4595,
+        "p95Ms": 239.2437,
+        "p99Ms": 2669.6278,
+        "errors": 0,
+        "timeouts": 0,
+        "statusCodes": {
+          "200": {
+            "count": 256
+          }
+        },
+        "bytes": 1394412
+      }
+    ],
+    "metrics": [
+      {
+        "time": "2026-10-16T18:06:07.539Z",
+        "cpuTotal": 1565776.8099999998,
+        "cpuIdle": 1530981.5899999999,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 168128512,
+        "memoryAvailablePercent": 37.12611137742965,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021225984,
+            "availablePercent": 28.87835450650229
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783726080,
+            "availablePercent": 85.87689164619067
+          }
+        ],
+        "connections": 15,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 690196480,
+        "networkReceiveBytes": 643796254,
+        "networkTransmitBytes": 2239846880,
+        "diskIoSeconds": 12898.439,
+        "label": "baseline-start"
+      },
+      {
+        "time": "2026-10-16T18:07:08.288Z",
+        "cpuTotal": 1565897.6600000001,
+        "cpuIdle": 1531100.08,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 179494912,
+        "memoryAvailablePercent": 39.6360380242581,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021225984,
+            "availablePercent": 28.87835450650229
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783726080,
+            "availablePercent": 85.87689164619067
+          }
+        ],
+        "connections": 14,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 687480832,
+        "networkReceiveBytes": 643837883,
+        "networkTransmitBytes": 2240110914,
+        "diskIoSeconds": 12899.642,
+        "cpuBusyPercent": 1.9528340919289011,
+        "sampleIntervalSeconds": 60.749,
+        "label": "baseline-end"
+      },
+      {
+        "time": "2026-10-16T18:08:11.345Z",
+        "cpuTotal": 1566023.3499999999,
+        "cpuIdle": 1531223,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 152997888,
+        "memoryAvailablePercent": 33.7849693834173,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021225984,
+            "availablePercent": 28.87835450650229
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783726080,
+            "availablePercent": 85.87689164619067
+          }
+        ],
+        "connections": 14,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 715186176,
+        "networkReceiveBytes": 643920529,
+        "networkTransmitBytes": 2240349502,
+        "diskIoSeconds": 12900.817,
+        "cpuBusyPercent": 2.2038348315635004,
+        "sampleIntervalSeconds": 63.057,
+        "label": "after-1-rps"
+      },
+      {
+        "time": "2026-10-16T18:09:14.716Z",
+        "cpuTotal": 1566149.4100000006,
+        "cpuIdle": 1531345.31,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 164474880,
+        "memoryAvailablePercent": 36.31931693816083,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021225984,
+            "availablePercent": 28.87835450650229
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783726080,
+            "availablePercent": 85.87689164619067
+          }
+        ],
+        "connections": 15,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 703262720,
+        "networkReceiveBytes": 644084060,
+        "networkTransmitBytes": 2240833698,
+        "diskIoSeconds": 12902.604,
+        "cpuBusyPercent": 2.9747739177185872,
+        "sampleIntervalSeconds": 63.371,
+        "label": "after-2-rps"
+      },
+      {
+        "time": "2026-10-16T18:10:17.729Z",
+        "cpuTotal": 1566275.1300000001,
+        "cpuIdle": 1531468.2999999998,
+        "cpuCount": 2,
+        "memoryTotalBytes": 452857856,
+        "memoryAvailableBytes": 154386432,
+        "memoryAvailablePercent": 34.09158744946229,
+        "disks": [
+          {
+            "mount": "/",
+            "totalBytes": 10461904896,
+            "availableBytes": 3021217792,
+            "availablePercent": 28.878276203362653
+          },
+          {
+            "mount": "/data",
+            "totalBytes": 2077073408,
+            "availableBytes": 1783726080,
+            "availablePercent": 85.87689164619067
+          }
+        ],
+        "connections": 14,
+        "maxConnections": 60,
+        "poolWaiting": 0,
+        "swapTotalBytes": 1073737728,
+        "swapFreeBytes": 705339392,
+        "networkReceiveBytes": 644342578,
+        "networkTransmitBytes": 2241372597,
+        "diskIoSeconds": 12903.188,
+        "cpuBusyPercent": 2.171492204708292,
+        "sampleIntervalSeconds": 63.013,
+        "label": "after-5-rps"
+      }
+    ],
+    "health": [],
+    "events": [
+      {
+        "time": "2026-10-16T18:10:54.184Z",
+        "event": "Preflight, monitoring or request failed"
+      }
+    ],
+    "stopReason": "Preflight, monitoring or request failed",
+    "tool": "autocannon 8.0.0, one process, no workers",
+    "limitations": [
+      "Hosted Cloudflare hardware and edge-wide capacity are not observable.",
+      "Visible CPU count is not a guarantee of dedicated CPUs.",
+      "No write stress or maximum-capacity claim.",
+      "Low payload read requests, not concurrent end-to-end browser sessions."
+    ],
+    "finishedAt": "2026-10-16T18:10:54.186Z",
+    "completed": false,
+    "requestBudgetUsed": 445,
+    "elapsedSeconds": 288.416
+  },
+  "postCheck": {
+    "time": "2026-10-16T18:11:42.988Z",
+    "metricsStatus": 200,
+    "metricsHeaders": {
+      "date": "Fri, 16 Oct 2026 18:11:36 GMT",
+      "age": null,
+      "cache-control": null,
+      "x-cache": null
+    },
+    "cpuCounterDeltaSinceLastStage": 159.35999999986961,
+    "loginSucceeded": true,
+    "authenticatedReadSucceeded": true,
+    "authenticatedReadRows": 1,
+    "homepageStatus": 200,
+    "healthSequenceMs": 4331,
+    "businessWriteCountersUnchanged": true
+  },
+  "interpretation": {
+    "maximumCapacityMeasured": false,
+    "recoveryTestCompleted": false,
+    "stageCapArtifact": "Per-stage equal connection quotas with overallRate=5 and connections=3 can reduce actual rate. The runner was corrected afterwards without another hosted load run.",
+    "monitoringFailure": "The original runner did not retain the failing final metric sample or its exact reason. Stale CPU counters are a hypothesis, not a confirmed diagnosis.",
+    "pendingRequest": "257 sent versus 256 responses at stage end; no response status recorded for the outstanding request."
+  }
+}
