@@ -1,4 +1,5 @@
-import {useState} from 'react';
+import {useState,useMemo} from 'react';
+import {patientSearchIndex,specialtyCodes} from './search';
 import {Link,useNavigate,useParams} from 'react-router-dom';
 import {command,patientIntake,visitIntake,text,date,label,today,percentLabel,type Row} from './api';
 import {useClinic,patientPaid,patientRemaining} from './store';
@@ -91,8 +92,11 @@ export default function Patients() {
   {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true,hint:'اليوم تلقائيًا بتوقيت القاهرة؛ يمكنك تغيير التاريخ.'},
   copayField,...paymentFields,
   ...(profile.role==='owner'?fields.filter(field=>field.key==='demo_batch_id'&&rows('demo_batches').some(row=>!row.archived_at)):[])];
- const codes=(patientId:string)=>rows('patient_specialty_codes').filter(row=>row.patient_id===patientId).map(row=>text(row.code)).join(' · ');
- const filtered=rows('patients').filter(row=>row.active&&(text(row.name)+' '+text(row.phone_e164)+' '+codes(row.id)).toLowerCase().includes(search.toLowerCase()));
+ const patientRows=rows('patients'),codeRows=rows('patient_specialty_codes');
+ const codeIndex=useMemo(()=>specialtyCodes(codeRows),[codeRows]);
+ const searchIndex=useMemo(()=>patientSearchIndex(patientRows,codeRows),[patientRows,codeRows]);
+ const codes=(patientId:string)=>(codeIndex.get(patientId)??[]).join(' · ');
+ const filtered=patientRows.filter(row=>row.active&&searchIndex.get(row.id)?.includes(search.toLowerCase()));
  const visits=rows('visits').filter(row=>row.patient_id===id).sort((a,b)=>text(b.visit_date).localeCompare(text(a.visit_date)));
  const payments=rows('payments').filter(row=>row.patient_id===id);
  const totals=visits.filter(row=>row.status!=='void').reduce((sum,row)=>sum+BigInt(text(row.co_pay_minor||0)),0n);

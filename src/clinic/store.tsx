@@ -1,7 +1,9 @@
-import {createContext,useContext,useEffect,useState,useCallback,type ReactNode} from 'react';
+import {createContext,useContext,useEffect,useState,useMemo,type ReactNode} from 'react';
 import {all,db,readableError,text,type Row,type Profile} from './api';
+import {singleFlight} from './singleFlight';
 type Store={profile:Profile;data:Record<string,Row[]>;refresh:()=>Promise<void>;name:(table:string,id:unknown)=>string;rows:(table:string)=>Row[]};
 const Context=createContext<Store|null>(null);
+const emptyRows:Row[]=[];
 const shared=['patients','patient_specialty_codes','specialties','doctors','client_types','services','bundle_components','price_lists','price_list_versions','service_prices','clinic_settings','follow_ups','appointments'];
 const desk=['expenses','visits','payments','payment_allocations','insurance_companies','unions','offers','offer_redemptions','message_templates','campaigns','campaign_recipients','message_outbox','message_attempts','consent_events'];
 const owner=['profiles','insurance_invoices','insurance_settlements','settlement_allocations','rent_contracts','rent_dues','rent_payments','rent_allocations','doctor_service_terms','audit_log','demo_batches','experience_feedback'];
@@ -58,7 +60,7 @@ function hideArchivedDemo(next:Record<string,Row[]>){
 }
 export function ClinicProvider({profile,children}:{profile:Profile;children:ReactNode}) {
  const [data,setData]=useState<Record<string,Row[]>>({});const [error,setError]=useState('');const [loading,setLoading]=useState(true);
- const refresh=useCallback(async()=>{
+ const refresh=useMemo(()=>singleFlight(async()=>{
    setError('');
    const tables=[...shared,...(profile.role==='doctor'?['visit_lines']:[...desk,'visit_lines']),...(profile.role==='owner'?owner:[])];
    const results=await Promise.allSettled(tables.map(table=>all(table)));
@@ -72,10 +74,19 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
      next.visits=visits as Row[];
    }
    setData(hideArchivedDemo(next));setLoading(false);
- },[profile.role]);
+ }),[profile.id,profile.role]);
  useEffect(()=>{let active=true;refresh().catch(()=>{if(active)setLoading(false);});return()=>{active=false;};},[refresh]);
- const rows=(table:string)=>data[table]??[];
- const name=(table:string,id:unknown)=>{const row=rows(table).find(row=>row.id===id||row.code===id);return text(row?.name||row?.title||row?.display_name||row?.code)||'—';};
+ const lookup=useMemo(()=>{
+  const tables=new Map<string,Map<unknown,Row>>();
+  for(const [table,rows] of Object.entries(data)){
+   const index=new Map<unknown,Row>();
+   for(const row of rows)for(const key of [row.id,row.code])if(key!==undefined&&!index.has(key))index.set(key,row);
+   tables.set(table,index);
+  }
+  return tables;
+ },[data]);
+ const rows=(table:string)=>data[table]??emptyRows;
+ const name=(table:string,id:unknown)=>{const row=lookup.get(table)?.get(id);return text(row?.name||row?.title||row?.display_name||row?.code)||'—';};
  return <Context.Provider value={{profile,data,refresh,name,rows}}>
    {error&&<div className="error" role="alert">{error} <button onClick={()=>{void refresh().catch(()=>{});}}>إعادة المحاولة</button></div>}
    {loading?<p role="status" className="loading">جارٍ تحميل بيانات العيادة…</p>:children}
