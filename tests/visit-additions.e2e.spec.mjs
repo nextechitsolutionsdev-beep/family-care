@@ -35,7 +35,9 @@ test('paid visit accepts extra service, reprints and continues or charges follow
   expect((await owner.from('visit_lines').select('*').eq('id',line.id).single()).data).toEqual(oldLine);
   expect((await owner.from('payments').select('*').eq('id',receipt.id).single()).data).toEqual(receipt);
   await page.getByRole('button',{name:'عرض / طباعة الفاتورة'}).click();await expect(page.locator('dialog')).toContainText(money(amount*2-paid));await expect(page.getByRole('button',{name:'طباعة الفاتورة',exact:true})).toBeVisible();
-  await page.screenshot({path:'output/playwright/regression/additions-invoice-desktop.png'});await page.getByRole('button',{name:'إغلاق'}).click();
+  await page.screenshot({path:'output/playwright/regression/additions-invoice-desktop.png'});
+  await page.emulateMedia({media:'print'});await expect(page.locator('dialog .print-receipt')).toBeVisible();await expect(page.locator('.page-heading')).toBeHidden();
+  await page.pdf({path:'output/playwright/regression/additions-invoice.pdf',format:'A4'});await page.emulateMedia({media:'screen'});await page.getByRole('button',{name:'إغلاق'}).click();
   await page.getByRole('button',{name:'الكشف وإنهاء الزيارة',exact:true}).click();await page.getByLabel('التشخيص / ملاحظات الكشف').fill('خدمة منفذة، مع حساب متبقٍ');await page.getByRole('button',{name:'حفظ وإنهاء الزيارة'}).click();await expect(page.locator('dialog')).toHaveCount(0);
   await page.goto('/follow-ups');const first=page.getByRole('row').filter({hasText:`استكمال-${tag}`});await first.getByRole('button',{name:'فتح / تحصيل المتابعة'}).click();await page.getByRole('button',{name:'فتح الحساب',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/visits/${visit.id}$`));
   await page.getByRole('button',{name:'تسجيل تحصيل',exact:true}).click();await page.getByRole('button',{name:'تسجيل وطباعة الإيصال'}).click();await expect(page.getByRole('heading',{name:'إيصال التحصيل',exact:true})).toBeVisible();await page.getByRole('button',{name:'إغلاق'}).click();
