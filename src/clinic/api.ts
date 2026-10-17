@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import {normalizeEgyptianPhone} from '../domain/phone';
 export type Row = { id: string; [key: string]: unknown };
 export type Profile = { id: string; display_name: string; role: 'owner' | 'reception' | 'doctor'; doctor_id: string | null; active: boolean };
 export const db = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
@@ -35,6 +36,7 @@ export function readableError(error: unknown): string {
  return 'تعذر تنفيذ الإجراء. راجع اتصال الإنترنت ثم حاول مرة أخرى.';
 }
 export async function command(action: string,payload: Record<string,unknown>): Promise<Record<string,unknown>> {
+ if(action==='patient_save'||action==='doctor_save')payload={...payload,phone_e164:normalizeEgyptianPhone(payload.phone_e164)};
  const {data,error}=await db.rpc('clinic_command',{action,payload});
  if(error) throw error;
  return data as Record<string,unknown>;
@@ -43,6 +45,8 @@ export async function visitOperation(operation:'clinic_append_service'|'clinic_o
  const {data,error}=await db.rpc(operation,{payload});if(error)throw error;return data as Record<string,unknown>;
 }
 export async function patientIntake(payload: Record<string,unknown>): Promise<Record<string,unknown>> {
+ const patient=payload.patient as Record<string,unknown>;
+ payload={...payload,patient:{...patient,phone_e164:normalizeEgyptianPhone(patient.phone_e164)}};
  const {data,error}=await db.rpc('clinic_patient_intake',{payload});
  if(error) throw error;
  return data as Record<string,unknown>;

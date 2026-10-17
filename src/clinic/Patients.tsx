@@ -36,7 +36,7 @@ function IntakePreview({values,clientType,extras=[]}:{values:Record<string,unkno
  }catch{return null;}
 }
 export function patientFields(types:Row[],insurers:Row[],unions:Row[],specialties:Row[],demo:Row[]):Field[]{return [
- {key:'name',label:'اسم العميل',required:true},{key:'phone_e164',label:'رقم الموبايل',required:true,hint:'01xxxxxxxxx أو +20. أرقام التجربة +200000000001 لسجل تجريبي فقط.'},
+ {key:'name',label:'اسم العميل',required:true},{key:'phone_e164',label:'رقم الموبايل',required:true,hint:'اكتب الرقم العادي مثل 01012345678؛ كود مصر بيتضاف تلقائيًا.'},
  {key:'birth_date',label:'تاريخ الميلاد',type:'date'},
  {key:'client_type_code',label:'نوع العميل',type:'select',required:true,options:types.map(row=>({value:text(row.code),label:text(row.name)}))},
  {key:'insurer_id',label:'شركة التأمين',type:'select',required:true,when:values=>values.client_type_code==='insurance_credit',options:insurers.filter(row=>row.active&&row.payer_kind!=='union').map(row=>({value:row.id,label:text(row.name)}))},
