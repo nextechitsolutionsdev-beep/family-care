@@ -16,6 +16,11 @@ const messages: Record<string,string> = {
  INVALID_EXPENSE:'راجع المبلغ والسبب والتاريخ؛ لا يمكن تسجيل مصروف بتاريخ مستقبلي.',
  SERVICE_REQUIRED:'اختار الخدمة.',
  VISIT_NOT_OPEN:'الزيارة انتهت أو اتلغت. افتح زيارة متابعة بخدمة جديدة لو فيه خدمة إضافية.',
+ INVALID_FOLLOWUP_FEE:'اكتب سعر متابعة أكبر من صفر وبحد أقصى منزلتين عشريتين.',
+ FOLLOWUP_PAYMENT_REQUIRED:'حصّل المتبقي من الحساب القديم وحساب المتابعة أولاً، ثم سجّل الدخول بعد السداد.',
+ FOLLOWUP_ACCOUNT_REQUIRED:'افتح حساب المتابعة أولاً قبل تسجيل الدخول.',
+ FOLLOWUP_PLAN_LOCKED:'نوع وسعر المتابعة محفوظان مع الحجز ولا يمكن تغييرهما عند التحصيل.',
+ FOLLOWUP_FEE_LOCKED:'حساب رسوم المتابعة مستقل وثابت بالسعر المحجوز. أضف أي خدمة أخرى في زيارة منفصلة من ملف العميل.',
  INVALID_PERIOD:'تاريخ البداية لازم يكون قبل تاريخ النهاية أو نفس اليوم.',
  COPAY_REQUIRED:'اكتب نسبة تحمّل العميل من الكارنيه قبل فتح الزيارة.',INVALID_COPAY:'النسبة لازم تكون من 0 إلى 100%.',COPAY_NOT_APPLICABLE:'نسبة التحمل متاحة للنقابة أو التأمين فقط.',
  };
@@ -34,7 +39,7 @@ export async function command(action: string,payload: Record<string,unknown>): P
  if(error) throw error;
  return data as Record<string,unknown>;
 }
-export async function visitOperation(operation:'clinic_append_service'|'clinic_open_followup',payload:Record<string,unknown>):Promise<Record<string,unknown>> {
+export async function visitOperation(operation:'clinic_append_service'|'clinic_open_followup'|'clinic_schedule_followup'|'clinic_admit_followup',payload:Record<string,unknown>):Promise<Record<string,unknown>> {
  const {data,error}=await db.rpc(operation,{payload});if(error)throw error;return data as Record<string,unknown>;
 }
 export async function patientIntake(payload: Record<string,unknown>): Promise<Record<string,unknown>> {

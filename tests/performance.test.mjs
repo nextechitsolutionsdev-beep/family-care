@@ -6,6 +6,13 @@ import ts from 'typescript';
 const load=async path=>import('data:text/javascript;base64,'+Buffer.from(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText).toString('base64'));
 const {singleFlight}=await load('src/clinic/singleFlight.ts');
 const {patientSearchIndex}=await load('src/clinic/search.ts');
+const {followupTiming}=await load('src/clinic/followupDates.ts');
+test('future year followup stays upcoming against Cairo today',()=>{
+ assert.equal(followupTiming('2027-02-22','2026-10-17'),'upcoming');
+ assert.equal(followupTiming('2026-10-17','2026-10-17'),'today');
+ assert.equal(followupTiming('2026-10-16','2026-10-17'),'overdue');
+ assert.equal(followupTiming(null,'2026-10-17'),'invalid');
+});
 test('overlapping refreshes share one read; later refresh reads again',async()=>{
  let count=0,release;const refresh=singleFlight(()=>{count++;return new Promise(resolve=>{release=resolve;});});
  const first=refresh(),second=refresh();assert.equal(first,second);await Promise.resolve();assert.equal(count,1);release();await first;
