@@ -5,12 +5,16 @@ import {command,db,date,label,text,today,type Row} from './api';
 import {useClinic} from './store';
 import {Dialog,Form,Heading,Table,Badge,useTask,type Field} from './ui';
 import {decimal,minor,money} from '../domain/money';
+import {accountError} from './accountErrors';
 async function usersCommand(body:Record<string,unknown>):Promise<Record<string,unknown>> {
- const {data,error}=await db.functions.invoke('manage-users',{body});
+ let {data,error}=await db.functions.invoke('manage-users',{body});
+ if(error&&'context' in error&&(error.context as Response)?.status===401){
+   const renewed=await db.auth.refreshSession();
+   if(!renewed.error&&renewed.data.session)({data,error}=await db.functions.invoke('manage-users',{body}));
+ }
  if(error) {
    let code='';if('context' in error) {try {code=text((await (error.context as Response).json()).error);}catch{code='';}}
-   const errors:Record<string,string>={EMAIL_EXISTS:'البريد مسجل بالفعل.',LAST_OWNER:'لا يمكن تعطيل آخر حساب مالك.',INVALID_INPUT:'راجع البيانات. كلمة المرور لا تقل عن 12 حرفاً.'};
-   throw new Error(errors[code]??'تعذر إدارة الحساب. راجع البيانات واتصال الإنترنت.');
+   throw new Error(accountError(code,'context' in error?(error.context as Response)?.status:undefined));
  }
  return data as Record<string,unknown>;
 }

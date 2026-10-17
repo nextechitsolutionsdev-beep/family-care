@@ -6,9 +6,9 @@ import ts from 'typescript';
 
 // Run the actual Deno handler in Node; mock only its external Auth/DB client.
 // Rejected input must stop before a mutation or survey lookup happens.
-function handler(name){
+function handler(name,scenario={}){
  let serve;const reads=[];
- const client={auth:{getUser:async()=>({data:{user:{id:'synthetic-owner'}},error:null})},from:table=>{
+ const client={auth:{getUser:async()=>({data:{user:{id:'synthetic-owner'}},error:null}),admin:scenario.admin},rpc:scenario.rpc,from:table=>{
   reads.push(table);assert.equal(table,'profiles','invalid payload must not read survey data');
   return {select:()=>({eq:()=>({single:async()=>({data:{active:true,role:'owner'}})})})};
  }};
@@ -17,6 +17,20 @@ function handler(name){
  vm.runInNewContext(output,{Deno:{env:{get:()=> 'synthetic-key'},serve:callback=>{serve=callback;}},createClient:()=>client,Response,crypto});
  return {serve,reads};
 }
+test('account creation returns actionable errors and cleans up a failed doctor link',async()=>{
+ const payload={action:'create',email:'qa@example.com',password:'Sufficient-test-password',display_name:'طبيب اختبار',role:'doctor',doctor_id:'synthetic-doctor'};
+ for(const [authCode,expected] of [['email_exists','EMAIL_EXISTS'],['user_already_exists','EMAIL_EXISTS'],['weak_password','WEAK_PASSWORD'],['email_address_invalid','INVALID_EMAIL']]){
+  const {serve}=handler('manage-users',{admin:{createUser:async()=>({error:{code:authCode}})},rpc:()=>assert.fail('must not save a profile after Auth rejection')});
+  const response=await serve(new Request('https://example.invalid',{method:'POST',headers:{Authorization:'Bearer synthetic-key','Content-Type':'application/json'},body:JSON.stringify(payload)}));
+  assert.equal(response.status,400);assert.deepEqual(await response.json(),{error:expected});
+ }
+ for(const [sqlCode,expected] of [['23505','DOCTOR_ALREADY_LINKED'],['23503','INVALID_DOCTOR'],['22P02','INVALID_DOCTOR'],['42501','PROFILE_CREATE_FAILED']]){
+  let deleted=0;
+  const {serve}=handler('manage-users',{admin:{createUser:async()=>({data:{user:{id:'synthetic-new-user'}}}),deleteUser:async id=>{assert.equal(id,'synthetic-new-user');deleted++;return {error:null};}},rpc:async()=>({error:{code:sqlCode}})});
+  const response=await serve(new Request('https://example.invalid',{method:'POST',headers:{Authorization:'Bearer synthetic-key','Content-Type':'application/json'},body:JSON.stringify(payload)}));
+  assert.equal(response.status,400);assert.deepEqual(await response.json(),{error:expected});assert.equal(deleted,1);
+ }
+});
 for(const name of ['experience-feedback','manage-users']){
  test(`${name} rejects non-object and malformed JSON without an internal error`,async()=>{
   for(const body of ['null','[]','1','true','"text"','{']){

@@ -30,9 +30,16 @@ Deno.serve(async request=>{
   if(typeof payload.email!=='string'||typeof payload.password!=='string'||payload.password.length<12||payload.password.length>128||!['owner','reception','doctor'].includes(String(payload.role)))return response({error:'INVALID_INPUT'},400);
   if(typeof payload.display_name!=='string'||payload.display_name.trim().length<2)return response({error:'INVALID_INPUT'},400);
   const {data,error}=await admin.auth.admin.createUser({email:payload.email,password:payload.password,email_confirm:true});
-  if(error)return response({error:error.code==='email_exists'?'EMAIL_EXISTS':'USER_CREATE_FAILED'},400);
+  if(error){
+   const code=error.code==='email_exists'||error.code==='user_already_exists'?'EMAIL_EXISTS':error.code==='weak_password'?'WEAK_PASSWORD':error.code==='email_address_invalid'?'INVALID_EMAIL':'USER_CREATE_FAILED';
+   return response({error:code},400);
+  }
   const {error:profileError}=await actor.rpc('manage_profile',{payload:{id:data.user.id,display_name:payload.display_name,role:payload.role,doctor_id:payload.doctor_id||null,active:true}});
-  if(profileError){await admin.auth.admin.deleteUser(data.user.id);return response({error:'PROFILE_CREATE_FAILED'},400);}
+  if(profileError){
+   await admin.auth.admin.deleteUser(data.user.id);
+   const code=profileError.code==='23505'&&payload.role==='doctor'?'DOCTOR_ALREADY_LINKED':['22P02','23503','23514'].includes(profileError.code)?'INVALID_DOCTOR':'PROFILE_CREATE_FAILED';
+   return response({error:code},400);
+  }
   return response({id:data.user.id});
  }
  if(payload.action==='update') {
