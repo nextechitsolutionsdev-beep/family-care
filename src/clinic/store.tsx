@@ -6,7 +6,7 @@ const Context=createContext<Store|null>(null);
 const emptyRows:Row[]=[];
 const shared=['patients','patient_specialty_codes','specialties','doctors','client_types','services','bundle_components','price_lists','price_list_versions','service_prices','clinic_settings','follow_ups','appointments'];
 const desk=['expenses','visits','payments','payment_allocations','insurance_companies','unions','offers','offer_redemptions','message_templates','campaigns','campaign_recipients','message_outbox','message_attempts','consent_events'];
-const owner=['profiles','insurance_invoices','insurance_settlements','settlement_allocations','rent_contracts','rent_dues','rent_payments','rent_allocations','doctor_service_terms','audit_log','demo_batches','experience_feedback'];
+const owner=['profiles','insurance_invoices','insurance_settlements','settlement_allocations','rent_contracts','rent_dues','rent_payments','rent_allocations','doctor_service_terms','doctor_share_revisions','audit_log','demo_batches','experience_feedback'];
 function hideArchivedDemo(next:Record<string,Row[]>){
  const hiddenPatients=new Set((next.patients??[]).filter(row=>row.demo_batch_id&&row.active===false).map(row=>row.id));
  const hiddenDoctors=new Set((next.doctors??[]).filter(row=>row.demo_batch_id&&row.active===false).map(row=>row.id));
@@ -44,6 +44,7 @@ function hideArchivedDemo(next:Record<string,Row[]>){
  const rentDueIds=new Set((next.rent_dues??[]).map(row=>row.id));
  if(next.rent_allocations)next.rent_allocations=next.rent_allocations.filter(row=>rentPaymentIds.has(text(row.payment_id))&&rentDueIds.has(text(row.due_id)));
  if(next.doctor_service_terms)next.doctor_service_terms=next.doctor_service_terms.filter(row=>!hiddenDoctors.has(text(row.doctor_id)));
+ if(next.doctor_share_revisions)next.doctor_share_revisions=next.doctor_share_revisions.filter(row=>!hiddenDoctors.has(text(row.doctor_id))&&!hiddenVisits.has(text(row.visit_id)));
  const paymentIds=new Set((next.payments??[]).map(row=>row.id));
  if(next.payment_allocations)next.payment_allocations=next.payment_allocations.filter(row=>paymentIds.has(text(row.payment_id)));
  const invoiceIds=new Set((next.insurance_invoices??[]).map(row=>row.id));
