@@ -9,3 +9,4 @@ export function doctorAvailable(doctor:Record<string,unknown>|undefined,day:unkn
  if(!doctor?.active||weekday===null||!Array.isArray(doctor.schedule))return false;
  return doctor.schedule.length===0||doctor.schedule.includes(weekday);
 }
+export const workWeek=[{day:6,label:'السبت'},{day:0,label:'الأحد'},{day:1,label:'الإثنين'},{day:2,label:'الثلاثاء'},{day:3,label:'الأربعاء'},{day:4,label:'الخميس'},{day:5,label:'الجمعة'}];
