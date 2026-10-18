@@ -31,6 +31,16 @@ test('account creation returns actionable errors and cleans up a failed doctor l
   assert.equal(response.status,400);assert.deepEqual(await response.json(),{error:expected});assert.equal(deleted,1);
  }
 });
+test('new doctor account uses one atomic specialty/profile RPC without credentials',async()=>{
+ let called=false;
+ const payload={action:'create',email:'qa@example.com',password:'Sufficient-test-password',display_name:'طبيب تخصص',role:'doctor',active:true,doctor:{specialty_id:'synthetic-specialty',category:'percentage',default_share_bps:3333}};
+ const {serve}=handler('manage-users',{admin:{createUser:async()=>({data:{user:{id:'synthetic-new-user'}}})},rpc:async(name,args)=>{
+  called=true;assert.equal(name,'clinic_create_doctor_account');assert.equal(args.payload.doctor.specialty_id,'synthetic-specialty');assert.equal(args.payload.doctor.default_share_bps,3333);
+  assert.equal(args.payload.password,undefined);assert.equal(args.payload.email,undefined);return {error:null};
+ }});
+ const response=await serve(new Request('https://example.invalid',{method:'POST',headers:{Authorization:'Bearer synthetic-key','Content-Type':'application/json'},body:JSON.stringify(payload)}));
+ assert.equal(response.status,200);assert.equal(called,true);
+});
 for(const name of ['experience-feedback','manage-users']){
  test(`${name} rejects non-object and malformed JSON without an internal error`,async()=>{
   for(const body of ['null','[]','1','true','"text"','{']){
