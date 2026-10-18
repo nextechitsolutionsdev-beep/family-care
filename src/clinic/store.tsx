@@ -86,7 +86,8 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
   return tables;
  },[data]);
  const catalog=useMemo(()=>(data.services??emptyRows).filter(row=>!row.internal_followup),[data.services]);
- const rows=(table:string)=>table==='services'?catalog:data[table]??emptyRows;
+ const specialties=useMemo(()=>(data.specialties??emptyRows).filter(row=>row.active),[data.specialties]);
+ const rows=(table:string)=>table==='services'?catalog:table==='specialties'?specialties:data[table]??emptyRows;
  const name=(table:string,id:unknown)=>{const row=lookup.get(table)?.get(id);return text(row?.name||row?.title||row?.display_name||row?.code)||'—';};
  return <Context.Provider value={{profile,data,refresh,name,rows}}>
    {error&&<div className="error" role="alert">{error} <button onClick={()=>{void refresh().catch(()=>{});}}>إعادة المحاولة</button></div>}

@@ -4,6 +4,10 @@ export type Row = { id: string; [key: string]: unknown };
 export type Profile = { id: string; display_name: string; role: 'owner' | 'reception' | 'doctor'; doctor_id: string | null; active: boolean };
 export const db = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
 const messages: Record<string,string> = {
+ SPECIALTY_INACTIVE:'التخصص محذوف من الاستخدام. استعد التخصص أولًا ثم الخدمة.',
+ CATALOG_INACTIVE:'الخدمة محذوفة من الاستخدام. اختار خدمة متاحة أو حدّث الصفحة.',
+ SERVICE_IN_ACTIVE_BUNDLE:'الخدمة ضمن باقة فعالة. احذف الباقة من الاستخدام أولًا، ثم احذف الخدمة أو التخصص.',
+ BUNDLE_COMPONENT_INACTIVE:'الباقة فيها خدمة محذوفة. استعد الخدمات المكوّنة للباقة أولًا.',
  AUTH_REQUIRED:'سجّل الدخول من جديد.',SESSION_EXPIRED:'انتهت الجلسة. سجّل الدخول من جديد.',ACCESS_DENIED:'حسابك غير مسموح له بتنفيذ الإجراء.',
  INVALID_EGYPTIAN_PHONE:'اكتب رقم موبايل مصري صحيحاً.',INVALID_BIRTH_DATE:'راجع تاريخ الميلاد.',BILLING_LOCKED:'الفاتورة اتسجل عليها تحصيل؛ التصحيح يحتاج إلغاء مالي مسجل.',
  DEPOSIT_REQUIRED:'سجّل الديبوزيت المطلوب أولاً.',VISIT_NOT_CONFIRMED:'أضف الخدمات وسجّل الديبوزيت المطلوب أولاً.',

@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint src scripts tests supabase/functions",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --test-concurrency=1 tests/money.test.mjs tests/phone.test.mjs tests/database.test.mjs tests/edge-validation.test.mjs tests/account-errors.test.mjs tests/expenses.test.mjs tests/quick-service.test.mjs tests/performance.test.mjs tests/visit-additions.test.mjs tests/followup-plans.test.mjs",
+    "test": "node --test --test-concurrency=1 tests/money.test.mjs tests/phone.test.mjs tests/database.test.mjs tests/edge-validation.test.mjs tests/account-errors.test.mjs tests/expenses.test.mjs tests/quick-service.test.mjs tests/catalog-archive.test.mjs tests/performance.test.mjs tests/visit-additions.test.mjs tests/followup-plans.test.mjs",
     "test:e2e": "playwright test",
     "connect": "node scripts/connect.mjs",
     "migrate": "node scripts/migrate.mjs",

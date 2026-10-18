@@ -51,7 +51,7 @@ export function VisitBooking({patient,close}:{patient:Row;close:()=>void}) {
  const {rows,refresh}=useClinic();const navigate=useNavigate();const [key]=useState(()=>crypto.randomUUID());
  const [extras,setExtras]=useState<SelectedService[]>([]);
  return <Dialog title={`زيارة وخدمة — ${text(patient.name)}`} close={close}><Form initial={{visit_date:today(),location:'clinic',method:'cash',amount_minor:0}} fields={[
- {key:'doctor_id',label:'الطبيب',required:true,type:'select',clearOnChange:['service_id'],options:rows('doctors').filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
+ {key:'doctor_id',label:'الطبيب',required:true,type:'select',clearOnChange:['service_id'],options:rows('doctors').filter(row=>row.active&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'service_id',label:'الخدمة',type:'select',required:true,when:values=>Boolean(values.doctor_id),options:values=>{
   const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
   return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
@@ -70,7 +70,7 @@ export function VisitBooking({patient,close}:{patient:Row;close:()=>void}) {
 function BookingOnly({patient,close}:{patient:Row;close:()=>void}){
  const {rows,refresh}=useClinic();const navigate=useNavigate();
  return <Dialog title={`حجز بدون خدمة — ${text(patient.name)}`} close={close}><Form initial={{visit_date:today(),location:'clinic'}} fields={[
-  {key:'doctor_id',label:'الطبيب',required:true,type:'select',options:rows('doctors').filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
+  {key:'doctor_id',label:'الطبيب',required:true,type:'select',options:rows('doctors').filter(row=>row.active&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:text(row.name)}))},
   {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true,hint:'اليوم تلقائيًا بتوقيت القاهرة؛ يمكنك تغيير التاريخ.'},{key:'visit_time',label:'الوقت',type:'time'},
   {key:'location',label:'مكان الزيارة',type:'select',required:true,options:[{value:'clinic',label:'العيادة'},{value:'home',label:'منزلية (+ 1,000 جنيه)'}]},
   {...copayField,when:()=>covered(patient.client_type_code)}
@@ -84,7 +84,7 @@ export default function Patients() {
  const patient=rows('patients').find(row=>row.id===id);
  const fields=patientFields(rows('client_types'),rows('insurance_companies'),rows('unions'),rows('specialties'),rows('demo_batches'));
  const quickFields:Field[]=[...fields.filter(field=>['name','phone_e164','client_type_code','insurer_id','union_id'].includes(field.key)),
-  {key:'doctor_id',label:'الطبيب والتخصص',type:'select',required:true,clearOnChange:['service_id'],options:rows('doctors').filter(row=>row.active).map(row=>({value:row.id,label:`${text(row.name)} — ${name('specialties',row.specialty_id)}`}))},
+  {key:'doctor_id',label:'الطبيب والتخصص',type:'select',required:true,clearOnChange:['service_id'],options:rows('doctors').filter(row=>row.active&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:`${text(row.name)} — ${name('specialties',row.specialty_id)}`}))},
   {key:'service_id',label:'الخدمة',type:'select',required:true,when:values=>Boolean(values.doctor_id),options:values=>{
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
    return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
