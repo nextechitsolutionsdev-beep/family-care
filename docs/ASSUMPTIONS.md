@@ -1,5 +1,11 @@
 # Assumptions and owner review
 
+## QA audit decisions — 20/10/2026
+
+- Tests that leave permanent visible records or touch real patients/tenants on the only database (`tests/database.test.mjs`, `tests/expenses.e2e.spec.mjs`) are not run against it; their rules are re-checked in rolled-back transactions.
+- Reception write permissions are verified with a reception identity inside a rolled-back transaction, because any UI write would make a temporary staff account undeletable (all `profiles` foreign keys are NO ACTION).
+- QA fixtures are tracked by row-ID snapshot/diff and cleaned by exact ID: archive the batch, delete unreferenced test logins. Immutable price rows of test catalog items stay inactive.
+
 ## QA decisions — 13/10/2026
 
 - A financially void visit keeps its original charged-price/co-pay snapshots for audit but has zero outstanding patient balance in the visit, client history and Today. Cancelling an appointment alone does not void its financial visit or erase debt.
