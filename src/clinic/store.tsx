@@ -80,16 +80,17 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
    const tables=[...shared,...(profile.role==='doctor'?['visit_lines']:[...desk,'visit_lines']),...(profile.role==='owner'?owner:[])];
    const partial=scope==='operational'&&tables.every(table=>table in raw.current);
    const wanted=partial?tables.filter(table=>!reference.has(table)):tables;
+   // Server features and commission terms are read on full loads only, alongside the tables; reception never requests commission.
+   const extras=partial?null:Promise.all([probeCapabilities(db),profile.role==='reception'?Promise.resolve({terms:null}):commissionTerms(db)]);
+   extras?.catch(()=>undefined);
    const results=await Promise.allSettled(wanted.map(table=>all(table)));
    const next:Record<string,Row[]>=partial?{...raw.current}:{};
    for(let index=0;index<results.length;index++) {
      const result=results[index];if(result.status==='rejected') {setError(readableError(result.reason));throw result.reason;}
      next[wanted[index]]=result.value;
    }
-   if(!partial){
-     // Server features and commission terms are read on full loads only; reception never requests commission.
-     const [features,terms]=await Promise.all([probeCapabilities(db),profile.role==='reception'?Promise.resolve({terms:null}):commissionTerms(db)])
-      .catch(error=>{setError(readableError(error));throw error;});
+   if(extras){
+     const [features,terms]=await extras.catch(error=>{setError(readableError(error));throw error;});
      if(profile.role!=='reception')next.doctors=withTerms(next.doctors,terms.terms);
      setCapabilities({...features,commissionTerms:terms.terms!==null});
    }

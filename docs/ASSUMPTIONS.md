@@ -15,12 +15,18 @@ Routine decisions:
 - Scheduled jobs and specialty-wide campaigns are never advanced or sent from tests against the live project; their rules are tested in rolled-back transactions. A campaign test sends only when every recipient belongs to its own fixture batch.
 - Requests time out after 20 seconds and offer a retry instead of an endless loading screen.
 - The survey Edge Function accepts only the production origin unless EXPERIENCE_ALLOWED_ORIGINS adds development origins.
+- Doctor categories: the first category is named after the doctor's selected specialty («أطباء الباطنة», «أطباء التخاطب»; «ال» is added to a single-word name that lacks it, longer names are kept as typed). It is a display label only: the stored value stays `dentist`, and renting/percentage and every financial rule are unchanged. Without a specialty the label reads «أطباء التخصص».
+- Release compatibility: the new frontend detects what the server supports. If commission terms cannot be read (function not yet created, old column already restricted, or the schema cache not yet reloaded) the percentage shows «—» and doctor/percentage editing is disabled; a percentage is never assumed to be 0. The once-per-patient setting and patient codes appear only when their columns exist.
+- Applied-migration integrity: a file whose bytes differ from the recorded checksum is accepted only if the SQL recorded at apply time still hashes to that checksum and equals the file after CRLF→LF normalisation. Anything else stops `npm run migrate`. Applied history is never rewritten.
+- Two accounts (one owner, one reception) were added by the clinic on 21/10/2026 and are real. Tests that need an owner use the earliest-created active owner, so a test never signs in as another person's account; teardown never touches accounts outside its ledger.
+- The PDF guide is generated from docs/USER_GUIDE.md by Chromium with the Windows Tahoma font embedded; regenerate it with `npm run guide:pdf` after editing the guide. Screenshots in docs/guide are empty-form crops with example values only.
 
 ## QA audit decisions — 20/10/2026
 
 - Tests that leave permanent visible records or touch real patients/tenants on the only database (`tests/database.test.mjs`, `tests/expenses.e2e.spec.mjs`) are not run against it; their rules are re-checked in rolled-back transactions.
 - Reception write permissions are verified with a reception identity inside a rolled-back transaction, because any UI write would make a temporary staff account undeletable (all `profiles` foreign keys are NO ACTION).
 - QA fixtures are tracked by row-ID snapshot/diff and cleaned by exact ID: archive the batch, delete unreferenced test logins. Immutable price rows of test catalog items stay inactive.
+- Full clinic loads read server capabilities and permitted doctor commission terms alongside table data; reception never requests commission terms, and partial operational refreshes skip both lookups.
 
 ## QA decisions — 13/10/2026
 
