@@ -47,15 +47,22 @@ Deno.serve(async request=>{
   }
   return response({id:data.user.id});
  }
+ // Ending access must also end live sessions: a deactivated account is banned in Auth and its sessions are removed.
+ const revokeSessions=async(id:string)=>!(await admin.rpc('clinic_revoke_user_sessions',{target:id})).error;
  if(payload.action==='update') {
   const {error}=await actor.rpc('manage_profile',{payload});
   if(error)return response({error:error.message.includes('LAST_OWNER')?'LAST_OWNER':'USER_UPDATE_FAILED'},400);
+  if(typeof payload.id==='string'&&typeof payload.active==='boolean'){
+   const {error:banError}=await admin.auth.admin.updateUserById(payload.id,{ban_duration:payload.active?'none':'876000h'});
+   if(banError||(!payload.active&&!await revokeSessions(payload.id)))return response({error:'SESSION_REVOKE_FAILED'},500);
+  }
   return response({saved:true});
  }
  if(payload.action==='reset_password') {
   if(typeof payload.id!=='string'||typeof payload.password!=='string'||payload.password.length<12||payload.password.length>128)return response({error:'INVALID_INPUT'},400);
   const {error}=await admin.auth.admin.updateUserById(payload.id,{password:payload.password});
   if(error)return response({error:'PASSWORD_UPDATE_FAILED'},400);
+  if(!await revokeSessions(payload.id))return response({error:'SESSION_REVOKE_FAILED'},500);
   return response({saved:true});
  }
  return response({error:'UNKNOWN_ACTION'},400);

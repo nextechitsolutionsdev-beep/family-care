@@ -13,6 +13,7 @@ const messages:Record<string,string>={
  PROFILE_CREATE_FAILED:'تعذر ربط حساب الدخول بالموظف. حدّث الصفحة وراجع حساب الطبيب المختار.',
  USER_UPDATE_FAILED:'تعذر تعديل الحساب. راجع الصلاحية وحساب الطبيب المختار.',
  PASSWORD_UPDATE_FAILED:'تعذر تغيير كلمة المرور. اختار كلمة أقوى وحاول مرة أخرى.',
+ SESSION_REVOKE_FAILED:'اتحفظ التعديل لكن تعذر إنهاء جلسات الموظف المفتوحة. أعد المحاولة قبل الاعتماد على إيقاف الحساب.',
  USER_LIST_FAILED:'تعذر تحميل الحسابات. اضغط تحديث الحسابات وحاول مرة أخرى.',
 };
 export function accountError(code:string,status?:number):string{

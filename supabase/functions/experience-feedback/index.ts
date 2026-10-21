@@ -1,11 +1,9 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.117.2';
 
-const allowedOrigins=new Set([
- 'https://family-care-4le.pages.dev',
- 'http://localhost:5173','http://127.0.0.1:5173',
- 'http://localhost:3001','http://127.0.0.1:3001',
- 'http://localhost:3002','http://127.0.0.1:3002',
-]);
+// Production accepts only the deployed site. Development origins are opted in explicitly through the
+// EXPERIENCE_ALLOWED_ORIGINS secret (comma-separated), never by default.
+const allowedOrigins=new Set(['https://family-care-4le.pages.dev',
+ ...(Deno.env.get('EXPERIENCE_ALLOWED_ORIGINS')??'').split(',').map(origin=>origin.trim()).filter(origin=>/^https?:\/\/[^/]+$/.test(origin))]);
 const cors=(origin:string)=>({
  'Access-Control-Allow-Origin':origin,
  'Access-Control-Allow-Headers':'apikey,content-type',

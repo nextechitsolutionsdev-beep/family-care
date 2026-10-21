@@ -14,7 +14,7 @@ function handler(name,scenario={}){
  }};
  const source=readFileSync(`supabase/functions/${name}/index.ts`,'utf8').replace(/^import .*;\r?\n/,'');
  const output=ts.transpile(source,{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022});
- vm.runInNewContext(output,{Deno:{env:{get:()=> 'synthetic-key'},serve:callback=>{serve=callback;}},createClient:()=>client,Response,crypto});
+ vm.runInNewContext(output,{Deno:{env:{get:key=>scenario.env?.[key]??'synthetic-key'},serve:callback=>{serve=callback;}},createClient:()=>client,Response,crypto});
  return {serve,reads};
 }
 test('account creation returns actionable errors and cleans up a failed doctor link',async()=>{
@@ -44,7 +44,7 @@ test('new doctor account uses one atomic specialty/profile RPC without credentia
 for(const name of ['experience-feedback','manage-users']){
  test(`${name} rejects non-object and malformed JSON without an internal error`,async()=>{
   for(const body of ['null','[]','1','true','"text"','{']){
-   const {serve,reads}=handler(name);
+   const {serve,reads}=handler(name,{env:{EXPERIENCE_ALLOWED_ORIGINS:'http://127.0.0.1:3002'}});
    const request=new Request('https://example.invalid',{method:'POST',headers:{Origin:'http://127.0.0.1:3002',apikey:'synthetic-key',Authorization:'Bearer synthetic-key','Content-Type':'application/json'},body});
    const response=await serve(request);
    assert.equal(response.status,400,`${name}: ${body}`);
@@ -53,3 +53,33 @@ for(const name of ['experience-feedback','manage-users']){
   }
  });
 }
+test('deactivation bans the login and revokes its sessions; reactivation lifts the ban; reset revokes sessions',async()=>{
+ const run=async(body,{revokeError=null}={})=>{
+  const calls=[];
+  const admin={updateUserById:async(id,changes)=>{calls.push(['update',id,changes]);return {error:null};}};
+  const {serve}=handler('manage-users',{admin,rpc:async(name,args)=>{calls.push(['rpc',name,args]);return {error:name==='clinic_revoke_user_sessions'?revokeError:null,data:1};}});
+  const response=await serve(new Request('https://example.invalid',{method:'POST',headers:{Authorization:'Bearer synthetic-key','Content-Type':'application/json'},body:JSON.stringify(body)}));
+  return {status:response.status,body:await response.json(),calls:JSON.parse(JSON.stringify(calls))};
+ };
+ const off=await run({action:'update',id:'staff-1',role:'reception',display_name:'موظف',active:false});
+ assert.equal(off.status,200);
+ assert.deepEqual(off.calls.filter(c=>c[0]==='update'),[['update','staff-1',{ban_duration:'876000h'}]]);
+ assert.deepEqual(off.calls.find(c=>c[1]==='clinic_revoke_user_sessions')?.[2],{target:'staff-1'});
+ const on=await run({action:'update',id:'staff-1',role:'reception',display_name:'موظف',active:true});
+ assert.deepEqual(on.calls.filter(c=>c[0]==='update'),[['update','staff-1',{ban_duration:'none'}]]);
+ assert.equal(on.calls.some(c=>c[1]==='clinic_revoke_user_sessions'),false);
+ const reset=await run({action:'reset_password',id:'staff-1',password:'Sufficient-test-password'});
+ assert.equal(reset.status,200);assert.ok(reset.calls.some(c=>c[1]==='clinic_revoke_user_sessions'));
+ const failed=await run({action:'reset_password',id:'staff-1',password:'Sufficient-test-password'},{revokeError:{code:'XX000'}});
+ assert.equal(failed.status,500);assert.deepEqual(failed.body,{error:'SESSION_REVOKE_FAILED'});
+});
+test('survey function refuses development origins unless explicitly configured',async()=>{
+ const call=async env=>{const {serve}=handler('experience-feedback',{env});
+  const response=await serve(new Request('https://example.invalid',{method:'POST',headers:{Origin:'http://127.0.0.1:3002',apikey:'synthetic-key','Content-Type':'application/json'},body:'{}'}));
+  return response.status;};
+ assert.equal(await call({EXPERIENCE_ALLOWED_ORIGINS:''}),403);
+ assert.equal(await call({EXPERIENCE_ALLOWED_ORIGINS:'http://127.0.0.1:3002'}),400,'configured origin reaches validation');
+ const {serve}=handler('experience-feedback',{env:{EXPERIENCE_ALLOWED_ORIGINS:''}});
+ const production=await serve(new Request('https://example.invalid',{method:'POST',headers:{Origin:'https://family-care-4le.pages.dev',apikey:'synthetic-key','Content-Type':'application/json'},body:'{}'}));
+ assert.equal(production.status,400,'production site always allowed');
+});
