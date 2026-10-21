@@ -6,6 +6,7 @@ import {useClinic} from './store';
 import {Dialog,Form,Heading,Table,Badge,useTask,type Field,DateInput} from './ui';
 import {decimal,minor,money} from '../domain/money';
 import {accountError} from './accountErrors';
+import {doctorCategoryOptions} from '../domain/doctorCategories';
 async function usersCommand(body:Record<string,unknown>):Promise<Record<string,unknown>> {
  let {data,error}=await db.functions.invoke('manage-users',{body});
  if(error&&'context' in error&&(error.context as Response)?.status===401){
@@ -43,7 +44,7 @@ export default function Settings({catalogOnly=false}:{catalogOnly?:boolean}){
  {key:'role',label:'الصلاحية',type:'select',required:true,clearOnChange:['doctor_id','specialty_id'],options:['owner','reception','doctor'].map(value=>({value,label:label(value)}))},
  {key:'doctor_mode',label:'إضافة الطبيب',type:'select',required:true,when:values=>values.role==='doctor'&&!dialog?.row,clearOnChange:['doctor_id','specialty_id'],options:[{value:'new',label:'طبيب جديد — اختار تخصصه'},{value:'existing',label:'ربط طبيب مسجل بالفعل'}]},
  {key:'specialty_id',label:'تخصص الطبيب',type:'select',required:true,when:addingDoctor,options},
- {key:'doctor_category',label:'فئة الطبيب',type:'select',required:true,when:addingDoctor,options:['percentage','dentist','renting'].map(value=>({value,label:label(value)}))},
+ {key:'doctor_category',label:'فئة الطبيب',type:'select',required:true,when:addingDoctor,options:values=>doctorCategoryOptions(values.specialty_id?name('specialties',values.specialty_id):'')},
  {key:'default_share_bps',label:'نسبة الطبيب من الخدمة (%)',type:'percent',required:true,blankInitially:true,when:addingDoctor,hint:'مثال: اكتب 50 لنصيب 50%، أو 0 لو مفيش نسبة.'},
  {key:'doctor_id',label:'حساب الطبيب',type:'select',required:true,when:values=>values.role==='doctor'&&(!addingDoctor(values)),options:rows('doctors').filter(row=>row.active||row.id===dialog?.row?.doctor_id).map(row=>({value:row.id,label:`${text(row.name)} — ${name('specialties',row.specialty_id)}`}))},
  {key:'active',label:'نشط',type:'checkbox'}];
