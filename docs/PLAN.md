@@ -243,3 +243,16 @@
 - [x] اختيار التخصص وعرض أسماء الأطباء وأيام العمل للأدمن والاستقبال فقط.
 - [x] تجربة الاستقبال للنتائج والحالة الفارغة ومراجعة الكمبيوتر والهاتف دون إنشاء بيانات.
 - [x] نشر وتحقق النسخة المنشورة بحساب الاستقبال واختيار تخصصين، وتنظيف جلسات المتصفح.
+
+## QA remediation — 21/10/2026
+
+- [x] Map every audit finding to code and evidence; correct the loading claim by measuring cold login, reload, sidebar navigation, explicit refresh and refresh after a save separately.
+- [x] Make integration/E2E testing safe: explicit target + live-project opt-in, fixture ledger with exact IDs, checked dependency-aware teardown, no future-dated global jobs, campaign sends limited to fixture recipients, unsafe `database.test.mjs` replaced.
+- [x] Update stale specs to the approved follow-up, specialty, weekday-filter and audited-revision behaviour; restore refund, settlement reversal, CSV-after-refund and payer phone-width coverage.
+- [x] Keyset pagination with unique keys; proven on a changing 2,500-row model and on real PostgREST with tiny pages; financial totals from one database snapshot.
+- [x] Operational refresh after desk saves; reference tables reused until a full refresh.
+- [x] dd/mm/yyyy date entry/display, specific offer errors, past follow-up confirmation, test-batch selector, archived-test audit rows, archive script counts, request timeout with retry.
+- [x] Owner decisions: shared-phone confirmation, commission privacy, once-per-patient offers (database enforced, verified in rolled-back transactions).
+- [x] Security: survey origins, CSP/frame headers, session revocation on reset/deactivation.
+- [x] CI quality gate (lint, typecheck, unit, build, built-app smoke) before deploy; no production credentials in CI.
+- [ ] Owner approval: apply the six remediation migrations, deploy the two Edge Functions, then deploy the site; rerun `test:db`, the migration-gated E2E tests and the loading measurement against the migrated project.

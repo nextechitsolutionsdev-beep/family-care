@@ -1,5 +1,21 @@
 # Assumptions and owner review
 
+## Remediation decisions — 21/10/2026
+
+Owner answers (21/10/2026):
+- Testing: no separate project; tests may use the live project but must clean up after themselves. Integration and browser suites therefore require FAMILY_CARE_TEST_TARGET=xkbyxefvzlcnyefkxwsx and FAMILY_CARE_ALLOW_PRODUCTION_FIXTURES=tracked-cleanup, track every fixture and fail on any teardown problem. Rows with financial history cannot be deleted; they stay archived and hidden (retained, not removed).
+- Shared phone numbers: warn, offer to open the existing file, and allow a separate patient only after explicit confirmation (family members). Enforced by the database for every entry point; test placeholders (+200000…) and an unchanged number on edit are not checked.
+- Doctor commission terms: owner sees all, a doctor sees only their own terms; reception keeps prices, balances and collection but no doctor percentages or shares. Enforced with column privileges plus clinic_commission_terms().
+- Offers: per-offer «once per patient» setting; existing offers stay repeat-use. A redemption is consumed when applied, also if the visit is later voided.
+
+- Permanent patient code (owner requirement 21/10/2026): every patient has one code FC-000123 for all specialties, assigned once by a database sequence (atomic under concurrent registration; an intake retry reuses its patient; edits keep the code; the code cannot be changed). Existing patients were numbered once, clinic patients before test fixtures, by registration time. Specialty codes (DEN-000382…) stay as searchable legacy aliases; no new ones are issued. Specialty membership for campaigns and birthday offers moved to patient_specialties (from legacy codes and visits; owner/reception only, so a doctor cannot see which other specialties a patient attends). Specialty and doctor are chosen per visit. Patients are never merged automatically.
+Routine decisions:
+- Follow-ups dated before Cairo today are allowed (historical entry) but need an explicit confirmation in the form.
+- Dates are typed and shown as dd/mm/yyyy (Arabic digits and pasted ISO accepted); APIs keep ISO yyyy-mm-dd.
+- Scheduled jobs and specialty-wide campaigns are never advanced or sent from tests against the live project; their rules are tested in rolled-back transactions. A campaign test sends only when every recipient belongs to its own fixture batch.
+- Requests time out after 20 seconds and offer a retry instead of an endless loading screen.
+- The survey Edge Function accepts only the production origin unless EXPERIENCE_ALLOWED_ORIGINS adds development origins.
+
 ## QA audit decisions — 20/10/2026
 
 - Tests that leave permanent visible records or touch real patients/tenants on the only database (`tests/database.test.mjs`, `tests/expenses.e2e.spec.mjs`) are not run against it; their rules are re-checked in rolled-back transactions.
