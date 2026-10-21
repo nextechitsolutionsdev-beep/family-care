@@ -1,9 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {query} from '../scripts/supabase.mjs';
+import {assertTestTarget} from './support/target.mjs';
+import {stagedSchemaSql} from './support/migrations.mjs';
+
+assertTestTarget();
 
 test('owner retires and restores catalog without changing old invoices or prices',()=>{
  const result=query(`begin;
+${stagedSchemaSql()}
+
  do $$ declare uid uuid; specialty uuid; service uuid:=gen_random_uuid(); doctor uuid; patient uuid; visit uuid; line uuid; receipt jsonb; old_line jsonb; old_visit jsonb; prices jsonb; bundle uuid; events bigint;
  begin
  select id into strict uid from public.profiles where role='owner' and active limit 1;

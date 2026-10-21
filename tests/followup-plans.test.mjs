@@ -1,9 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {query} from '../scripts/supabase.mjs';
+import {assertTestTarget} from './support/target.mjs';
+import {stagedSchemaSql} from './support/migrations.mjs';
+
+assertTestTarget();
 
 test('remaining receipts are immutable; booked fee is client-only; entry requires full settlement',()=>{
  const rows=query(`begin;
+${stagedSchemaSql()}
+
  do $$declare day date:=(now() at time zone 'Africa/Cairo')::date; uid uuid; doc uuid; patient uuid; specialty uuid; service uuid; visit uuid; follow uuid; fee_follow uuid; next_follow uuid; fee_visit uuid; receipt jsonb; payment jsonb; saved jsonb; key uuid:=gen_random_uuid(); payer uuid; payload jsonb;
  begin
  select id into strict uid from public.profiles where active and role='owner' limit 1;

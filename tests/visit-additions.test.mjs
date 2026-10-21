@@ -1,9 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {query} from '../scripts/supabase.mjs';
+import {assertTestTarget} from './support/target.mjs';
+import {stagedSchemaSql} from './support/migrations.mjs';
+
+assertTestTarget();
 
 test('additional charges preserve receipts and old shares; followups continue or charge once',()=>{
  const result=query(`begin;
+${stagedSchemaSql()}
+
  do $$ declare uid uuid; patient uuid; doctor uuid; specialty uuid; service uuid; visit uuid; follow uuid; follow2 uuid; paid bigint; total bigint; old_line uuid; old_snapshot jsonb; receipt jsonb; added jsonb; retried jsonb; key uuid:=gen_random_uuid(); next_visit uuid; payload jsonb; payer uuid; tiny uuid; bps integer; alloc_snapshot jsonb;
  begin
  select id into strict uid from public.profiles where role='owner' and active limit 1;

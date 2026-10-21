@@ -1,14 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {query} from '../scripts/supabase.mjs';
-import {doctorShareRates} from '../src/clinic/doctorShares.ts';
+import {assertTestTarget} from './support/target.mjs';
+import {stagedSchemaSql} from './support/migrations.mjs';
 
-test('reports use the latest audited doctor rate, including zero percent',()=>{
- const result=doctorShareRates([{id:12,line_id:'a',to_bps:0},{id:2,line_id:'a',to_bps:5000},{id:3,line_id:'b',to_bps:3333}]);
- assert.equal(result.get('a'),0);assert.equal(result.get('b'),3333);assert.equal(result.get('missing'),undefined);
-});
+assertTestTarget();
+// Report totals apply the latest revision on the server (clinic_report_summary, tests/remediation-schema.test.mjs).
 test('doctor percentage changes revise old entitlements without rewriting receipts or charged terms',()=>{
  const result=query(`begin;
+${stagedSchemaSql()}
+
  do $$ declare uid uuid; specialty uuid; doctor uuid; patient uuid; service uuid; second_service uuid; visit uuid; next_visit uuid; line uuid; second_line uuid; new_line uuid; receipt jsonb; old_lines jsonb; allocations jsonb; prices jsonb; statement jsonb; amount bigint; other_amount bigint; count_before bigint; day date:=(now() at time zone 'Africa/Cairo')::date;
  begin
  select id into strict uid from public.profiles where role='owner' and active limit 1;

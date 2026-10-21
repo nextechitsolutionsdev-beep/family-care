@@ -1,8 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {query} from '../scripts/supabase.mjs';
+import {assertTestTarget} from './support/target.mjs';
+import {stagedSchemaSql} from './support/migrations.mjs';
+
+assertTestTarget();
 test('expense validation, retry, reversal and role isolation without retained test data',()=>{
  const result=query(`begin;
+${stagedSchemaSql()}
+
  do $$ declare uid uuid; another uuid:=gen_random_uuid(); doctor uuid:=gen_random_uuid(); key uuid:=gen_random_uuid(); entry jsonb; retry jsonb; payload jsonb; n integer;
  begin
  select id into strict uid from public.profiles where role='owner';

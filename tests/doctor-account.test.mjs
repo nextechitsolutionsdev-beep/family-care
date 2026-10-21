@@ -3,13 +3,19 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {env,query} from '../scripts/supabase.mjs';
+import {assertTestTarget} from './support/target.mjs';
+import {stagedSchemaSql} from './support/migrations.mjs';
+
+assertTestTarget();
 
 test('doctor account and specialty save together; invalid data and failed profile leave no orphan doctor',async()=>{
  const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
  const created=await admin.auth.admin.createUser({email:`qa-specialty-${randomUUID()}@example.com`,password:`Qa!${randomUUID()}`,email_confirm:true});
  assert.equal(created.error,null);const id=created.data.user.id;
  try{
-  const result=query(`begin;do $$ declare uid uuid; specialty uuid; inactive uuid; result jsonb; before_count bigint;
+  const result=query(`begin;
+${stagedSchemaSql()}
+do $$ declare uid uuid; specialty uuid; inactive uuid; result jsonb; before_count bigint;
   begin
    select id into strict uid from public.profiles where role='owner' and active limit 1;
    perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated')::text,true);

@@ -1,8 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {query} from '../scripts/supabase.mjs';
+import {assertTestTarget} from './support/target.mjs';
+import {stagedSchemaSql} from './support/migrations.mjs';
+
+assertTestTarget();
 test('quick service prices are atomic, exact, immutable and owner-only',()=>{
  const result=query(`begin;
+${stagedSchemaSql()}
+
  do $$ declare uid uuid; key uuid:=gen_random_uuid(); payload jsonb; first jsonb; retry jsonb; version uuid; previous_count bigint; previous_total numeric;
  begin
  select id into strict uid from public.profiles where role='owner' and active;
