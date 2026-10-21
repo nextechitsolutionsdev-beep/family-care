@@ -7,6 +7,22 @@ import {Badge,Dialog,Form,Heading,Table,type Field} from './ui';
 import {money,minor,percent,roundShare} from '../domain/money';
 import ExtraServices,{type SelectedService} from './ExtraServices';
 import {doctorAvailable,visitWeekday} from './doctorAvailability';
+import {normalizeEgyptianPhone} from '../domain/phone';
+// Other active patients already using the typed number (owner decision 21/10/2026: warn, open, or confirm).
+// Test placeholders and an unchanged number on edit are not checked, as on the server.
+export function sharedPhonePatients(patients:Row[],phone:unknown,self?:Row|null):Row[]{
+ const value=normalizeEgyptianPhone(phone);
+ if(!/^\+201[0125][0-9]{8}$/.test(value)||(self&&value===self.phone_e164))return [];
+ return patients.filter(row=>row.phone_e164===value&&row.id!==self?.id&&row.active!==false);
+}
+function SharedPhoneNotice({matches,open}:{matches:Row[];open:(id:string)=>void}){
+ if(!matches.length)return null;
+ return <div className="notice wide" aria-live="polite"><strong>الرقم مسجل بالفعل باسم:</strong> {matches.map(row=><button type="button" key={row.id} onClick={()=>open(row.id)}>فتح ملف {text(row.name)}</button>)}<br/>افتح الملف الموجود، أو لو ده فرد آخر من نفس الأسرة علّم «ملف منفصل لنفس الرقم».</div>;
+}
+const sharedPhoneConfirm:Field={key:'confirm_shared_phone',label:'ملف منفصل لنفس الرقم (فرد آخر من الأسرة)',type:'checkbox'};
+const requireSharedPhoneConfirmation=(matches:Row[],values:Record<string,unknown>)=>{
+ if(matches.length&&!values.confirm_shared_phone)throw new Error('الرقم مسجل لعميل آخر. افتح الملف الموجود، أو علّم «ملف منفصل لنفس الرقم».');
+};
 function DoctorAvailabilityNotice({day}:{day:unknown}){
  const {rows}=useClinic();
  if(visitWeekday(day)===null||rows('doctors').some(row=>doctorAvailable(row,day)&&rows('specialties').some(s=>s.id===row.specialty_id)))return null;
@@ -50,18 +66,25 @@ export function patientFields(types:Row[],insurers:Row[],unions:Row[],specialtie
  {key:'client_type_code',label:'نوع العميل',type:'select',required:true,options:types.map(row=>({value:text(row.code),label:text(row.name)}))},
  {key:'insurer_id',label:'شركة التأمين',type:'select',required:true,when:values=>values.client_type_code==='insurance_credit',options:insurers.filter(row=>row.active&&row.payer_kind!=='union').map(row=>({value:row.id,label:text(row.name)}))},
  {key:'union_id',label:'النقابة',type:'select',required:true,when:values=>values.client_type_code==='syndicate_cash',options:unions.filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
- {key:'specialty_id',label:'التخصص وكود العميل',type:'select',options:specialties.filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
+ {key:'specialty_id',label:'التخصص (اختياري)',hint:'كود العميل واحد لكل التخصصات ويُنشأ تلقائيًا.',type:'select',options:specialties.filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'marketing_consent',label:'وافق على رسائل العروض وأعياد الميلاد',type:'checkbox'},
  {key:'transactional_consent',label:'وافق على رسائل مواعيد المتابعة',type:'checkbox'},
  {key:'notes',label:'ملاحظات الملف',type:'textarea'},
- ...(demo.length?[{key:'demo_batch_id',label:'مجموعة تجريبية (اختياري)',type:'select' as const,options:demo.filter(row=>!row.archived_at).map(row=>({value:row.id,label:text(row.name)}))}]:[])
+ ...(demo.some(row=>!row.archived_at)?[{key:'demo_batch_id',label:'مجموعة تجريبية (اختياري)',type:'select' as const,options:demo.filter(row=>!row.archived_at).map(row=>({value:row.id,label:text(row.name)}))}]:[])
 ];}
+/** Per-visit specialty (the patient keeps one code for all specialties); narrows the doctor list. */
+export function visitSpecialtyField(specialties:Row[],doctors:Row[]):Field{
+ return {key:'visit_specialty_id',label:'تخصص الزيارة',type:'select',clearOnChange:['doctor_id','service_id'],hint:'اختار التخصص ثم الطبيب المتاح في يوم الزيارة.',
+  options:specialties.filter(row=>row.active&&doctors.some(doctor=>doctor.specialty_id===row.id)).map(row=>({value:row.id,label:text(row.name)}))};
+}
+const inVisitSpecialty=(doctor:Row,values:Record<string,unknown>)=>!values.visit_specialty_id||doctor.specialty_id===values.visit_specialty_id;
 export function VisitBooking({patient,close}:{patient:Row;close:()=>void}) {
  const {rows,refresh}=useClinic();const navigate=useNavigate();const [key]=useState(()=>crypto.randomUUID());
  const [extras,setExtras]=useState<SelectedService[]>([]);
  return <Dialog title={`زيارة وخدمة — ${text(patient.name)}`} close={close}><Form initial={{visit_date:today(),location:'clinic',method:'cash',amount_minor:0}} fields={[
  visitDateField(rows('doctors')),
- {key:'doctor_id',label:'الطبيب',required:true,type:'select',clearOnChange:['service_id'],options:values=>rows('doctors').filter(row=>doctorAvailable(row,values.visit_date)&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:text(row.name)}))},
+ visitSpecialtyField(rows('specialties'),rows('doctors')),
+ {key:'doctor_id',label:'الطبيب',required:true,type:'select',clearOnChange:['service_id'],options:values=>rows('doctors').filter(row=>inVisitSpecialty(row,values)&&doctorAvailable(row,values.visit_date)&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'service_id',label:'الخدمة',type:'select',required:true,when:values=>Boolean(values.doctor_id),options:values=>{
   const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
   return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
@@ -74,7 +97,7 @@ export function VisitBooking({patient,close}:{patient:Row;close:()=>void}) {
    visit:{patient_id:patient.id,doctor_id:values.doctor_id,visit_date:values.visit_date,visit_time:values.visit_time,location:values.location,...(covered(patient.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
    service:{service_id:values.service_id},additional_services:extras,
    ...(Number(values.amount_minor)>0?{payment:{amount_minor:values.amount_minor,method:values.method}}:{})});
-  await refresh();close();navigate(`/visits/${text(result.visit_id)}`);
+  await refresh('operational');close();navigate(`/visits/${text(result.visit_id)}`);
  }} label="تسجيل الزيارة والخدمة">{values=><><DoctorAvailabilityNotice day={values.visit_date}/><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras} clientType={text(patient.client_type_code)}/></>}</Form></Dialog>;
 }
 function BookingOnly({patient,close}:{patient:Row;close:()=>void}){
@@ -85,7 +108,7 @@ function BookingOnly({patient,close}:{patient:Row;close:()=>void}){
   {key:'visit_time',label:'الوقت',type:'time'},
   {key:'location',label:'مكان الزيارة',type:'select',required:true,options:[{value:'clinic',label:'العيادة'},{value:'home',label:'منزلية (+ 1,000 جنيه)'}]},
   {...copayField,when:()=>covered(patient.client_type_code)}
- ]} submit={async values=>{const result=await command('visit_create',{...values,patient_id:patient.id,...(!covered(patient.client_type_code)?{co_pay_bps:undefined}:{})});await refresh();close();navigate(`/visits/${text(result.id)}`);}} label="حفظ الحجز">{values=><DoctorAvailabilityNotice day={values.visit_date}/>}</Form></Dialog>;
+ ]} submit={async values=>{const result=await command('visit_create',{...values,patient_id:patient.id,...(!covered(patient.client_type_code)?{co_pay_bps:undefined}:{})});await refresh('operational');close();navigate(`/visits/${text(result.id)}`);}} label="حفظ الحجز">{values=><DoctorAvailabilityNotice day={values.visit_date}/>}</Form></Dialog>;
 }
 export default function Patients() {
  const {id}=useParams();const navigate=useNavigate();const {data,rows,name,profile,refresh}=useClinic();
@@ -93,10 +116,14 @@ export default function Patients() {
  const [quickKey,setQuickKey]=useState<string|null>(null);const [editKey,setEditKey]=useState<string|null>(null);
  const [extras,setExtras]=useState<SelectedService[]>([]);
  const patient=rows('patients').find(row=>row.id===id);
- const fields=patientFields(rows('client_types'),rows('insurance_companies'),rows('unions'),rows('specialties'),rows('demo_batches'));
- const quickFields:Field[]=[...fields.filter(field=>['name','phone_e164','client_type_code','insurer_id','union_id'].includes(field.key)),
+ const basicFields=patientFields(rows('client_types'),rows('insurance_companies'),rows('unions'),rows('specialties'),rows('demo_batches'));
+ const sharedWith=(values:Record<string,unknown>)=>sharedPhonePatients(rows('patients'),values.phone_e164,editing);
+ const openExisting=(target:string)=>{setEditing(undefined);setQuickKey(null);navigate(`/patients/${target}`);};
+ const fields=basicFields.flatMap(field=>field.key==='phone_e164'?[field,{...sharedPhoneConfirm,when:(values:Record<string,unknown>)=>sharedWith(values).length>0}]:[field]);
+ const quickFields:Field[]=[...fields.filter(field=>['name','phone_e164','confirm_shared_phone','client_type_code','insurer_id','union_id'].includes(field.key)),
   visitDateField(rows('doctors')),
-  {key:'doctor_id',label:'الطبيب والتخصص',type:'select',required:true,clearOnChange:['service_id'],options:values=>rows('doctors').filter(row=>doctorAvailable(row,values.visit_date)&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:`${text(row.name)} — ${name('specialties',row.specialty_id)}`}))},
+  visitSpecialtyField(rows('specialties'),rows('doctors')),
+  {key:'doctor_id',label:'الطبيب والتخصص',type:'select',required:true,clearOnChange:['service_id'],options:values=>rows('doctors').filter(row=>inVisitSpecialty(row,values)&&doctorAvailable(row,values.visit_date)&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:`${text(row.name)} — ${name('specialties',row.specialty_id)}`}))},
   {key:'service_id',label:'الخدمة',type:'select',required:true,when:values=>Boolean(values.doctor_id),options:values=>{
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
    return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
@@ -114,7 +141,7 @@ export default function Patients() {
  const totals=visits.filter(row=>row.status!=='void').reduce((sum,row)=>sum+BigInt(text(row.co_pay_minor||0)),0n);
  const paid=visits.reduce((sum,row)=>sum+patientPaid(data,row.id),0n);
  return <>
- <Heading title={patient?text(patient.name):'ملفات العملاء'} detail={patient?`${text(patient.phone_e164)} · ${name('client_types',patient.client_type_code)}`:'بحث بالاسم أو رقم الموبايل أو كود التخصص'}>
+ <Heading title={patient?text(patient.name):'ملفات العملاء'} detail={patient?`${text(patient.patient_code)} · ${text(patient.phone_e164)} · ${name('client_types',patient.client_type_code)}`:'بحث بالاسم أو رقم الموبايل أو كود العميل'}>
    {id&&<Link className="button" to="/patients">كل العملاء</Link>}
    {patient&&profile.role!=='doctor'&&<button className="primary" onClick={()=>{setEditKey(crypto.randomUUID());setEditing(patient);}}>تعديل البيانات</button>}
    {!patient&&profile.role!=='doctor'&&<><button className="primary" onClick={()=>setQuickKey(crypto.randomUUID())}>تسجيل عميل وخدمة</button><button onClick={()=>{setEditKey(crypto.randomUUID());setEditing(null);}}>عميل فقط</button></>}
@@ -141,27 +168,29 @@ export default function Patients() {
    {profile.role!=='doctor'&&<><h2>سجل التحصيل</h2><Table rows={payments} columns={[{label:'الإيصال',render:row=><bdi>{text(row.receipt_number)}</bdi>},{label:'التاريخ',render:row=>date(row.paid_at)},{label:'النوع',render:row=>label(row.kind)},{label:'المبلغ',numeric:true,render:row=>money(row.amount_minor)},{label:'الطريقة',render:row=>label(row.method)}]}/></>}
  </>:<><div className="filters"><label>بحث العميل<input value={search} onChange={event=>setSearch(event.target.value)} type="search"/></label><span>{filtered.length} عميل</span></div><Table rows={filtered} columns={[
    {label:'الاسم',render:row=><Link to={`/patients/${row.id}`}>{text(row.name)} {row.demo_batch_id?<Badge tone="warning">تجريبي</Badge>:null}</Link>},
-   {label:'الموبايل',render:row=><bdi>{text(row.phone_e164)}</bdi>},{label:'الكود',render:row=><bdi>{codes(row.id)||'—'}</bdi>},
+   {label:'الموبايل',render:row=><bdi>{text(row.phone_e164)}</bdi>},{label:'الكود',render:row=><><bdi>{text(row.patient_code)||'—'}</bdi>{codes(row.id)&&<small className="legacy-codes"> سابقاً: <bdi>{codes(row.id)}</bdi></small>}</>},
    {label:'النوع',render:row=>name('client_types',row.client_type_code)},
    {label:'الإجراء',render:row=>profile.role==='doctor'?<Link to={`/patients/${row.id}`}>الملف</Link>:<button onClick={()=>setBooking(row)}>زيارة جديدة</button>}
  ]}/></>}
  {editing!==undefined&&<Dialog title={editing?'تعديل بيانات العميل':'عميل جديد'} close={()=>setEditing(undefined)}><Form fields={fields} initial={editing??{client_type_code:'family_care_cash'}} submit={async values=>{
+   requireSharedPhoneConfirmation(sharedWith(values),values);
    if(values.client_type_code!=='insurance_credit')values.insurer_id=null;
    if(values.client_type_code!=='syndicate_cash')values.union_id=null;
    if(!values.specialty_id)delete values.specialty_id;
-   const result=await patientIntake({idempotency_key:editKey,patient:{...values,...(editing?{id:editing.id}:{})}});await refresh();setEditing(undefined);setEditKey(null);navigate(`/patients/${text(result.patient_id)}`);
- }}/></Dialog>}
+   const result=await patientIntake({idempotency_key:editKey,patient:{...values,...(editing?{id:editing.id}:{})}});await refresh('operational');setEditing(undefined);setEditKey(null);navigate(`/patients/${text(result.patient_id)}`);
+ }}>{values=><SharedPhoneNotice matches={sharedWith(values)} open={openExisting}/>}</Form></Dialog>}
  {quickKey&&<Dialog title="تسجيل عميل وزيارة وخدمة" close={()=>setQuickKey(null)}><div className="quick-intake"><Form fields={quickFields} initial={{client_type_code:'family_care_cash',visit_date:today(),amount_minor:0,method:'cash'}} label="تسجيل العميل والخدمة" submit={async values=>{
+   requireSharedPhoneConfirmation(sharedWith(values),values);
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
    if(!doctor)throw new Error('اختار طبيباً نشطاً.');
    const patient:Record<string,unknown>={...values,specialty_id:doctor.specialty_id,insurer_id:values.client_type_code==='insurance_credit'?values.insurer_id:null,union_id:values.client_type_code==='syndicate_cash'?values.union_id:null};
-   for(const key of ['doctor_id','service_id','visit_date','co_pay_bps','amount_minor','method'])delete patient[key];
+   for(const key of ['doctor_id','service_id','visit_date','visit_specialty_id','co_pay_bps','amount_minor','method'])delete patient[key];
    const result=await patientIntake({idempotency_key:quickKey,patient,
     visit:{doctor_id:values.doctor_id,visit_date:values.visit_date,location:'clinic',...(covered(values.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
     service:{service_id:values.service_id},additional_services:extras,
     ...(Number(values.amount_minor)>0?{payment:{amount_minor:values.amount_minor,method:values.method}}:{})});
-   await refresh();setQuickKey(null);navigate(`/visits/${text(result.visit_id)}`);
- }}>{values=><><DoctorAvailabilityNotice day={values.visit_date}/><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras}/></>}</Form></div></Dialog>}
+   await refresh('operational');setQuickKey(null);navigate(`/visits/${text(result.visit_id)}`);
+ }}>{values=><><SharedPhoneNotice matches={sharedWith(values)} open={openExisting}/><DoctorAvailabilityNotice day={values.visit_date}/><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras}/></>}</Form></div></Dialog>}
  {booking&&<VisitBooking patient={booking} close={()=>setBooking(null)}/>}
  {bookingOnly&&<BookingOnly patient={bookingOnly} close={()=>setBookingOnly(null)}/>}
  </>;

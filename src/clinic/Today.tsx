@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {command,date,label,text,today,type Row} from './api';
 import {useClinic,patientPaid,patientRemaining} from './store';
-import {Badge,Heading,Table,useTask} from './ui';
+import {Badge,Heading,Table,useTask,DateInput} from './ui';
 import {money} from '../domain/money';
 import {followupTiming} from './followupDates';
 export default function Today(){
@@ -12,7 +12,7 @@ export default function Today(){
  const reminders=rows('follow_ups').filter(row=>(row.status==='scheduled'&&['overdue','today'].includes(followupTiming(row.due_date,cairoToday)))||(row.status==='arrived'&&date(row.admitted_at)===date(cairoToday))).sort((a,b)=>text(a.due_date).localeCompare(text(b.due_date)));
  const upcoming=rows('follow_ups').filter(row=>row.status==='scheduled'&&followupTiming(row.due_date,cairoToday)==='upcoming').sort((a,b)=>text(a.due_date).localeCompare(text(b.due_date))).slice(0,10);
  return <><Heading title={profile.role==='doctor'?'عيادتي اليوم':'اليوم'} detail="الحجوزات والمتابعات التي تحتاج إجراء"><Link className="button primary" to="/patients">البحث عن عميل / حجز زيارة</Link></Heading>{task.feedback}
- <div className="filters"><label>تاريخ العمل<input type="date" value={day} onChange={event=>setDay(event.target.value)}/></label><span>{appointments.length} حجز · {reminders.length} متابعة مستحقة · {upcoming.length} قادمة</span></div>
+ <div className="filters"><label>تاريخ العمل<DateInput value={day} onChange={value=>setDay(value)}/></label><span>{appointments.length} حجز · {reminders.length} متابعة مستحقة · {upcoming.length} قادمة</span></div>
  <h2>الحجوزات</h2><Table rows={appointments} columns={[
   {label:'الوقت',render:row=><bdi>{text(row.appointment_time).slice(0,5)||'—'}</bdi>},
   {label:'العميل',render:row=><Link to={`/patients/${text(row.patient_id)}`}>{name('patients',row.patient_id)}</Link>},

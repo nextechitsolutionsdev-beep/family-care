@@ -14,3 +14,6 @@ dialog{border:1px solid #c5d1c5;border-radius:6px;padding:20px;width:min(760px,c
  body:has(dialog[open]) .desk {display:block!important}
  body:has(dialog[open]) *:not(:has(dialog[open])):not(dialog):not(dialog *) {display:none!important}
 }
+/* dd/mm/yyyy date entry with a calendar button; the native picker stays renderable for showPicker(). */
+.date-input{display:flex;align-items:stretch;gap:4px;position:relative;min-width:0}.date-input input[type=text]{flex:1;min-width:0;font-variant-numeric:tabular-nums}.date-input .date-picker{padding-inline:8px;min-width:36px}.date-input .date-native{position:absolute;inset-inline-start:0;inset-block-end:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+.legacy-codes{color:var(--muted);font-size:11px}

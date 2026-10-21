@@ -3,7 +3,7 @@ import {Link,useNavigate,useSearchParams} from 'react-router-dom';
 import {command,visitOperation,date,label,text,today,type Row} from './api';
 import {money} from '../domain/money';
 import {useClinic,patientRemaining} from './store';
-import {Dialog,Form,Heading,Table,Badge,useTask} from './ui';
+import {Dialog,Form,Heading,Table,Badge,useTask,pastDateConfirmation,requirePastConfirmation} from './ui';
 import {followupTiming,followupTimingLabels} from './followupDates';
 export default function FollowUps(){
  const {data,rows,name,profile,refresh}=useClinic();const navigate=useNavigate();const [params]=useSearchParams();const account=params.get('account');const task=useTask(refresh);const [scope,setScope]=useState(account?'all':'today');const [reschedule,setReschedule]=useState<Row|null>(null);const [opening,setOpening]=useState<Row|null>(null);
@@ -36,7 +36,7 @@ export default function FollowUps(){
  {key:'service_id',label:'خدمة المتابعة المدفوعة',type:'select',required:true,when:v=>v.mode==='new_service',options:rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}))},
  {key:'visit_date',label:'تاريخ الزيارة الجديدة',type:'date',required:true,when:v=>v.mode==='new_service'},
  {key:'co_pay_bps',label:'نسبة تحمّل العميل من الكارنيه (%)',type:'percent',blankInitially:true,required:true,min:0,max:100,when:v=>v.mode==='new_service'&&covered}
- ]} submit={async values=>{const result=await visitOperation('clinic_open_followup',{...values,id:opening.id,co_pay_bps:values.mode==='new_service'&&covered?values.co_pay_bps:undefined});await refresh();setOpening(null);navigate(`/visits/${text(result.id)}`);}} label="فتح الحساب"/></Dialog>}
- {reschedule&&<Dialog title="تغيير موعد المتابعة" close={()=>setReschedule(null)}><Form initial={reschedule} fields={[{key:'due_date',label:'التاريخ الجديد',type:'date',required:true},{key:'due_time',label:'الوقت',type:'time'},{key:'purpose',label:'الغرض',required:true}]} submit={async values=>{await command('follow_up_status',{...values,id:reschedule.id,status:'rescheduled'});await refresh();setReschedule(null);}}/></Dialog>}
+ ]} submit={async values=>{const result=await visitOperation('clinic_open_followup',{...values,id:opening.id,co_pay_bps:values.mode==='new_service'&&covered?values.co_pay_bps:undefined});await refresh('operational');setOpening(null);navigate(`/visits/${text(result.id)}`);}} label="فتح الحساب"/></Dialog>}
+ {reschedule&&<Dialog title="تغيير موعد المتابعة" close={()=>setReschedule(null)}><Form initial={reschedule} fields={[{key:'due_date',label:'التاريخ الجديد',type:'date',required:true},pastDateConfirmation('due_date'),{key:'due_time',label:'الوقت',type:'time'},{key:'purpose',label:'الغرض',required:true}]} submit={async values=>{requirePastConfirmation(values,'due_date');await command('follow_up_status',{...values,id:reschedule.id,status:'rescheduled'});await refresh('operational');setReschedule(null);}}/></Dialog>}
  </>;
 }
