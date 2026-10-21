@@ -10,7 +10,7 @@ test.afterAll(async()=>{await ledger.cleanup();});
 test('quick specialty and priced service work on desktop and phone',async({page})=>{
  needsCatalogBatch();
  const suffix=randomUUID().slice(0,8),specialtyName=`تخصص اختبار ${suffix}`,serviceName=`خدمة اختبار ${suffix}`;let specialtyId,serviceId;
- const owner=query("select u.email from auth.users u join public.profiles p on p.id=u.id where p.role='owner' and p.active limit 1;")[0];
+ const owner=query("select u.email from auth.users u join public.profiles p on p.id=u.id where p.role='owner' and p.active order by u.created_at,u.id limit 1;")[0];
  const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,{auth:{persistSession:false}});const link=await admin.auth.admin.generateLink({type:'magiclink',email:owner.email});expect(link.error).toBeNull();
  const auth=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false}});const verified=await auth.auth.verifyOtp({token_hash:link.data.properties.hashed_token,type:'magiclink'});expect(verified.error).toBeNull();
  await page.addInitScript(({session,key})=>localStorage.setItem(key,JSON.stringify(session)),{session:verified.data.session,key:'sb-xkbyxefvzlcnyefkxwsx-auth-token'});

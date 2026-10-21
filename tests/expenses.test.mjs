@@ -11,7 +11,7 @@ ${stagedSchemaSql()}
 
  do $$ declare uid uuid; another uuid:=gen_random_uuid(); doctor uuid:=gen_random_uuid(); key uuid:=gen_random_uuid(); entry jsonb; retry jsonb; payload jsonb; n integer;
  begin
- select id into strict uid from public.profiles where role='owner';
+ select id into strict uid from public.profiles where role='owner' and active order by id limit 1;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated')::text,true);
  payload:=jsonb_build_object('action','create','idempotency_key',key,'amount_minor',20001,'spent_on',(now() at time zone 'Africa/Cairo')::date,'category','maintenance','description','اختبار مصروف داخل معاملة متراجعة','recipient','عامل اختبار','method','cash');
  entry:=public.clinic_expense(payload); retry:=public.clinic_expense(payload);

@@ -11,7 +11,7 @@ ${stagedSchemaSql()}
 
  do $$ declare uid uuid; key uuid:=gen_random_uuid(); payload jsonb; first jsonb; retry jsonb; version uuid; previous_count bigint; previous_total numeric;
  begin
- select id into strict uid from public.profiles where role='owner' and active;
+ select id into strict uid from public.profiles where role='owner' and active order by id limit 1;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated')::text,true);
  select count(*),sum(price_minor) into previous_count,previous_total from public.service_prices;
  payload:=jsonb_build_object('idempotency_key',key,'name','خدمة اختبار متراجعة','specialty_id',(select id from public.specialties where active limit 1),'price_minor',12345,'category','general','default_deposit_minor',0,'active',true);
