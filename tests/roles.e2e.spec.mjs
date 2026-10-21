@@ -1,26 +1,26 @@
 import {test,expect} from '@playwright/test';
 import {randomUUID,randomBytes} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import dotenv from 'dotenv';
 import {createClient} from '@supabase/supabase-js';
+import {testEnv} from './support/target.mjs';
+import {createLedger} from './support/fixtures.mjs';
 
-const env={...process.env,...dotenv.parse(readFileSync('.env'))};
+const env=testEnv();
 const options={auth:{persistSession:false,autoRefreshToken:false}};
-const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,options);
+const ledger=createLedger('roles-e2e');const admin=ledger.admin;
+test.afterAll(async()=>{await ledger.cleanup();});
 const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
 
 test('doctor sees assigned patient and cannot open owner pages',async({page})=>{
  const suffix=randomUUID().slice(0,8).toUpperCase();
  const patientName=`عميل طبيب تجريبي ${suffix}`;
- const {data:batch,error:batchError}=await admin.from('demo_batches').insert({name:`Doctor UI ${suffix}`}).select('id').single();
- expect(batchError).toBeNull();
+ const batch={id:await ledger.newBatch('Doctor UI')};
  const {data:specialty}=await admin.from('specialties').select('id').eq('client_prefix','DEN').single();
  const {data:doctor,error:doctorError}=await admin.from('doctors').insert({name:`طبيب واجهة تجريبي ${suffix}`,specialty_id:specialty.id,category:'dentist',demo_batch_id:batch.id}).select('id').single();
  expect(doctorError).toBeNull();
  const email=`doctor-ui-${suffix.toLowerCase()}@familycare.example.com`;
  const password=`Test!${randomBytes(24).toString('base64url')}`;
  const {data:user,error:userError}=await admin.auth.admin.createUser({email,password,email_confirm:true});
- expect(userError).toBeNull();
+ expect(userError).toBeNull();ledger.trackUser(user.user.id);
  expect((await admin.from('profiles').insert({id:user.user.id,role:'doctor',doctor_id:doctor.id,display_name:'طبيب واجهة تجريبي'})).error).toBeNull();
  const owner=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,options);
  expect((await owner.auth.signInWithPassword({email:env.OWNER_EMAIL,password:env.OWNER_PASSWORD})).error).toBeNull();

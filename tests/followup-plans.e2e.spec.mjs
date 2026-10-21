@@ -1,8 +1,10 @@
 import {test,expect} from '@playwright/test';
 import {createClient} from '@supabase/supabase-js';
 import {randomUUID} from 'node:crypto';
-import {spawnSync} from 'node:child_process';
 import {env,query} from '../scripts/supabase.mjs';
+import {createLedger} from './support/fixtures.mjs';
+const ledger=createLedger('followup-plans-e2e');
+test.afterAll(async()=>{await ledger.cleanup();});
 import {money} from '../src/domain/money.ts';
 
 test('remaining is printed and collected before entry; booked fee opens and collects exactly once',async({page})=>{
@@ -13,7 +15,7 @@ test('remaining is printed and collected before entry; booked fee opens and coll
  const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date()),tag=randomUUID().slice(0,8);
  const futureDay=`${Number(day.slice(0,4))+1}-02-22`,futureWorkDay=`${Number(day.slice(0,4))+2}-01-01`;
  const service=query(`select s.id,s.specialty_id from public.services s join public.service_prices p on p.service_id=s.id join public.price_list_versions pv on pv.id=p.version_id join public.price_lists pl on pl.id=pv.list_id where s.active and s.pricing_kind='service' and not s.requires_deposit and p.price_minor>100000 and pl.client_type_code='family_care_cash' and pv.published_at is not null and pv.effective_from<=current_date limit 1`)[0];
- const {data:batch,error}=await admin.from('demo_batches').insert({name:`Followup Plans UI ${tag}`}).select('id').single();expect(error).toBeNull();
+ const batch={id:await ledger.newBatch('Followup Plans UI')};
  try{
   const doc=await rpc('doctor_save',{name:`طبيب متابعة اختبار ${tag}`,specialty_id:service.specialty_id,category:'percentage',default_share_bps:2500});expect((await admin.from('doctors').update({demo_batch_id:batch.id}).eq('id',doc.id)).error).toBeNull();
   const patient=await rpc('patient_save',{name:`عميل متابعة اختبار ${tag}`,phone_e164:'+200000000001',client_type_code:'family_care_cash',specialty_id:service.specialty_id,demo_batch_id:batch.id});
@@ -40,6 +42,6 @@ test('remaining is printed and collected before entry; booked fee opens and coll
   await page.setViewportSize({width:390,height:844});const finalRow=page.getByRole('row').filter({hasText:`رسوم-${tag}`});await finalRow.getByRole('button',{name:'دخول بعد السداد'}).click();await expect(finalRow.getByRole('button',{name:'إنهاء المتابعة'})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);await page.screenshot({path:'output/playwright/regression/followup-fee-phone.png'});
   expect((await owner.from('follow_ups').select('admitted_at').eq('id',fee.id).single()).data.admitted_at).toBeTruthy();
  }finally{
-  const r=spawnSync(process.execPath,['scripts/archive-demo.mjs',`--batch=${batch.id}`],{windowsHide:true,encoding:'utf8'});expect(r.status,'archive only this QA batch').toBe(0);
+  // Teardown (ledger) archives this batch with checked results.
  }
 });

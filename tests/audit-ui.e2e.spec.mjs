@@ -3,6 +3,9 @@ import {mkdirSync,writeFileSync} from 'node:fs';
 import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {env} from '../scripts/supabase.mjs';
+import {createLedger} from './support/fixtures.mjs';
+const ledger=createLedger('audit-ui-e2e');
+test.afterAll(async()=>{await ledger.cleanup();});
 
 async function login(page){
  await page.goto('/');await page.getByLabel('البريد الإلكتروني').fill(env.OWNER_EMAIL);
@@ -33,10 +36,13 @@ test('all modules remain usable at tablet, wide desktop and narrow phone widths'
    if(width===320)await page.getByRole('button',{name:'القائمة',exact:true}).click();
    const started=Date.now();await page.locator('.sidebar').getByRole('link',{name,exact:true}).click();
    await expect(page).toHaveURL(new RegExp(`${path==='/'?'/':path.replace('/','\\/')}$$`));await expect(page.locator('main.page h1')).toBeVisible();
+   // Count controls only once the screen has finished loading its data (no loading status left).
+   await expect(page.getByRole('status')).toHaveCount(0);
    const dimensions=await page.evaluate(()=>({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));
    expect(dimensions.scroll,`${path} overflow at ${width}`).toBeLessThanOrEqual(width);
-   const inputs=await page.locator('main.page input:not([type=hidden]), main.page select, main.page textarea').evaluateAll(elements=>elements.filter(element=>!element.labels?.length&&!element.getAttribute('aria-label')&&!element.getAttribute('aria-labelledby')).length);
-   expect(inputs,`${path} unlabeled inputs`).toBe(0);
+   // A re-render can replace a control while it is inspected (a detached element has no labels); poll until the
+   // DOM is stable instead of counting one transient snapshot. A genuinely unlabeled control still fails.
+   await expect.poll(()=>page.locator('main.page input:not([type=hidden]), main.page select, main.page textarea').evaluateAll(elements=>elements.filter(element=>!element.labels?.length&&!element.getAttribute('aria-label')&&!element.getAttribute('aria-labelledby')).length),{message:`${path} unlabeled inputs`}).toBe(0);
    measurements.push({path,width,navigationMs:Date.now()-started});
    if(width===768&&path==='/doctors')await page.screenshot({path:'output/playwright/audit-doctors-tablet-after.png'});
    if(width===320)await expect(page.locator('.sidebar')).not.toBeVisible();
@@ -58,7 +64,7 @@ test('CSV receipt export downloads real values and login failures preserve prote
  const owner=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,options);const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,options);
  expect((await owner.auth.signInWithPassword({email:env.OWNER_EMAIL,password:env.OWNER_PASSWORD})).error).toBeNull();
  const suffix=randomUUID().slice(0,8);const patientName=`عميل تصدير تجريبي ${suffix}`;
- const batch=await admin.from('demo_batches').insert({name:`CSV QA ${suffix}`}).select('id').single();expect(batch.error).toBeNull();
+ const batch={data:{id:await ledger.newBatch('CSV QA')}};
  const specialty=await admin.from('specialties').select('id').eq('client_prefix','DEN').single();expect(specialty.error).toBeNull();
  const service=await admin.from('services').select('id').eq('seed_code','DEN-001').single();expect(service.error).toBeNull();
  const command=async(action,payload)=>{const result=await owner.rpc('clinic_command',{action,payload});expect(result.error).toBeNull();return result.data;};

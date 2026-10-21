@@ -3,6 +3,9 @@ import {randomUUID} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {createClient} from '@supabase/supabase-js';
 import {env} from '../scripts/supabase.mjs';
+import {createLedger} from './support/fixtures.mjs';
+const ledger=createLedger('archive-e2e');
+test.afterAll(async()=>{await ledger.cleanup();});
 
 test('archiving an explicitly owned union fixture disables and hides it without deleting history',async({page})=>{
  const options={auth:{persistSession:false,autoRefreshToken:false}};
@@ -10,7 +13,7 @@ test('archiving an explicitly owned union fixture disables and hides it without 
  const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,options);
  expect((await owner.auth.signInWithPassword({email:env.OWNER_EMAIL,password:env.OWNER_PASSWORD})).error).toBeNull();
  const suffix=randomUUID().slice(0,8);const name=`نقابة أرشفة تجريبية ${suffix}`;
- const {data:batch,error:batchError}=await admin.from('demo_batches').insert({name:`Archive QA ${suffix}`}).select('id').single();expect(batchError).toBeNull();
+ const batch={id:await ledger.newBatch('Archive QA')};
  const union=await owner.rpc('clinic_union_save',{payload:{name,active:true}});expect(union.error).toBeNull();
  const payer=await admin.from('insurance_companies').select('id').eq('union_id',union.data.id).single();expect(payer.error).toBeNull();
  expect((await admin.from('insurance_companies').update({demo_batch_id:batch.id}).eq('id',payer.data.id)).error).toBeNull();

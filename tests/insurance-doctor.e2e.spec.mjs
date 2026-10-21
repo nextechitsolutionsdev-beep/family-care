@@ -1,12 +1,12 @@
 import {test,expect} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import dotenv from 'dotenv';
-import {createClient} from '@supabase/supabase-js';
 import {query} from '../scripts/supabase.mjs';
+import {testEnv} from './support/target.mjs';
+import {createLedger} from './support/fixtures.mjs';
 
-const env={...process.env,...dotenv.parse(readFileSync('.env'))};
-const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+const env=testEnv();
+const ledger=createLedger('insurance-doctor-e2e');const admin=ledger.admin;
+test.afterAll(async()=>{await ledger.cleanup();});
 const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
 const tomorrowDate=new Date(`${today}T12:00:00Z`);tomorrowDate.setUTCDate(tomorrowDate.getUTCDate()+1);
 const tomorrow=tomorrowDate.toISOString().slice(0,10);
@@ -18,8 +18,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  const patientName=`عميل نسبة وتأمين تجريبي ${suffix}`;
  const doctorName=`طبيب نسبة تجريبي ${suffix}`;
  const insurerName=`تأمين نسبة تجريبي ${suffix}`;
- const {data:batch,error:batchError}=await admin.from('demo_batches').insert({name:`Rates E2E ${suffix}`}).select('id').single();
- expect(batchError).toBeNull();
+ const batch={id:await ledger.newBatch('Rates E2E')};
  const {data:dental,error:dentalError}=await admin.from('specialties').select('id').eq('client_prefix','DEN').single();
  expect(dentalError).toBeNull();
  const {data:service,error:serviceError}=await admin.from('services').select('id,name').eq('seed_code','DEN-001').single();
@@ -66,16 +65,15 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await form.getByLabel('نوع العميل').selectOption('insurance_credit');
  await form.getByLabel('شركة التأمين').selectOption(insurer.id);
  await form.getByLabel('نسبة تحمّل العميل من الكارنيه (%)').fill('20');
+ // The visit date comes first: a doctor who does not work that weekday is not offered (server check: doctor-availability.test).
+ await form.getByLabel('تاريخ الزيارة').fill(today);
+ await expect(form.getByLabel('الطبيب والتخصص').locator(`option[value="${doctor.id}"]`)).toHaveCount(0);
+ await form.getByLabel('تاريخ الزيارة').fill(tomorrow);
+ await expect(form.getByLabel('تاريخ الزيارة')).toHaveValue(tomorrow.split('-').reverse().join('/'));
  await form.getByLabel('الطبيب والتخصص').selectOption(doctor.id);
  await form.getByLabel('الخدمة').selectOption(service.id);
  await expect(form.getByText(/العميل عليه 60 جنيه.*على الجهة 240 جنيه/)).toBeVisible();
  await form.getByLabel('مجموعة تجريبية (اختياري)').selectOption(batch.id);
- await form.getByLabel('تاريخ الزيارة').fill(today);
- await form.getByRole('button',{name:'تسجيل العميل والخدمة'}).click();
- await expect(form.getByRole('alert')).toContainText('الطبيب غير متاح');
- const {count:rolledBack}=await admin.from('patients').select('id',{count:'exact',head:true}).eq('name',patientName);
- expect(rolledBack).toBe(0);
- await form.getByLabel('تاريخ الزيارة').fill(tomorrow);
  await form.getByRole('button',{name:'تسجيل العميل والخدمة'}).click();
  await expect(page).toHaveURL(/\/visits\/[0-9a-f-]+$/);
  const visitId=new URL(page.url()).pathname.split('/').at(-1);
@@ -140,5 +138,9 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await expect(page.getByRole('heading',{name:'الأطباء وحساباتهم'})).toBeVisible();
  await page.locator('.filters select').first().selectOption(doctor.id);
  await page.getByRole('button',{name:'عرض الحساب'}).click();
- await expect(page.getByText('99.99 جنيه').first()).toBeVisible();
+ // Owner decision 19/10/2026: the 50% change revises this line (audited); the charged snapshot and receipts stay.
+ const revised=(30000n*5000n+5000n)/10000n;
+ await expect(page.locator('.ledger-summary > span').filter({hasText:'نصيب الطبيب المستحق'}).locator('strong')).toHaveText(`${Number(revised)/100} جنيه`);
+ expect(query(`select doctor_share_bps from public.visit_lines where visit_id='${visitId}'`)[0].doctor_share_bps).toBe(3333);
+ expect(query(`select from_bps,to_bps,old_share_minor,new_share_minor from public.doctor_share_revisions where visit_id='${visitId}'`)).toEqual([{from_bps:3333,to_bps:5000,old_share_minor:9999,new_share_minor:15000}]);
 });

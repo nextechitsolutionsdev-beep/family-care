@@ -2,9 +2,13 @@ import {test,expect} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {env,query} from '../scripts/supabase.mjs';
+import {createLedger} from './support/fixtures.mjs';
+import {pendingMigrations} from './support/migrations.mjs';
+const pending=prefix=>pendingMigrations().some(m=>m.file.startsWith(prefix));
 
 const options={auth:{persistSession:false,autoRefreshToken:false}};
-const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,options);
+const ledger=createLedger('audit-e2e');const admin=ledger.admin;
+test.afterAll(async()=>{await ledger.cleanup();});
 const owner=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,options);
 const day=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
 async function rpc(action,payload){
@@ -21,7 +25,7 @@ async function login(page){
 async function fixture(){
  const suffix=randomUUID().slice(0,8);
  expect((await owner.auth.signInWithPassword({email:env.OWNER_EMAIL,password:env.OWNER_PASSWORD})).error).toBeNull();
- const {data:batch,error}=await admin.from('demo_batches').insert({name:`Audit ${suffix}`}).select('id').single();expect(error).toBeNull();
+ const batch={id:await ledger.newBatch('Audit')};
  const {data:specialty}=await admin.from('specialties').select('id').eq('client_prefix','DEN').single();
  const {data:service}=await admin.from('services').select('id,name').eq('seed_code','DEN-001').single();
  const doctor=await rpc('doctor_save',{name:`طبيب تدقيق تجريبي ${suffix}`,specialty_id:specialty.id,category:'percentage',default_share_bps:3333});
@@ -47,7 +51,7 @@ test('cash patient changes and receipts propagate across client, Today, visit an
  await page.getByRole('button',{name:'عميل فقط',exact:true}).click();
  let dialog=page.locator('dialog');
  await dialog.getByLabel('اسم العميل').fill(name);await dialog.getByLabel('رقم الموبايل').fill('invalid');
- await dialog.getByLabel('التخصص وكود العميل').selectOption(f.specialty);
+ await dialog.getByLabel('التخصص (اختياري)').selectOption(f.specialty);
  await dialog.getByLabel('مجموعة تجريبية (اختياري)').selectOption(f.batch);
  await dialog.getByRole('button',{name:'حفظ',exact:true}).click();
  await expect(dialog.getByRole('alert')).toContainText('رقم موبايل مصري');
@@ -83,8 +87,11 @@ test('cash patient changes and receipts propagate across client, Today, visit an
  await expect(summary(page,'نصيب الطبيب المستحق')).toHaveText('99.99 جنيه');
  const statement=await owner.rpc('doctor_statement',{doctor:f.doctor,starts:day(),ends:day()});expect(statement.error).toBeNull();expect(statement.data.doctor_share_minor).toBe(9999);
  await page.goto('/reports');
- const expected=query("select coalesce(sum(private.round_share(l.line_total_minor,l.doctor_share_bps)),0) amount from public.visit_lines l join public.visits v on v.id=l.visit_id join public.patients p on p.id=v.patient_id where v.status='completed' and (p.demo_batch_id is null or p.active) and (v.completed_at at time zone 'Africa/Cairo')::date between date_trunc('month',now() at time zone 'Africa/Cairo')::date and (now() at time zone 'Africa/Cairo')::date;")[0].amount;
- const reportText=await summary(page,'نصيب الأطباء المستحق').textContent();const [whole,fraction='']=reportText.replaceAll(',','').replace(' جنيه','').split('.');expect(BigInt(whole)*100n+BigInt(fraction.padEnd(2,'0'))).toBe(BigInt(expected));
+ // Independent sum: latest audited rate per completed line (owner decision 19/10/2026), half-up per line.
+ const expected=query("select coalesce(sum((l.line_total_minor*coalesce((select r.to_bps from public.doctor_share_revisions r where r.line_id=l.id order by r.id desc limit 1),l.doctor_share_bps)+5000)/10000),0) amount from public.visit_lines l join public.visits v on v.id=l.visit_id join public.patients p on p.id=v.patient_id where v.status='completed' and (p.demo_batch_id is null or p.active) and (v.completed_at at time zone 'Africa/Cairo')::date between date_trunc('month',now() at time zone 'Africa/Cairo')::date and (now() at time zone 'Africa/Cairo')::date;")[0].amount;
+ // Doctor share comes only from the server summary (migration 20261021100500); before it exists the total is unavailable.
+ if(pending('20261021100500'))await expect(summary(page,'نصيب الأطباء المستحق')).toHaveText('—');
+ else{const reportText=await summary(page,'نصيب الأطباء المستحق').textContent();const [whole,fraction='']=reportText.replaceAll(',','').replace(' جنيه','').split('.');expect(BigInt(whole)*100n+BigInt(fraction.padEnd(2,'0'))).toBe(BigInt(expected));}
  await page.goto(`/visits/${visitId}`);page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'رد المبلغ',exact:true}).click();await expect(summary(page,'المحصّل')).toHaveText('0 جنيه');
  const net=query(`select private.patient_paid('${visitId}') amount;`)[0].amount;expect(net).toBe(0);
  await page.goto(`/patients/${patientId}`);await expect(summary(page,'المتبقي')).toHaveText('300 جنيه');
@@ -138,6 +145,8 @@ test('rescheduling preserves history and propagates one successor to Today and c
  const f=await fixture();const name=`عميل متابعة تجريبي ${f.suffix}`;
  const patient=await rpc('patient_save',{name,phone_e164:'+200000000003',client_type_code:'family_care_cash',specialty_id:f.specialty,demo_batch_id:f.batch,transactional_consent:false});
  const visit=await rpc('visit_create',{patient_id:patient.id,doctor_id:f.doctor,visit_date:day(),location:'clinic'});
+ await rpc('line_add',{visit_id:visit.id,service_id:f.service.id,doctor_id:f.doctor});
+ await rpc('payment',{visit_id:visit.id,amount_minor:30000,method:'cash',idempotency_key:randomUUID()});
  await login(page);await page.goto(`/visits/${visit.id}`);await page.getByRole('button',{name:'متابعة جديدة',exact:true}).click();
  let dialog=page.locator('dialog');await dialog.getByLabel('التاريخ').fill(day());await dialog.getByLabel('الغرض').fill(`متابعة أصلية ${f.suffix}`);await dialog.getByRole('button',{name:'حفظ',exact:true}).click();await expect(dialog).toHaveCount(0);
  await page.goto('/follow-ups');let row=page.getByRole('row').filter({hasText:`متابعة أصلية ${f.suffix}`});await expect(row).toHaveCount(1);await row.getByRole('button',{name:'تغيير الموعد'}).click();
@@ -147,26 +156,41 @@ test('rescheduling preserves history and propagates one successor to Today and c
  const previous=persisted.data.find(row=>row.status==='rescheduled');const successor=persisted.data.find(row=>row.status==='scheduled');expect(previous.successor_id).toBe(successor.id);expect(successor.revision).toBe(previous.revision+1);expect(successor.due_date).toBe(next);
  await page.goto('/');await expect(page.getByRole('row').filter({hasText:`متابعة معدلة ${f.suffix}`})).toHaveCount(1);await expect(page.getByRole('row').filter({hasText:`متابعة أصلية ${f.suffix}`})).toHaveCount(0);
  await page.goto(`/patients/${patient.id}`);await expect(page.getByRole('row').filter({hasText:`متابعة أصلية ${f.suffix}`})).toContainText('اتغير موعدها');await expect(page.getByRole('row').filter({hasText:`متابعة معدلة ${f.suffix}`})).toContainText('محددة');
- await page.goto('/follow-ups');await page.getByRole('combobox',{name:/^عرض/}).selectOption('upcoming');row=page.getByRole('row').filter({hasText:`متابعة معدلة ${f.suffix}`});await row.getByRole('button',{name:'تمت',exact:true}).click();await expect(row).toHaveCount(0);
+ await page.goto('/follow-ups');await page.getByRole('combobox',{name:/^عرض/}).selectOption('upcoming');row=page.getByRole('row').filter({hasText:`متابعة معدلة ${f.suffix}`});
+ // The continuation follow-up is linked to its fully paid visit, so admission is available directly.
+ await expect(row.getByRole('link',{name:'استكمال نفس الحساب'})).toBeVisible();
+ await row.getByRole('button',{name:'دخول بعد السداد'}).click();
+ // Admitted patients move to the «اليوم» view, where the follow-up is finished.
+ await page.getByRole('combobox',{name:/^عرض/}).selectOption('today');await row.getByRole('button',{name:'إنهاء المتابعة'}).click();await expect(row).toHaveCount(0);
  expect((await admin.from('follow_ups').select('status').eq('id',successor.id).single()).data.status).toBe('done');
  await page.goto('/');await expect(page.getByRole('row').filter({hasText:`متابعة معدلة ${f.suffix}`})).toHaveCount(0);await page.reload();await expect(page.getByRole('row').filter({hasText:`متابعة معدلة ${f.suffix}`})).toHaveCount(0);
 });
 
 test('catalog forms persist create and edit without changing published prices',async({page})=>{
+ // Checked before anything is written: priced services cannot be deleted, so they must join a test batch.
+ expect(pending('20261021100000'),'requires migration 20261021100000_test_batch_catalog_expenses').toBe(false);
  const suffix=randomUUID().slice(0,6);const name=`تخصص تدقيق تجريبي ${suffix}`;const prefix='QA'+[...suffix].map(value=>String.fromCharCode(65+parseInt(value,16))).join('');let specialtyId,serviceId;
  try{
   await login(page);await page.goto('/specialties');await page.getByRole('tab',{name:'التخصصات',exact:true}).click();await page.getByRole('button',{name:'تخصص جديد',exact:true}).click();
-  let dialog=page.locator('dialog');await dialog.getByLabel('اسم التخصص').fill(name);await dialog.getByLabel('بادئة كود العميل').fill(prefix);await dialog.getByRole('button',{name:'حفظ',exact:true}).click();await expect(dialog).toHaveCount(0);
+  let dialog=page.locator('dialog');await dialog.getByLabel('اسم التخصص').fill(name);await dialog.getByLabel('تخصيص الكود والترتيب').check();await dialog.getByLabel('بادئة كود العميل').fill(prefix);await dialog.getByRole('button',{name:'حفظ',exact:true}).click();await expect(dialog).toHaveCount(0);
   const specialty=await admin.from('specialties').select('id,name,client_prefix').eq('client_prefix',prefix).single();expect(specialty.error).toBeNull();specialtyId=specialty.data.id;expect(specialty.data.name).toBe(name);
+  const batch=await ledger.newBatch('Catalog forms');expect((await admin.from('specialties').update({demo_batch_id:batch}).eq('id',specialtyId)).error).toBeNull();
   await page.getByRole('row').filter({hasText:name}).getByRole('button',{name:'تعديل',exact:true}).click();dialog=page.locator('dialog');await dialog.getByLabel('اسم التخصص').fill(`${name} معدل`);await dialog.getByRole('button',{name:'حفظ',exact:true}).click();await expect(dialog).toHaveCount(0);
   await page.getByRole('tab',{name:'الخدمات',exact:true}).click();await page.getByRole('button',{name:'خدمة جديدة',exact:true}).click();dialog=page.locator('dialog');const serviceName=`خدمة تدقيق تجريبية ${suffix}`;
-  await dialog.getByLabel('اسم الخدمة').fill(serviceName);await dialog.getByLabel('التخصص').selectOption(specialtyId);await dialog.getByLabel('الديبوزيت بالجنيه').fill('123.45');await dialog.getByLabel('يشترط ديبوزيت للحجز').check();await dialog.getByLabel('نشطة',{exact:true}).uncheck();await dialog.getByRole('button',{name:'حفظ',exact:true}).click();await expect(dialog).toHaveCount(0);
-  const service=await admin.from('services').select('id,specialty_id,active,requires_deposit,default_deposit_minor').eq('name',serviceName).single();expect(service.error).toBeNull();serviceId=service.data.id;expect(service.data).toMatchObject({specialty_id:specialtyId,active:false,requires_deposit:true,default_deposit_minor:12345});
+  await dialog.getByLabel('اسم الخدمة').fill(serviceName);await dialog.getByLabel('التخصص').selectOption(specialtyId);await dialog.getByLabel('السعر بالجنيه').fill('123.45');await dialog.getByRole('button',{name:'حفظ الخدمة وسعرها'}).click();await expect(dialog).toHaveCount(0);
+  const created=await admin.from('services').select('id').eq('name',serviceName).single();expect(created.error).toBeNull();serviceId=created.data.id;
+  expect((await admin.from('services').update({demo_batch_id:batch}).eq('id',serviceId)).error).toBeNull();
+  const published=await admin.from('service_prices').select('version_id,price_minor').eq('service_id',serviceId).order('version_id');expect(published.error).toBeNull();expect(published.data.length).toBeGreaterThanOrEqual(5);
+  await page.reload();await page.getByRole('tab',{name:'الخدمات',exact:true}).click();
+  await page.getByRole('row').filter({hasText:serviceName}).getByRole('button',{name:'تعديل',exact:true}).click();dialog=page.locator('dialog');
+  await dialog.getByLabel('الديبوزيت بالجنيه').fill('123.45');await dialog.getByLabel('يشترط ديبوزيت للحجز').check();await dialog.getByLabel('نشطة',{exact:true}).uncheck();await dialog.getByRole('button',{name:'حفظ',exact:true}).click();await expect(dialog).toHaveCount(0);
+  const service=await admin.from('services').select('id,specialty_id,active,requires_deposit,default_deposit_minor').eq('name',serviceName).single();expect(service.error).toBeNull();expect(service.data).toMatchObject({specialty_id:specialtyId,active:false,requires_deposit:true,default_deposit_minor:12345});
   await page.reload();await expect(page.getByRole('row').filter({hasText:serviceName})).toHaveCount(1);
-   const prices=await admin.from('service_prices').select('service_id').eq('service_id',serviceId);expect(prices.error).toBeNull();expect(prices.data).toEqual([]);
+   const prices=await admin.from('service_prices').select('version_id,price_minor').eq('service_id',serviceId).order('version_id');expect(prices.error).toBeNull();expect(prices.data,'editing the service leaves published prices unchanged').toEqual(published.data);
+   expect(prices.data.every(row=>row.price_minor===12345)).toBe(true);
  }finally{
+  // Immutable prices keep these rows; the batch teardown deactivates and hides them (retained, not deleted).
   if(serviceId)expect((await admin.from('services').update({active:false}).eq('id',serviceId)).error).toBeNull();
-  if(specialtyId)expect((await admin.from('specialties').update({active:false}).eq('id',specialtyId)).error).toBeNull();
  }
 });
 

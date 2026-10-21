@@ -1,17 +1,16 @@
 import {test,expect} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import dotenv from 'dotenv';
-import {createClient} from '@supabase/supabase-js';
 
-const env={...process.env,...dotenv.parse(readFileSync('.env'))};
-const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+import {testEnv} from './support/target.mjs';
+import {createLedger} from './support/fixtures.mjs';
+const env=testEnv();
+const ledger=createLedger('intake-e2e');const admin=ledger.admin;
+test.afterAll(async()=>{await ledger.cleanup();});
 const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
 
 test('owner configures a union and reception intake opens one visit on desktop and phone',async({page})=>{
  const suffix=randomUUID().slice(0,8);
- const {data:batch,error:batchError}=await admin.from('demo_batches').insert({name:`Intake E2E ${suffix}`}).select('id').single();
- expect(batchError).toBeNull();
+ const batch={id:await ledger.newBatch('Intake E2E')};
  const {data:dental,error:dentalError}=await admin.from('specialties').select('id').eq('client_prefix','DEN').single();
  expect(dentalError).toBeNull();
  await page.goto('/');

@@ -1,8 +1,10 @@
 import {test,expect} from '@playwright/test';
 import {createClient} from '@supabase/supabase-js';
 import {randomUUID} from 'node:crypto';
-import {spawnSync} from 'node:child_process';
 import {env,query} from '../scripts/supabase.mjs';
+import {createLedger} from './support/fixtures.mjs';
+const ledger=createLedger('visit-additions-e2e');
+test.afterAll(async()=>{await ledger.cleanup();});
 import {money} from '../src/domain/money.ts';
 
 test('paid visit accepts extra service, reprints and continues or charges followup',async({page})=>{
@@ -16,7 +18,7 @@ test('paid visit accepts extra service, reprints and continues or charges follow
  join public.price_list_versions pv on pv.id=p.version_id join public.price_lists pl on pl.id=pv.list_id
  where s.active and s.pricing_kind='service' and not s.requires_deposit and p.price_minor>10 and pl.client_type_code='family_care_cash'
  and pv.published_at is not null and pv.effective_from<=current_date limit 1;`)[0];
- const {data:batch,error}=await admin.from('demo_batches').insert({name:`Additions UI ${tag}`}).select('id').single();expect(error).toBeNull();
+ const batch={id:await ledger.newBatch('Additions UI')};
  try{
   const doctor=await rpc('doctor_save',{name:`طبيب خدمات إضافية ${tag}`,specialty_id:service.specialty_id,category:'percentage',default_share_bps:3333});
   expect((await admin.from('doctors').update({demo_batch_id:batch.id}).eq('id',doctor.id)).error).toBeNull();
@@ -58,7 +60,7 @@ test('paid visit accepts extra service, reprints and continues or charges follow
   const {data:coveredLink}=await owner.from('follow_ups').select('billing_visit_id').eq('id',coveredFollow.id).single();
   expect((await owner.from('visits').select('co_pay_bps').eq('id',coveredLink.billing_visit_id).single()).data.co_pay_bps).toBe(2050);
  }finally{
-  const archived=spawnSync(process.execPath,['scripts/archive-demo.mjs',`--batch=${batch.id}`],{encoding:'utf8',windowsHide:true});expect(archived.status,'archive only this test batch').toBe(0);
+  // Teardown (ledger) archives this batch with checked results.
  }
 });
 

@@ -1,12 +1,15 @@
 import {test,expect} from '@playwright/test';
 import {createHash,randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import dotenv from 'dotenv';
 import {createClient} from '@supabase/supabase-js';
 import {query} from '../scripts/supabase.mjs';
+import {testEnv} from './support/target.mjs';
+import {createLedger} from './support/fixtures.mjs';
+import {pendingMigrations} from './support/migrations.mjs';
 
-const env={...process.env,...dotenv.parse(readFileSync('.env'))};
-const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVER_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+const env=testEnv();
+const ledger=createLedger('clinic-e2e');const admin=ledger.admin;
+test.afterAll(async()=>{await ledger.cleanup();});
 const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
 const nextDay=new Date(`${day}T12:00:00Z`);nextDay.setUTCDate(nextDay.getUTCDate()+1);
 const tomorrow=nextDay.toISOString().slice(0,10);
@@ -18,9 +21,9 @@ const insurerName=`تأمين تجربة ${suffix}`;
 const offerCode=`T-${suffix}`;
 const phone=`+200000${String(Math.floor(Math.random()*1000000)).padStart(6,'0')}`;
 
-test('reception journey, insurance, birthday and mock campaign',async({page})=>{
- const {data:batch,error:batchError}=await admin.from('demo_batches').insert({name:`E2E ${suffix}`}).select('id').single();
- expect(batchError).toBeNull();
+test('reception journey, insurance, refunds, reversals and mock campaign',async({page})=>{
+ test.setTimeout(300000);
+ const batch={id:await ledger.newBatch('E2E clinic')};
  const {data:dental}=await admin.from('specialties').select('id').eq('client_prefix','DEN').single();
  let doctor;
  const {data:services}=await admin.from('services').select('id').eq('seed_code','DEN-001').single();
@@ -52,14 +55,16 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await form.getByLabel('رقم الموبايل').fill(phone);
  await form.getByLabel('تاريخ الميلاد').fill(`2000-${day.slice(5)}`);
  await form.getByLabel('نوع العميل').selectOption('family_care_cash');
- await form.getByLabel('التخصص وكود العميل').selectOption(dental.id);
+ await form.getByLabel('التخصص (اختياري)').selectOption(dental.id);
  await form.getByLabel('مجموعة تجريبية (اختياري)').selectOption(batch.id);
  await form.getByLabel('وافق على رسائل العروض وأعياد الميلاد').check();
  await form.getByLabel('وافق على رسائل مواعيد المتابعة').check();
  await form.getByRole('button',{name:'حفظ'}).click();
  await expect(page).toHaveURL(/\/patients\/[0-9a-f-]+$/);
  const patientId=new URL(page.url()).pathname.split('/').at(-1);
- await expect(page.getByText(/DEN-\d{6}/)).toBeVisible();
+ // One permanent code per patient (migration 20261021100600); before it, the legacy specialty code is shown.
+ const permanent=!pendingMigrations().some(m=>m.file.startsWith('20261021100600'));
+ await expect(page.getByText(permanent?/FC-\d{6}/:/DEN-\d{6}/).first()).toBeVisible();
 
  await page.getByRole('button',{name:'زيارة جديدة'}).click();
  form=page.locator('dialog');
@@ -114,14 +119,14 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
   const email=`feedback-${role}-${suffix.toLowerCase()}@familycare.example.com`;
   const password=`Test!${randomUUID()}Aa1`;
   const {data:user,error:userError}=await admin.auth.admin.createUser({email,password,email_confirm:true});
-  expect(userError).toBeNull();
-  try{
+  expect(userError).toBeNull();ledger.trackUser(user.user.id);
+  {
    expect((await admin.from('profiles').insert({id:user.user.id,role,doctor_id:role==='doctor'?doctor.id:null,display_name:`اختبار تقييم ${role}`})).error).toBeNull();
    const staff=createClient(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
    expect((await staff.auth.signInWithPassword({email,password})).error).toBeNull();
    const {data:staffFeedback,error:staffFeedbackError}=await staff.from('experience_feedback').select('id').eq('visit_id',visitId);
    expect(staffFeedbackError).toBeNull();expect(staffFeedback).toEqual([]);
-  }finally{await admin.auth.admin.deleteUser(user.user.id);}
+  }
  }
  await page.goto(`/visits/${visitId}`);
  await page.getByRole('button',{name:'متابعة جديدة'}).click();
@@ -155,7 +160,7 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await form.getByLabel('رقم الموبايل').fill(phone);
  await form.getByLabel('نوع العميل').selectOption('insurance_credit');
  await form.getByLabel('شركة التأمين').selectOption(insurer.id);
- await form.getByLabel('التخصص وكود العميل').selectOption(dental.id);
+ await form.getByLabel('التخصص (اختياري)').selectOption(dental.id);
  await form.getByLabel('مجموعة تجريبية (اختياري)').selectOption(batch.id);
  await form.getByRole('button',{name:'حفظ'}).click();
  await expect(page).toHaveURL(/\/patients\/[0-9a-f-]+$/);
@@ -202,15 +207,17 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  const {data:offer}=await admin.from('offers').select('id').eq('specialty_id',dental.id).eq('code',offerCode).single();
  expect(offer?.id).toBeTruthy();
  expect((await admin.from('offers').update({demo_batch_id:batch.id}).eq('id',offer.id)).error).toBeNull();
- const futureDate=`${Number(day.slice(0,4))+1}-${day.slice(5)}`;
- query(`select private.run_jobs('${futureDate}T12:00:00+00'::timestamptz);`);
- const birthdayKey=`birthday:${patientId}:${Number(day.slice(0,4))+1}`;
- await expect.poll(async()=>{const {count}=await admin.from('message_outbox').select('id',{count:'exact',head:true}).eq('dedupe_key',birthdayKey).eq('kind','birthday').eq('status','simulated');return count;}).toBe(1);
+ // Birthday jobs are not advanced to a future date here: on the shared database that would touch real patients
+ // and generate future rent. The birthday rule is covered in tests/financial-rollback.test.mjs.
  await page.getByLabel('العرض').selectOption(offer.id);
  await page.getByRole('button',{name:'معاينة المستلمين'}).click();
  await expect(page.getByText(/عدد المستلمين الموافقين:/)).toBeVisible();
  const number=Number((await page.getByText(/عدد المستلمين الموافقين:/).innerText()).match(/\d+/)?.[0]);
  expect(number).toBeGreaterThan(0);
+ // Never send to real patients: every consenting recipient of this filter must be a fixture of this batch.
+ const audience=query(`select count(*) n, count(*) filter (where p.demo_batch_id is distinct from '${batch.id}') outside from private.recipient_ids(jsonb_build_object('specialty_id','${dental.id}')) r join public.patients p on p.id=r.id`)[0];
+ expect(Number(audience.n)).toBe(number);
+ expect(Number(audience.outside),'campaign would reach patients outside this test batch').toBe(0);
  page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'تسجيل إرسال تجريبي'}).click();
  await expect.poll(async()=>{const {count}=await admin.from('campaign_recipients').select('patient_id',{count:'exact',head:true}).eq('patient_id',patientId);return count;}).toBeGreaterThan(0);
@@ -223,8 +230,22 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await form.getByLabel('التاريخ الجديد').fill(afterTomorrow);
  await form.getByRole('button',{name:'حفظ'}).click();
  await expect(form).toHaveCount(0);
+ // Approved flow (902cc6c): open the account, collect what is due, admit after payment, then finish.
  followRow=page.locator('tr').filter({hasText:displayName});
- await followRow.getByRole('button',{name:'تمت'}).click();
+ // The continuation follow-up is linked to the original account: collect the remaining balance there.
+ await followRow.getByRole('link',{name:'استكمال نفس الحساب'}).click();
+ await expect(page).toHaveURL(new RegExp(`/visits/${visitId}$`));
+ await page.getByRole('button',{name:'تسجيل تحصيل',exact:true}).click();
+ await page.getByRole('button',{name:'تسجيل وطباعة الإيصال'}).click();
+ await expect(page.getByRole('heading',{name:'إيصال التحصيل'})).toBeVisible();
+ await page.locator('dialog').getByRole('button',{name:'إغلاق'}).click();
+ await page.getByRole('link',{name:'المتابعات'}).click();
+ await page.getByLabel('عرض').selectOption('upcoming');
+ followRow=page.locator('tr').filter({hasText:displayName});
+ await followRow.getByRole('button',{name:'دخول بعد السداد'}).click();
+ // Admitted patients move to the «اليوم» view, where the follow-up is finished.
+ await page.getByLabel('عرض').selectOption('today');
+ await followRow.getByRole('button',{name:'إنهاء المتابعة'}).click();
  await expect.poll(async()=>{const {data}=await admin.from('follow_ups').select('status').eq('patient_id',patientId);return data?.map(row=>row.status).sort().join(',');}).toBe('done,rescheduled');
 
  await page.goto(`/patients/${patientId}`);
@@ -238,10 +259,10 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  const {data:updatedPatient}=await admin.from('patients').select('marketing_consent').eq('id',patientId).single();
  expect(updatedPatient.marketing_consent).toBe(false);
 
- const {data:originalPayment}=await admin.from('payments').select('id').eq('visit_id',visitId).is('reverses_payment_id',null).single();
+ const {data:originalPayment}=await admin.from('payments').select('id,receipt_number').eq('visit_id',visitId).eq('amount_minor',10000).is('reverses_payment_id',null).single();
  await page.goto(`/visits/${visitId}`);
  page.once('dialog',dialog=>dialog.accept());
- await page.getByRole('button',{name:'رد المبلغ'}).click();
+ await page.getByRole('row').filter({hasText:originalPayment.receipt_number}).getByRole('button',{name:'رد المبلغ'}).click();
  await expect.poll(async()=>{const {count}=await admin.from('payments').select('id',{count:'exact',head:true}).eq('reverses_payment_id',originalPayment.id);return count;}).toBe(1);
 
  const {data:originalSettlement}=await admin.from('insurance_settlements').select('id').eq('insurer_id',insurer.id).is('reverses_settlement_id',null).single();
@@ -259,6 +280,10 @@ test('reception journey, insurance, birthday and mock campaign',async({page})=>{
  await expect(page.getByRole('heading',{name:'التقارير المالية'})).toBeVisible();
  const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'تصدير التحصيل CSV'}).click()]);
  expect(download.suggestedFilename()).toBe('payments.csv');
- expect(readFileSync(await download.path(),'utf8')).toContain(displayName);
+ const csv=readFileSync(await download.path(),'utf8');
+ expect(csv).toContain(displayName);
+ // After the refund the export keeps the original receipt and adds one refund row; nothing is rewritten.
+ expect(csv.split(/\r?\n/).filter(line=>line.includes(displayName)&&line.includes('رد مبلغ'))).toHaveLength(1);
+ expect(csv).toContain(originalPayment.receipt_number);
  expect(visitId).toBeTruthy();
 });
