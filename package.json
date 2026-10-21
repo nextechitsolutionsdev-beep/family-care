@@ -9,14 +9,18 @@
     "preview": "vite preview",
     "lint": "eslint src scripts tests supabase/functions",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --test-concurrency=1 tests/money.test.mjs tests/phone.test.mjs tests/database.test.mjs tests/edge-validation.test.mjs tests/account-errors.test.mjs tests/expenses.test.mjs tests/quick-service.test.mjs tests/catalog-archive.test.mjs tests/doctor-share-revisions.test.mjs tests/doctor-account.test.mjs tests/doctor-availability.test.mjs tests/performance.test.mjs tests/visit-additions.test.mjs tests/followup-plans.test.mjs",
+    "test": "npm run test:unit",
     "test:e2e": "playwright test",
     "connect": "node scripts/connect.mjs",
     "migrate": "node scripts/migrate.mjs",
     "seed": "node scripts/seed.mjs",
     "deploy": "node scripts/deploy.mjs",
     "verify": "node scripts/verify.mjs",
-    "archive:demo": "node scripts/archive-demo.mjs"
+    "archive:demo": "node scripts/archive-demo.mjs",
+    "test:unit": "node --test tests/money.test.mjs tests/phone.test.mjs tests/edge-validation.test.mjs tests/account-errors.test.mjs tests/performance.test.mjs tests/pagination.test.mjs tests/dates.test.mjs tests/search.test.mjs",
+    "test:db": "node --test --test-concurrency=1 tests/financial-rollback.test.mjs tests/operations-rollback.test.mjs tests/remediation-schema.test.mjs tests/patient-code.test.mjs tests/expenses.test.mjs tests/quick-service.test.mjs tests/catalog-archive.test.mjs tests/doctor-share-revisions.test.mjs tests/doctor-account.test.mjs tests/doctor-availability.test.mjs tests/visit-additions.test.mjs tests/followup-plans.test.mjs tests/pagination-live.test.mjs tests/api-integration.test.mjs",
+    "measure:loading": "playwright test -c playwright.measure.config.mjs",
+    "fixtures:cleanup": "node scripts/fixture-cleanup.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",
