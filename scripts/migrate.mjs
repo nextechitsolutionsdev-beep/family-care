@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { cli, query, ref, organization } from './supabase.mjs';
+import { appliedHistory, historySql, verifyApplied } from './migration-integrity.mjs';
 
 const project = cli(['projects', 'list']).projects.find(project => project.ref === ref);
 if (project?.organization_slug !== organization || project.name !== 'family care') throw new Error('Unexpected migration target');
@@ -13,14 +14,15 @@ create table if not exists private.migration_checksums(version text primary key,
 alter table private.migration_checksums enable row level security;
 revoke all on private.migration_checksums from public, anon, authenticated;
 commit;`);
-const applied = new Map(query('select version, checksum from private.migration_checksums;').map(row => [row.version, row.checksum]));
+const applied = appliedHistory(query(`${historySql};`));
 for (const filename of readdirSync('supabase/migrations').filter(name => /^\d+_.+\.sql$/.test(name)).sort()) {
   const [version, ...nameParts] = filename.replace(/\.sql$/, '').split('_');
   const source = readFileSync(`supabase/migrations/${filename}`, 'utf8');
   if (!source.trim()) throw new Error(`Empty migration ${filename}`);
   const checksum = createHash('sha256').update(source).digest('hex');
   if (applied.has(version)) {
-    if (applied.get(version) !== checksum) throw new Error(`Applied migration changed: ${filename}`);
+    // Same SQL with different line endings is accepted only against the recorded source (see migration-integrity.mjs).
+    verifyApplied({ file: filename, source, ...applied.get(version) });
     continue;
   }
   query(`begin; select pg_advisory_xact_lock(7072026);
