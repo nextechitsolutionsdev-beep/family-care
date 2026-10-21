@@ -50,6 +50,10 @@ Classes: **Defect** (product), **Stale** (test behind approved behaviour), **Inf
 | Q1 | Offer reuse by the same patient | Decision | — | Per-offer «مرة واحدة لكل عميل»; existing offers repeat; partial unique index (concurrency-safe) plus earlier-redemption check; a redemption is consumed even if the visit is later voided | `remediation-schema` (first/second visit, other patient, retry, switch to once, direct duplicate insert) | Live concurrent test is in BLOCKED remediation test 4 |
 | P1 | **New requirement:** one permanent patient code | Decision | Codes were per specialty (`DEN-000382`), also used as specialty membership | `patients.patient_code` `FC-000123` from a sequence; backfilled once (clinic patients first); immutable; unique; legacy codes kept as searchable aliases, no new ones; membership moved to `patient_specialties` (owner/reception only); per-visit «تخصص الزيارة» then doctor; code shown in search, file, visit, receipts and invoices | `patient-code.test` (links/balances/legacy codes unchanged across the migration, one code over two specialties, retry consumes one number, edits keep the code, change refused, doctor sees own visit only and no membership); `search.test` (permanent and legacy codes find the patient) | Needs migration 100600. Live UI/concurrency journey is BLOCKED remediation test 5 |
 
+### Other remaining issue found during remediation
+
+- **Migration checksums vs line endings (pre-existing).** Four already-applied migrations (`20261007225200`, `20261012000801`, `20261012192243`, `20261016191259`) are CRLF/mixed in the working tree that applied them, while Git stores them as LF; their recorded checksums match the CRLF bytes. A fresh clone can therefore fail `npm run migrate` with «Applied migration changed». Not changed here (it would alter applied history); fix needs an owner decision, e.g. teaching `scripts/migrate.mjs` to normalise line endings before hashing. The seven new migrations are pinned to LF in `.gitattributes`, and they must be applied from a checkout where they are LF.
+
 ## Results (this branch, 21/10/2026)
 
 | Check | Result |
