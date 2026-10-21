@@ -5,3 +5,11 @@ supabase/migrations/20261011205815_intake_with_service.sql text eol=lf
 supabase/migrations/20261012000801_visit_copay_payers.sql text eol=lf
 supabase/migrations/20261012183143_doctor_completed_service_earnings.sql text eol=lf
 supabase/migrations/20261012192243_intake_multiple_services.sql text eol=lf
+# Migration checksums are computed from file bytes: remediation migrations stay LF on every checkout.
+supabase/migrations/20261021100000_test_batch_catalog_expenses.sql text eol=lf
+supabase/migrations/20261021100100_commission_visibility.sql text eol=lf
+supabase/migrations/20261021100200_offer_patient_limit.sql text eol=lf
+supabase/migrations/20261021100300_shared_phone_confirmation.sql text eol=lf
+supabase/migrations/20261021100400_session_revocation.sql text eol=lf
+supabase/migrations/20261021100500_report_summary.sql text eol=lf
+supabase/migrations/20261021100600_permanent_patient_code.sql text eol=lf
