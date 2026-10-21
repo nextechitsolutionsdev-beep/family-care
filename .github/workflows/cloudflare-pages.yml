@@ -1,36 +1,85 @@
 name: Deploy Family Care to Cloudflare Pages
 
+# Deployment runs only after the quality gate passes, and deploys the exact build that was tested.
+# CI never receives database or owner credentials: database and full browser suites need the live
+# clinic project and run locally with explicit opt-in (see docs/QA-REMEDIATION.md).
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  deployments: write
+
+env:
+  VITE_SUPABASE_URL: https://xkbyxefvzlcnyefkxwsx.supabase.co
 
 jobs:
-  deploy:
+  quality:
+    name: Lint, typecheck, unit tests, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
-      - name: Check deployment settings
+      - name: Check public build settings
         env:
           SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          test -n "$SUPABASE_ANON_KEY" || { echo 'Missing VITE_SUPABASE_ANON_KEY repository variable'; exit 1; }
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN repository secret'; exit 1; }
+        run: test -n "$SUPABASE_ANON_KEY" || { echo 'Missing VITE_SUPABASE_ANON_KEY repository variable'; exit 1; }
       - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Unit tests (money, phone, dates, pagination, Edge Function validation)
+        run: npm run test:unit
       - name: Build and verify browser bundle
         env:
-          VITE_SUPABASE_URL: https://xkbyxefvzlcnyefkxwsx.supabase.co
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          include-hidden-files: true
+          retention-days: 7
+
+  browser-smoke:
+    name: Built app under production headers
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test -c playwright.smoke.config.mjs
+
+  deploy:
+    name: Deploy tested build
+    needs: [quality, browser-smoke]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Check deployment secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN repository secret'; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:
