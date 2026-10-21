@@ -141,7 +141,7 @@ export default function Patients() {
  const totals=visits.filter(row=>row.status!=='void').reduce((sum,row)=>sum+BigInt(text(row.co_pay_minor||0)),0n);
  const paid=visits.reduce((sum,row)=>sum+patientPaid(data,row.id),0n);
  return <>
- <Heading title={patient?text(patient.name):'ملفات العملاء'} detail={patient?`${text(patient.patient_code)} · ${text(patient.phone_e164)} · ${name('client_types',patient.client_type_code)}`:'بحث بالاسم أو رقم الموبايل أو كود العميل'}>
+ <Heading title={patient?text(patient.name):'ملفات العملاء'} detail={patient?[text(patient.patient_code),text(patient.phone_e164),name('client_types',patient.client_type_code)].filter(Boolean).join(' · '):'بحث بالاسم أو رقم الموبايل أو كود العميل'}>
    {id&&<Link className="button" to="/patients">كل العملاء</Link>}
    {patient&&profile.role!=='doctor'&&<button className="primary" onClick={()=>{setEditKey(crypto.randomUUID());setEditing(patient);}}>تعديل البيانات</button>}
    {!patient&&profile.role!=='doctor'&&<><button className="primary" onClick={()=>setQuickKey(crypto.randomUUID())}>تسجيل عميل وخدمة</button><button onClick={()=>{setEditKey(crypto.randomUUID());setEditing(null);}}>عميل فقط</button></>}

@@ -1,10 +1,10 @@
 import {createContext,useContext,useEffect,useState,useMemo,useRef,type ReactNode} from 'react';
 import {all,db,readableError,text,type Row,type Profile} from './api';
-import {readAll} from './pager';
+import {commissionTerms,noCapabilities,probeCapabilities,withTerms,type Capabilities} from './compat';
 import {singleFlight} from './singleFlight';
 /** 'operational' re-reads bookings, money and messages but keeps catalog/terms/settings from the last full read. */
 export type RefreshScope='all'|'operational';
-type Store={profile:Profile;data:Record<string,Row[]>;refresh:(scope?:RefreshScope)=>Promise<void>;name:(table:string,id:unknown)=>string;rows:(table:string)=>Row[]};
+type Store={profile:Profile;data:Record<string,Row[]>;capabilities:Capabilities;refresh:(scope?:RefreshScope)=>Promise<void>;name:(table:string,id:unknown)=>string;rows:(table:string)=>Row[]};
 const Context=createContext<Store|null>(null);
 const emptyRows:Row[]=[];
 const shared=['patients','patient_specialty_codes','specialties','doctors','client_types','services','bundle_components','price_lists','price_list_versions','service_prices','clinic_settings','follow_ups','appointments'];
@@ -72,27 +72,9 @@ function hideArchivedDemo(next:Record<string,Row[]>){
  if(next.audit_log)next.audit_log=next.audit_log.filter(row=>!auditOwners[text(row.entity)]?.has(text(row.entity_id)));
  return next;
 }
-/** Default percentages are merged into doctor rows for the owner (all) and a doctor (own). */
-async function withCommissionTerms(doctors:Row[]):Promise<Row[]>{
- let terms:Row[];
- try{
-  terms=await readAll<Row>(async(after,limit)=>{
-   let request=db.rpc('clinic_commission_terms').order('doctor_id',{ascending:true});
-   if(after)request=request.gt('doctor_id',after.doctor_id as string);
-   const {data,error}=await request.limit(limit);if(error)throw error;return data as Row[];
-  },['doctor_id']);
- }catch(error){
-  // Until migration 20261021100100 is applied the function is absent and the column is still readable.
-  if((error as {code?:string}).code!=='PGRST202')throw error;
-  const {data,error:legacy}=await db.from('doctors').select('id,default_share_bps');if(legacy)throw legacy;
-  terms=(data as Row[]).map(row=>({...row,doctor_id:row.id}));
- }
- const byDoctor=new Map(terms.map(row=>[text(row.doctor_id),row.default_share_bps]));
- return doctors.map(row=>byDoctor.has(row.id)?{...row,default_share_bps:byDoctor.get(row.id)}:row);
-}
 export function ClinicProvider({profile,children}:{profile:Profile;children:ReactNode}) {
  const [data,setData]=useState<Record<string,Row[]>>({});const [error,setError]=useState('');const [loading,setLoading]=useState(true);
- const raw=useRef<Record<string,Row[]>>({});
+ const raw=useRef<Record<string,Row[]>>({});const [capabilities,setCapabilities]=useState<Capabilities>(noCapabilities);
  const refresh=useMemo(()=>singleFlight<RefreshScope|undefined>(async scope=>{
    setError('');
    const tables=[...shared,...(profile.role==='doctor'?['visit_lines']:[...desk,'visit_lines']),...(profile.role==='owner'?owner:[])];
@@ -104,7 +86,13 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
      const result=results[index];if(result.status==='rejected') {setError(readableError(result.reason));throw result.reason;}
      next[wanted[index]]=result.value;
    }
-   if(!partial&&profile.role!=='reception')next.doctors=await withCommissionTerms(next.doctors).catch(error=>{setError(readableError(error));throw error;});
+   if(!partial){
+     // Server features and commission terms are read on full loads only; reception never requests commission.
+     const [features,terms]=await Promise.all([probeCapabilities(db),profile.role==='reception'?Promise.resolve({terms:null}):commissionTerms(db)])
+      .catch(error=>{setError(readableError(error));throw error;});
+     if(profile.role!=='reception')next.doctors=withTerms(next.doctors,terms.terms);
+     setCapabilities({...features,commissionTerms:terms.terms!==null});
+   }
    if(profile.role==='doctor') {
      const {data:visits,error}=await db.rpc('doctor_visits');if(error) {setError(readableError(error));throw error;}
      next.visits=visits as Row[];
@@ -126,7 +114,7 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
  const specialties=useMemo(()=>(data.specialties??emptyRows).filter(row=>row.active),[data.specialties]);
  const rows=(table:string)=>table==='services'?catalog:table==='specialties'?specialties:data[table]??emptyRows;
  const name=(table:string,id:unknown)=>{const row=lookup.get(table)?.get(id);return text(row?.name||row?.title||row?.display_name||row?.code)||'—';};
- return <Context.Provider value={{profile,data,refresh,name,rows}}>
+ return <Context.Provider value={{profile,data,capabilities,refresh,name,rows}}>
    {error&&<div className="error" role="alert">{error} <button onClick={()=>{void refresh().catch(()=>{});}}>إعادة المحاولة</button></div>}
    {loading?<p role="status" className="loading">جارٍ تحميل بيانات العيادة…</p>:children}
  </Context.Provider>;
