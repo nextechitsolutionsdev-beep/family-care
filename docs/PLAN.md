@@ -255,4 +255,10 @@
 - [x] Owner decisions: shared-phone confirmation, commission privacy, once-per-patient offers (database enforced, verified in rolled-back transactions).
 - [x] Security: survey origins, CSP/frame headers, session revocation on reset/deactivation.
 - [x] CI quality gate (lint, typecheck, unit, build, built-app smoke) before deploy; no production credentials in CI.
-- [ ] Owner approval: apply the six remediation migrations, deploy the two Edge Functions, then deploy the site; rerun `test:db`, the migration-gated E2E tests and the loading measurement against the migrated project.
+- [x] Permanent patient code FC-000123 for all specialties (migration 100600, verified in rolled-back transactions).
+- [x] Doctor categories named after the selected specialty for every specialty (display only; stored values and financial rules unchanged).
+- [x] Release compatibility: the new frontend works on the old, each intermediate and the final schema; unknown commission terms block editing instead of guessing.
+- [x] Fresh checkouts migrate: applied migrations verified across CRLF/LF against the SQL recorded at apply time.
+- [x] Arabic user guide rewritten (docs/USER_GUIDE.md) and built as docs/family-care-user-guide-ar.pdf; every page rendered and reviewed.
+- [x] Branch `codex/qa-remediation` pushed; not merged into `main`.
+- [ ] Owner approval, in this order: deploy the site (merge to `main`), apply the seven remediation migrations in a maintenance window, deploy the two Edge Functions, tag the three retained test rows; then rerun `test:db`, the 5 BLOCKED E2E tests and the loading measurement against the migrated project.

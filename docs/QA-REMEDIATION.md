@@ -8,7 +8,7 @@ Owner decisions (21/10/2026): test on the live project with tracked cleanup (no 
 
 | | |
 |---|---|
-| Code, migrations, tests, docs | Prepared locally, committed to branch `codex/qa-remediation` |
+| Code, migrations, tests, docs, user guide | Committed and pushed to branch `codex/qa-remediation` (not merged into `main`) |
 | Seven database migrations | **Not applied** (verified only inside rolled-back transactions on the live project) |
 | Edge Functions `manage-users`, `experience-feedback` | **Not deployed** |
 | Frontend | **Not deployed** (production still serves `40cdea1`) |
@@ -29,7 +29,7 @@ Classes: **Defect** (product), **Stale** (test behind approved behaviour), **Inf
 
 | ID | Original finding | Class | Root cause | Fix | Verification | Remaining |
 |---|---|---|---|---|---|---|
-| H1 | 6/22 E2E failed; CI ran no tests | Stale + Infra | Specs not updated after `902cc6c` (follow-up admission), specialty presets, weekday filter (`f728b49`), audited revisions (19/10); CI built and deployed only | Specs follow the approved flows (continuation link → collect → admit in «اليوم» → finish; code/order customisation; date before doctor; revision-aware independent oracles). CI: quality job + built-app smoke before deploy | Final run: all 23 non-blocked browser tests passed (see Results) | Database and browser suites are not in CI (they need the live project; no production credentials in CI) |
+| H1 | 6/22 E2E failed; CI ran no tests | Stale + Infra | Specs not updated after `902cc6c` (follow-up admission), specialty presets, weekday filter (`f728b49`), audited revisions (19/10); CI built and deployed only | Specs follow the approved flows (continuation link → collect → admit in «اليوم» → finish; code/order customisation; date before doctor; revision-aware independent oracles). CI: quality job + built-app smoke before deploy | Latest full run: all 23 supported workflows passed; 5 migration-gated workflows remain blocked (see Results) | Database and browser suites are not in CI (they need the live project; no production credentials in CI) |
 | H2a | `clinic.e2e` ignored `deleteUser` errors (2 active staff logins left per run) | Infra | Auth user cannot be deleted while its profile exists (FK NO ACTION); result unchecked | Fixture ledger: profile then Auth identity deleted only when nothing references it, existence re-checked; otherwise deactivate + ban and fail | 63 ledgers today: 16 logins deleted, 0 retained, 0 teardown failures | — |
 | H2b | `roles.e2e` left a doctor login | Infra | No cleanup | Tracked by the ledger | Deleted in teardown | — |
 | H2c | Global `run_jobs` with future dates (future rent for real tenants) | Infra | `clinic.e2e`, `database.test` | Removed; job rules run only inside rolled-back transactions | No `run_jobs` in any browser/API test; birthday/reminder/consent in `financial-rollback` | — |
@@ -49,10 +49,9 @@ Classes: **Defect** (product), **Stale** (test behind approved behaviour), **Inf
 | L8 | Archive script counts wrong | Defect | Counts taken before archiving | One statement; counts from rows actually changed | Ledger teardown output | — |
 | Q1 | Offer reuse by the same patient | Decision | — | Per-offer «مرة واحدة لكل عميل»; existing offers repeat; partial unique index (concurrency-safe) plus earlier-redemption check; a redemption is consumed even if the visit is later voided | `remediation-schema` (first/second visit, other patient, retry, switch to once, direct duplicate insert) | Live concurrent test is in BLOCKED remediation test 4 |
 | P1 | **New requirement:** one permanent patient code | Decision | Codes were per specialty (`DEN-000382`), also used as specialty membership | `patients.patient_code` `FC-000123` from a sequence; backfilled once (clinic patients first); immutable; unique; legacy codes kept as searchable aliases, no new ones; membership moved to `patient_specialties` (owner/reception only); per-visit «تخصص الزيارة» then doctor; code shown in search, file, visit, receipts and invoices | `patient-code.test` (links/balances/legacy codes unchanged across the migration, one code over two specialties, retry consumes one number, edits keep the code, change refused, doctor sees own visit only and no membership); `search.test` (permanent and legacy codes find the patient) | Needs migration 100600. Live UI/concurrency journey is BLOCKED remediation test 5 |
-
-### Other remaining issue found during remediation
-
-- **Migration checksums vs line endings (pre-existing).** Four already-applied migrations (`20261007225200`, `20261012000801`, `20261012192243`, `20261016191259`) are CRLF/mixed in the working tree that applied them, while Git stores them as LF; their recorded checksums match the CRLF bytes. A fresh clone can therefore fail `npm run migrate` with «Applied migration changed». Not changed here (it would alter applied history); fix needs an owner decision, e.g. teaching `scripts/migrate.mjs` to normalise line endings before hashing. The seven new migrations are pinned to LF in `.gitattributes`, and they must be applied from a checkout where they are LF.
+| D1 | **New requirement:** doctor categories for every specialty | Decision | The first category was always «أطباء أسنان» | `src/domain/doctorCategories.ts`: the first category is named after the selected specialty (doctor form, doctor table, doctor-account form); specialty is chosen first. Display only: stored value `dentist`, renting/percentage and all financial rules unchanged | `doctor-categories.test` (أسنان, باطنة, جلدية, «ال» prefix, multi-word, a new specialty); browser check showed «أطباء الباطنه» in the live form | — |
+| R1 | Release safety: new frontend on old, intermediate and final schema | Infra | Several screens assumed the final schema | `src/clinic/compat.ts` probes columns/functions. Commission terms unavailable → «—» and doctor/percentage editing disabled (never 0); once-per-patient setting and patient codes hidden until their columns exist | `compat.test` (5); `migration-prefixes.test` stages every prefix 0…7 and checks reception/owner reads with the frontend's column lists, booking, collection and a doctor statement | Old frontend still breaks after 100100 (see release plan) |
+| C1 | Migration checksums vs line endings (pre-existing) | Defect | 27 of 31 applied migrations were applied from CRLF files; Git stores LF, so a fresh clone failed `npm run migrate` with «Applied migration changed» | `scripts/migration-integrity.mjs`: a mismatch is accepted only if the SQL recorded at apply time still hashes to the stored checksum **and** equals the file after CRLF→LF; any other change is rejected. Applied history untouched | `migration-integrity.test` (match, CRLF/LF both ways, edited SQL, altered record, missing record); `migration-history.test` (all 31 applied files in LF and CRLF form; an edited copy is rejected); fresh clone with Windows defaults: 4 exact, 27 line-endings, 0 rejected, 7 pending | — |
 
 ## Results (this branch, 21/10/2026)
 
@@ -63,7 +62,7 @@ Classes: **Defect** (product), **Stale** (test behind approved behaviour), **Inf
 | `npm run build` + bundle secret check | Pass; `dist/_headers` generated |
 | `npx playwright test -c playwright.smoke.config.mjs` (built app, production headers) | 1/1 pass, no CSP violation |
 | `npm run test:db` (all seven migrations staged in rolled-back transactions, plus `api-integration` and `pagination-live`) | 19/19 pass |
-| `npx playwright test` (28 tests) | **23 passed** (18 in the full run; 5 that hit the L7 stall passed on rerun with the same code) · **0 failed** · **5 BLOCKED** by pending migrations: `quick-catalog`, `expenses`, audit «catalog forms», remediation «once-per-patient offer, commission privacy and server report totals», remediation «one permanent code …». Each blocked test stops before writing anything |
+| `npx playwright test` (28 tests, latest full run) | **23 passed** · **4 ended at migration guards** · **1 skipped at its migration guard**. These 5 blocked workflows require pending migrations: `quick-catalog`, `expenses`, audit «catalog forms», remediation «once-per-patient offer, commission privacy and server report totals», and remediation «one permanent code …». Guards run before test writes. Two intermittent timeouts in the preceding run passed on this full rerun without code changes. Playwright exits nonzero because the four migration-gated checks are reported as failures; this suite is not fully green until migrations are applied and all 28 pass. |
 
 ### Loading, same data, alternating old/new runs (median of 3, local dev server → live project)
 
@@ -119,16 +118,18 @@ Combined review: no migration updates or deletes a payment, allocation, invoice,
 
 ## Release plan (needs owner approval — nothing below has been done)
 
-Order matters: the new frontend works with both schemas (every pre-migration browser run above used it), while migration 100100 breaks the old one.
+Order matters: the new frontend works on the old, every intermediate and the final schema (R1; every pre-migration browser run above used it), while migration 100100 breaks the old frontend.
 
-1. **Frontend:** merge `codex/qa-remediation` into `main` → CI quality + smoke → Cloudflare deploy. Verify production serves the new build and the owner can log in (Reports shows «—» for doctor share until step 2).
-2. **Migrations:** `npm run migrate` (each file in its own transaction; a failure rolls back that file and stops). Run outside clinic hours; ask staff to reload open tabs.
-3. **Edge Functions:** deploy `manage-users` (needs 100400) and `experience-feedback`; set `EXPERIENCE_ALLOWED_ORIGINS` only if local browser tests must open the survey.
-4. **Tag retained test rows** (three exact IDs above) into an archived test batch.
-5. **Verify:** `npm run test:db`; `npx playwright test` — the 5 BLOCKED tests must pass; `npm run measure:loading`; reception/doctor/owner smoke on production.
+1. **Frontend (any time):** merge `codex/qa-remediation` into `main` → CI quality + smoke → Cloudflare deploy. Check that production serves the new bundle (asset name changes) and that owner, reception and doctor can log in. Before step 3 the new release-only controls stay hidden and Reports shows «—» for doctor share; everything else works as today.
+2. **Maintenance window:** outside clinic hours. Tell staff beforehand; every open tab must be reloaded (or closed) after step 1, because a tab still running the old bundle stops loading data after 100100. Note the time of the last real receipt so the post-release check can compare totals.
+3. **Migrations:** `npm run migrate` from a clean checkout of the merged commit (C1 makes CRLF/LF checkouts equivalent). Each file runs in its own transaction and ends with `notify pgrst,'reload schema'`; a failure rolls back that file and stops. Between a file and PostgREST's cache reload (normally seconds) the new frontend can see a column or function as missing: it then hides the feature or shows «—» and blocks doctor/percentage editing — it never writes a guessed value. If a screen still shows «—» a minute later, run `notify pgrst,'reload schema'` once more.
+4. **Edge Functions:** deploy `manage-users` (needs 100400) and `experience-feedback`; set `EXPERIENCE_ALLOWED_ORIGINS` only if local browser tests must open the survey.
+5. **Tag retained test rows** (three exact IDs above) into an archived test batch.
+6. **Verify:** `npm run test:db`; `npx playwright test` — the 5 BLOCKED tests must pass before they are counted; `npm run measure:loading`; reception/doctor/owner check on production (doctor percentage visible to owner and that doctor only, patient codes FC-…, once-per-patient offer).
 
-Recovery:
-- Frontend deploy fails → Cloudflare keeps the previous deployment; nothing else is changed yet.
-- A migration fails → it rolls back by itself; later files are not applied; the new frontend keeps working on the partly migrated schema (it tolerates each missing function); fix forward with a new migration.
-- Old frontend still running after 100100 (e.g. deploy step skipped) → corrective migration re-granting `select` on `doctors`, `visit_lines`, `payment_allocations` restores it (this re-exposes commission until the new frontend is live).
-- Edge Function fails → previous version stays active; deactivation still blocks data access through the profile even without session revocation.
+Recovery (forward only; no data is deleted and no broad privilege is re-granted):
+- Frontend deploy fails → Cloudflare keeps serving the previous deployment; stop before step 3 (the old frontend and old schema still match).
+- A migration fails → that file rolls back by itself and later files are not applied. The new frontend works on that intermediate state (tested for every prefix). Fix forward with a new migration in a later window.
+- An old frontend is still open after 100100 → reload the tab; if the new frontend was never deployed, deploy it (or promote it in Cloudflare) rather than re-granting `select` on `doctors`, `visit_lines` and `payment_allocations`, which would expose doctor percentages to reception again. If neither is possible, desk work pauses until the deploy succeeds.
+- Edge Function deploy fails → the previous version stays active; deactivation still blocks data access through the profile even without session revocation.
+- The PostgREST cache is stale → `notify pgrst,'reload schema'`; no data is affected while it is stale (reads of a missing function fail closed).
