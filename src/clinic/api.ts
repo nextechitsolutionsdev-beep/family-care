@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import {normalizeEgyptianPhone} from '../domain/phone';
+import {readTable} from './tables';
 export type Row = { id: string; [key: string]: unknown };
 export type Profile = { id: string; display_name: string; role: 'owner' | 'reception' | 'doctor'; doctor_id: string | null; active: boolean };
-export const db = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
+// A request that never answers must surface as an error with a retry, not an endless loading screen.
+const REQUEST_TIMEOUT_MS=20000;
+const timedFetch:typeof fetch=(input,init={})=>{
+ const timeout=AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+ return fetch(input,{...init,signal:init.signal?AbortSignal.any([init.signal,timeout]):timeout});
+};
+export const db = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY,{global:{fetch:timedFetch}});
 const messages: Record<string,string> = {
  SPECIALTY_INACTIVE:'التخصص محذوف من الاستخدام. استعد التخصص أولًا ثم الخدمة.',
  CATALOG_INACTIVE:'الخدمة محذوفة من الاستخدام. اختار خدمة متاحة أو حدّث الصفحة.',
@@ -13,6 +20,8 @@ const messages: Record<string,string> = {
  DEPOSIT_REQUIRED:'سجّل الديبوزيت المطلوب أولاً.',VISIT_NOT_CONFIRMED:'أضف الخدمات وسجّل الديبوزيت المطلوب أولاً.',
  INVALID_PAYMENT_AMOUNT:'المبلغ لازم يكون أكبر من صفر ولا يزيد عن المتبقي.',INVALID_SETTLEMENT_AMOUNT:'المبلغ يزيد عن رصيد شركة التأمين.',
  INVALID_RENT_PAYMENT:'المبلغ يزيد عن الإيجار المتبقي.',OFFER_EXPIRED:'العرض خارج فترة الصلاحية.',OFFER_ALREADY_APPLIED:'الزيارة عليها عرض بالفعل.',
+ OFFER_NOT_FOUND:'كود العرض غير موجود لهذا التخصص. راجع الكود.',OFFER_INACTIVE:'العرض موقوف حالياً ولا يمكن استخدامه.',OFFER_ALREADY_USED_BY_PATIENT:'العميل استخدم هذا العرض من قبل، والعرض مسموح مرة واحدة لكل عميل.',
+ PHONE_EXISTS:'الرقم مسجل لعميل آخر. افتح الملف الموجود، أو أكّد تسجيل ملف منفصل بنفس الرقم.',
  NO_ELIGIBLE_SERVICES:'لا توجد خدمات ينطبق عليها العرض.',OFFER_LIMIT_REACHED:'العرض وصل للحد المسموح.',PREVIEW_CHANGED:'عدد المستلمين اتغير. اعمل معاينة جديدة.',
  DOCTOR_UNAVAILABLE:'الطبيب غير متاح في اليوم المختار.',SERVICES_BEFORE_OFFER:'أضف الخدمات قبل تطبيق العرض.',HOME_FEE_ONCE:'رسم الزيارة المنزلية مضاف بالفعل.',
  REVERSE_FINANCIAL_RECORDS_FIRST:'اعكس التحصيل والتسويات أولاً للحفاظ على الحسابات.',PRICE_LIST_INCOMPLETE:'القائمة لازم تشمل كل الخدمات النشطة.',
@@ -60,14 +69,12 @@ export async function visitIntake(payload: Record<string,unknown>): Promise<Reco
  if(error) throw error;
  return data as Record<string,unknown>;
 }
-export async function all(table: string): Promise<Row[]> {
- const result: Row[]=[];
- for(let offset=0;;offset+=1000) {
-   const {data,error}=await db.from(table).select('*').range(offset,offset+999);
-   if(error) throw error;
-   result.push(...(data as Row[]));
-   if(data.length<1000) return result;
- }
+export {tableColumns} from './tables';
+const timedOut=(error:unknown)=>/timeout|timed out|abort/i.test(`${(error as {name?:string})?.name??''} ${(error as {message?:string})?.message??''}`);
+/** Reads are idempotent: one stalled request is retried once before the screen shows an error with a retry button. */
+export async function all(table: string,pageSize=1000): Promise<Row[]> {
+ try{return await readTable<Row>(db,table,pageSize);}
+ catch(error){if(!timedOut(error))throw error;return readTable<Row>(db,table,pageSize);}
 }
 export const text=(value: unknown)=>String(value??'');
 export const today=()=>{
