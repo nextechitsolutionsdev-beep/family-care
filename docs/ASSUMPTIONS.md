@@ -1,5 +1,19 @@
 # Assumptions and owner review
 
+## Catalogue request — 05/11/2026
+
+Owner answers (05/11/2026):
+- Prices: none were given; services are added without prices. For such a service reception types the charged price at the visit, records what was paid, and the rest stays as the remaining balance («الاستقبال الفلوس اللي خدها يقيدها ويكتب المتبقي»).
+- Lab tests: not imported from the 2026 lab sheet; the owner adds, prices and removes tests. The «معمل تحاليل» specialty is created empty.
+- Emergency and general services (طوارئ أسنان، تخدير، ايكو، رسم قلب، سونار …): the owner creates an emergency clinic and its services.
+- «معاد الزيارة القادمة» with a client reminder: postponed by the owner; nothing changed.
+
+Routine decisions:
+- A desk-priced service is marked `open_price`; it has no price-list rows. The typed unit price (more than 0) is snapshotted on the line, flagged `manual_price` and audited; quantity, gifts, co-pay, offers, collection and remaining balance work as for list prices. A fixed-price service refuses a typed price, so a list price cannot be overridden at the desk.
+- Price versions cover fixed-price services only. «تحديد سعر ثابت» gives an open service one price in every list (current and future versions), after which it is edited through price versions. Published prices stay immutable.
+- A follow-up opened as «زيارة جديدة لنفس الخدمة» re-adds the service at its list price, so for a desk-priced service reception uses «متابعة بسعر مستقل» or «استكمال الحساب».
+- Names follow the owner's message (spelling kept, hamza normalised where clear). «باطنه» becomes «باطنة وكلى» and «جلدية» becomes «جلدية وتجميل» (rename only). Sub-items become separate services (حجامة جافة، حجامة تشريطية عادية/بريميام، إبر صينية، حقن ويجوفي/مونجارو). Packages are plain desk-priced services until their session counts are known. «كشف تخصص كذا» in home visits is one service «كشف منزلي (حسب التخصص)». Specialties without a service list get «كشف». Prefixes come from the Family Care presets. The existing service «عايز ماوس ليزر» is unchanged.
+
 ## Remediation decisions — 21/10/2026
 
 Owner answers (21/10/2026):

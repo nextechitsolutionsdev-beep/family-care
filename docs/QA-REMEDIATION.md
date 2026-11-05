@@ -87,6 +87,8 @@ Timings varied more between runs than between versions (cold login 2.4–4.5 s),
 | `20261021100400_session_revocation` | Role helpers require a live session; `clinic_revoke_user_sessions` | Compatible |
 | `20261021100500_report_summary` | `clinic_report_summary()` | Compatible |
 | `20261021100600_permanent_patient_code` | Backfill + sequence + immutability; `patient_specialties`; legacy codes frozen | Old app shows no code for new patients |
+| `20261105100000_open_price_services` | `services.open_price`, `visit_lines.manual_price`; typed price for desk-priced services in every booking path; price versions skip them; `clinic_service_fixed_price` | Compatible (no open services exist until the next file) |
+| `20261105100100_family_care_catalog` | 11 specialties, 47 desk-priced services, two renames (05/11 owner request) | Old app cannot book the new services (no price field); the current app can |
 
 Combined review: no migration updates or deletes a payment, allocation, invoice, settlement, visit line or price; the only data change is the one-time code backfill on `patients` and the membership copy. All seven were staged together under every database test. Doctor access is unchanged or narrower.
 

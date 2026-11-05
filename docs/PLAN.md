@@ -262,3 +262,11 @@
 - [x] Arabic user guide rewritten (docs/USER_GUIDE.md) and built as docs/family-care-user-guide-ar.pdf; every page rendered and reviewed.
 - [x] Branch `codex/qa-remediation` pushed; not merged into `main`.
 - [ ] Owner approval, in this order: deploy the site (merge to `main`), apply the seven remediation migrations in a maintenance window, deploy the two Edge Functions, tag the three retained test rows; then rerun `test:db`, the 5 BLOCKED E2E tests and the loading measurement against the migrated project.
+
+## Catalogue and desk-priced services — 05/11/2026
+- [x] Desk-priced services: typed price at the visit (intake, visit booking, extra services, add after payment), snapshotted and audited; fixed prices refuse a typed price; owner can fix a price later.
+- [x] Family Care catalogue migration: 11 specialties, 47 services without prices, two renames; lab tests and emergency services left to the owner.
+- [x] Unit tests (39) and rolled-back database test written.
+- [ ] Run `npm run test:db` against the migrated schema (needs Supabase CLI login), review the new fields at 1366x768 and phone width once the migrations are applied.
+- [ ] Owner approval: apply the nine pending migrations in a maintenance window.
+- [ ] Owner decision later: «معاد الزيارة القادمة» and client reminders; package session counts.
