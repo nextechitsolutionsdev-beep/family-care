@@ -3,8 +3,8 @@ import {readAll,type Cursor} from './pager.ts';
 
 /** Which server features the connected database actually provides. The app is deployed before the database
  * changes (see docs/QA-REMEDIATION.md); a control that needs a server rule stays hidden until the rule exists. */
-export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;commissionTerms:boolean};
-export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,commissionTerms:false};
+export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;openPrice:boolean;commissionTerms:boolean};
+export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,openPrice:false,commissionTerms:false};
 
 const missingColumn=(error:{code?:string}|null)=>Boolean(error&&['42703','PGRST204','PGRST200'].includes(String(error.code)));
 
@@ -17,8 +17,8 @@ async function hasColumn(client:SupabaseClient,table:string,column:string):Promi
 }
 
 export async function probeCapabilities(client:SupabaseClient):Promise<Omit<Capabilities,'commissionTerms'>>{
- const [offerPatientLimit,patientCode]=await Promise.all([hasColumn(client,'offers','once_per_patient'),hasColumn(client,'patients','patient_code')]);
- return {offerPatientLimit,patientCode};
+ const [offerPatientLimit,patientCode,openPrice]=await Promise.all([hasColumn(client,'offers','once_per_patient'),hasColumn(client,'patients','patient_code'),hasColumn(client,'services','open_price')]);
+ return {offerPatientLimit,patientCode,openPrice};
 }
 
 type Terms={terms:Map<string,unknown>|null};

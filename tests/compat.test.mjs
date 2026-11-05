@@ -33,6 +33,6 @@ test('any other server error is reported, not hidden',async()=>{
 
 test('capabilities are on only when the server positively accepts the column',async()=>{
  const features=await probeCapabilities(client({rpc:()=>assert.fail(),select:(table)=>table==='offers'?{data:[],error:null}:{data:null,error:{code:'42703',message:'column does not exist'}}}));
- assert.deepEqual(features,{offerPatientLimit:true,patientCode:false});
+ assert.deepEqual(features,{offerPatientLimit:true,patientCode:false,openPrice:false});
  await assert.rejects(probeCapabilities(client({rpc:()=>assert.fail(),select:()=>({data:null,error:{code:'08006',message:'connection failure'}})})),error=>error.code==='08006');
 });

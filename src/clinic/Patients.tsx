@@ -8,6 +8,7 @@ import {money,minor,percent,roundShare} from '../domain/money';
 import ExtraServices,{type SelectedService} from './ExtraServices';
 import {doctorAvailable,visitWeekday} from './doctorAvailability';
 import {normalizeEgyptianPhone} from '../domain/phone';
+import {isOpenPrice,typedPrice,withTypedPrice} from './openPrice';
 // Other active patients already using the typed number (owner decision 21/10/2026: warn, open, or confirm).
 // Test placeholders and an unchanged number on edit are not checked, as on the server.
 export function sharedPhonePatients(patients:Row[],phone:unknown,self?:Row|null):Row[]{
@@ -31,6 +32,7 @@ function DoctorAvailabilityNotice({day}:{day:unknown}){
 function visitDateField(doctors:Row[],service=true):Field{
  return {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true,hint:'اليوم تلقائيًا بتوقيت القاهرة؛ الأطباء حسب أيام عملهم في التاريخ المختار.',clearOnChange:values=>doctorAvailable(doctors.find(row=>row.id===values.doctor_id),values.visit_date)?[]:service?['doctor_id','service_id']:['doctor_id']};
 }
+const extraPayload=(extras:SelectedService[],services:Row[])=>extras.map(item=>withTypedPrice({service_id:item.service_id,quantity:item.quantity},services.find(row=>row.id===item.service_id),item.unit_price));
 const covered=(type:unknown)=>type==='insurance_credit'||type==='syndicate_cash';
 const copayField:Field={key:'co_pay_bps',label:'نسبة تحمّل العميل من الكارنيه (%)',type:'percent',required:true,blankInitially:true,
  when:values=>covered(values.client_type_code),hint:'اكتب النسبة المكتوبة على الكارنيه لكل زيارة. مثال: 20 يعني العميل 20% والجهة 80%.'};
@@ -45,8 +47,9 @@ function IntakePreview({values,clientType,extras=[]}:{values:Record<string,unkno
  const listType=covered(type)?'family_care_cash':type;
  const list=rows('price_lists').find(row=>row.client_type_code===listType);
  const version=rows('price_list_versions').filter(row=>row.list_id===list?.id&&row.published_at&&text(row.effective_from)<=text(values.visit_date)).sort((a,b)=>text(b.effective_from).localeCompare(text(a.effective_from)))[0];
- const price=rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===values.service_id);
- if(!price)return <p className="notice wide">سعر الخدمة غير متاح لهذا التاريخ. راجع قائمة الأسعار قبل الحفظ.</p>;
+ const service=rows('services').find(row=>row.id===values.service_id);
+ const price=isOpenPrice(service)?{price_minor:typedPrice(values.unit_price_minor)}:rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===values.service_id);
+ if(!price||price.price_minor===null)return <p className="notice wide">{isOpenPrice(service)?'اكتب سعر الخدمة عشان يظهر الإجمالي والمتبقي.':'سعر الخدمة غير متاح لهذا التاريخ. راجع قائمة الأسعار قبل الحفظ.'}</p>;
  try {
   const bps=covered(type)?percent(text(values.co_pay_bps)):10000;
   const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
@@ -54,7 +57,7 @@ function IntakePreview({values,clientType,extras=[]}:{values:Record<string,unkno
   const homePrice=values.location==='home'?rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===homeService?.id):null;
   if(values.location==='home'&&!homePrice)return <p className="notice wide">رسم الزيارة المنزلية غير متاح لهذا التاريخ. راجع قائمة الأسعار.</p>;
   let total=BigInt(text(price.price_minor))+BigInt(text(homePrice?.price_minor||0));
-  for(const item of extras){if(!item.service_id)continue;const extraPrice=rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===item.service_id);if(!extraPrice)return <p className="notice wide">سعر إحدى الخدمات غير متاح لهذا التاريخ.</p>;total+=BigInt(text(extraPrice.price_minor))*BigInt(item.quantity);}
+  for(const item of extras){if(!item.service_id)continue;const extraPrice=isOpenPrice(rows('services').find(row=>row.id===item.service_id))?(typedPrice(item.unit_price)===null?null:{price_minor:typedPrice(item.unit_price)}):rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===item.service_id);if(!extraPrice)return <p className="notice wide">سعر إحدى الخدمات غير متاح لهذا التاريخ.</p>;total+=BigInt(text(extraPrice.price_minor))*BigInt(item.quantity);}
   const patient=roundShare(total,bps);
   const paid=minor(text(values.amount_minor||'0'));
   return <p className="notice wide">{values.location==='home'?'إجمالي الخدمة والزيارة المنزلية':'سعر الخدمة'} {money(total)} · العميل عليه {money(patient)} ({percentLabel(bps)}) · على الجهة {money(total-patient)} · المدفوع الآن {money(paid)} · المتبقي على العميل {money(patient-BigInt(paid))}</p>;
@@ -89,13 +92,14 @@ export function VisitBooking({patient,close}:{patient:Row;close:()=>void}) {
   const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
   return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
  }},
+ {key:'unit_price_minor',label:'سعر الخدمة بالجنيه',type:'money',required:true,blankInitially:true,hint:'الخدمة دي سعرها بيتحدد وقت الزيارة.',when:values=>isOpenPrice(rows('services').find(row=>row.id===values.service_id))},
  {key:'visit_time',label:'الوقت',type:'time'},
  {key:'location',label:'مكان الزيارة',type:'select',required:true,options:[{value:'clinic',label:'العيادة'},{value:'home',label:'منزلية (+ 1,000 جنيه)'}]},
  {...copayField,when:()=>covered(patient.client_type_code)},...paymentFields
  ]} submit={async values=>{
   const result=await visitIntake({idempotency_key:key,
    visit:{patient_id:patient.id,doctor_id:values.doctor_id,visit_date:values.visit_date,visit_time:values.visit_time,location:values.location,...(covered(patient.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
-   service:{service_id:values.service_id},additional_services:extras,
+   service:withTypedPrice({service_id:values.service_id},rows('services').find(row=>row.id===values.service_id),values.unit_price_minor),additional_services:extraPayload(extras,rows('services')),
    ...(Number(values.amount_minor)>0?{payment:{amount_minor:values.amount_minor,method:values.method}}:{})});
   await refresh('operational');close();navigate(`/visits/${text(result.visit_id)}`);
  }} label="تسجيل الزيارة والخدمة">{values=><><DoctorAvailabilityNotice day={values.visit_date}/><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras} clientType={text(patient.client_type_code)}/></>}</Form></Dialog>;
@@ -128,6 +132,7 @@ export default function Patients() {
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
    return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
   }},
+ {key:'unit_price_minor',label:'سعر الخدمة بالجنيه',type:'money',required:true,blankInitially:true,hint:'الخدمة دي سعرها بيتحدد وقت الزيارة.',when:values=>isOpenPrice(rows('services').find(row=>row.id===values.service_id))},
   
   copayField,...paymentFields,
   ...(profile.role==='owner'?fields.filter(field=>field.key==='demo_batch_id'&&rows('demo_batches').some(row=>!row.archived_at)):[])];
@@ -184,10 +189,10 @@ export default function Patients() {
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
    if(!doctor)throw new Error('اختار طبيباً نشطاً.');
    const patient:Record<string,unknown>={...values,specialty_id:doctor.specialty_id,insurer_id:values.client_type_code==='insurance_credit'?values.insurer_id:null,union_id:values.client_type_code==='syndicate_cash'?values.union_id:null};
-   for(const key of ['doctor_id','service_id','visit_date','visit_specialty_id','co_pay_bps','amount_minor','method'])delete patient[key];
+   for(const key of ['doctor_id','service_id','unit_price_minor','visit_date','visit_specialty_id','co_pay_bps','amount_minor','method'])delete patient[key];
    const result=await patientIntake({idempotency_key:quickKey,patient,
     visit:{doctor_id:values.doctor_id,visit_date:values.visit_date,location:'clinic',...(covered(values.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
-    service:{service_id:values.service_id},additional_services:extras,
+    service:withTypedPrice({service_id:values.service_id},rows('services').find(row=>row.id===values.service_id),values.unit_price_minor),additional_services:extraPayload(extras,rows('services')),
     ...(Number(values.amount_minor)>0?{payment:{amount_minor:values.amount_minor,method:values.method}}:{})});
    await refresh('operational');setQuickKey(null);navigate(`/visits/${text(result.visit_id)}`);
  }}>{values=><><SharedPhoneNotice matches={sharedWith(values)} open={openExisting}/><DoctorAvailabilityNotice day={values.visit_date}/><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras}/></>}</Form></div></Dialog>}
