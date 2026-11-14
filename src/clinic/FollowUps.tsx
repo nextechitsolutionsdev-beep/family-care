@@ -5,6 +5,7 @@ import {money} from '../domain/money';
 import {useClinic,patientRemaining} from './store';
 import {Dialog,Form,Heading,Table,Badge,useTask,pastDateConfirmation,requirePastConfirmation} from './ui';
 import {followupTiming,followupTimingLabels} from './followupDates';
+import {isOpenPrice} from './openPrice';
 export default function FollowUps(){
  const {data,rows,name,profile,refresh}=useClinic();const navigate=useNavigate();const [params]=useSearchParams();const account=params.get('account');const task=useTask(refresh);const [scope,setScope]=useState(account?'all':'today');const [reschedule,setReschedule]=useState<Row|null>(null);const [opening,setOpening]=useState<Row|null>(null);
  const patient=rows('patients').find(row=>row.id===opening?.patient_id);
@@ -33,7 +34,7 @@ export default function FollowUps(){
  ]}/>
  {opening&&<Dialog title="فتح حساب المتابعة" close={()=>setOpening(null)}><p className="notice">باقي الحساب الأصلي: {money(patientRemaining(data,rows('visits').find(v=>v.id===opening.source_visit_id)))}. {opening.planned_billing_mode==='fee'?`سعر المتابعة المحجوز: ${money(opening.fee_minor)}. افتح الحساب ثم حصّل المطلوب قبل الدخول.`:'استكمال نفس الخدمة لا يكرر سعرها؛ افتح الحساب وحصّل الباقي.'}</p><Form initial={{mode:opening.planned_billing_mode==='fee'?'fee':'continuation',visit_date:today()}} fields={[
  {key:'mode',label:'نوع المتابعة',type:'select',required:true,options:opening.planned_billing_mode==='fee'?[{value:'fee',label:'المتابعة بالسعر المحجوز'}]:opening.planned_billing_mode==='continuation'?[{value:'continuation',label:'استكمال نفس الخدمة / تحصيل باقي الحساب'}]:[{value:'continuation',label:'استكمال نفس الخدمة / تحصيل باقي الحساب'},{value:'new_service',label:'خدمة جديدة بمقابل'}]},
- {key:'service_id',label:'خدمة المتابعة المدفوعة',type:'select',required:true,when:v=>v.mode==='new_service',options:rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}))},
+ {key:'service_id',label:'خدمة المتابعة المدفوعة',type:'select',required:true,when:v=>v.mode==='new_service',options:rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home'&&!isOpenPrice(row)).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'visit_date',label:'تاريخ الزيارة الجديدة',type:'date',required:true,when:v=>v.mode==='new_service'},
  {key:'co_pay_bps',label:'نسبة تحمّل العميل من الكارنيه (%)',type:'percent',blankInitially:true,required:true,min:0,max:100,when:v=>v.mode==='new_service'&&covered}
  ]} submit={async values=>{const result=await visitOperation('clinic_open_followup',{...values,id:opening.id,co_pay_bps:values.mode==='new_service'&&covered?values.co_pay_bps:undefined});await refresh('operational');setOpening(null);navigate(`/visits/${text(result.id)}`);}} label="فتح الحساب"/></Dialog>}
