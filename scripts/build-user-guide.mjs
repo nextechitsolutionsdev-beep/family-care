@@ -76,7 +76,7 @@ table{width:100%;border-collapse:collapse;margin:2mm 0 4mm;font-size:9.6pt;break
 th{background:#EDF4EE;color:#173F33;text-align:start;font-weight:700}th,td{border:1px solid #D7E2D9;padding:1.6mm 2.2mm;vertical-align:top}
 tr{break-inside:avoid}thead{display:table-header-group}
 .note{background:#FBF5E9;border:1px solid #E4D8B7;border-inline-start:4px solid #9A651D;padding:2mm 4mm;margin:3mm 0;break-inside:avoid}
-figure{margin:3mm 0 5mm;text-align:center;break-inside:avoid}figure img{max-width:100%;max-height:74mm;border:1px solid #D7E2D9;border-radius:3px}
+figure{margin:3mm 0 5mm;text-align:center;break-inside:avoid}figure img{max-width:100%;max-height:150mm;border:1px solid #D7E2D9;border-radius:3px}
 figcaption{font-size:9pt;color:#5B6B62;margin-top:1.5mm}
 .mark{color:#fff;font-size:1px;letter-spacing:0}
 .num{display:inline-block;min-width:7mm;margin-inline-end:2.5mm;padding:0 1.5mm;border-radius:3px;background:#20664E;color:#fff;text-align:center;font-size:.85em}

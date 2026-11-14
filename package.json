@@ -21,7 +21,8 @@
     "test:db": "node --test --test-concurrency=1 tests/financial-rollback.test.mjs tests/operations-rollback.test.mjs tests/remediation-schema.test.mjs tests/patient-code.test.mjs tests/migration-prefixes.test.mjs tests/open-price-schema.test.mjs tests/migration-history.test.mjs tests/expenses.test.mjs tests/quick-service.test.mjs tests/catalog-archive.test.mjs tests/doctor-share-revisions.test.mjs tests/doctor-account.test.mjs tests/doctor-availability.test.mjs tests/visit-additions.test.mjs tests/followup-plans.test.mjs tests/pagination-live.test.mjs tests/api-integration.test.mjs",
     "measure:loading": "playwright test -c playwright.measure.config.mjs",
     "fixtures:cleanup": "node scripts/fixture-cleanup.mjs",
-    "guide:pdf": "node scripts/build-user-guide.mjs"
+    "guide:pdf": "node scripts/build-user-guide.mjs",
+    "guide:screens": "node scripts/capture-guide-screens.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",
