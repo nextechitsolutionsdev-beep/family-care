@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" width="960" height="300" font-family="Tahoma, Arial, sans-serif" direction="rtl">
+  <rect width="960" height="300" fill="#FFFFFF"/>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#20664E"/>
+    </marker>
+  </defs>
+  <g font-size="15" text-anchor="middle">
+    <!-- Row 1, read right to left -->
+    <rect x="740" y="30" width="200" height="86" rx="8" fill="#EDF4EE" stroke="#20664E"/>
+    <text x="840" y="64" font-weight="700" fill="#173F33">1. تسجيل العميل</text>
+    <text x="840" y="90" fill="#21342D">والخدمة أو «زيارة جديدة»</text>
+
+    <rect x="500" y="30" width="200" height="86" rx="8" fill="#EDF4EE" stroke="#20664E"/>
+    <text x="600" y="64" font-weight="700" fill="#173F33">2. الديبوزيت</text>
+    <text x="600" y="90" fill="#21342D">لو الخدمة تشترطه</text>
+
+    <rect x="260" y="30" width="200" height="86" rx="8" fill="#EDF4EE" stroke="#20664E"/>
+    <text x="360" y="64" font-weight="700" fill="#173F33">3. «حضر»</text>
+    <text x="360" y="90" fill="#21342D">من صفحة «اليوم»</text>
+
+    <rect x="20" y="30" width="200" height="86" rx="8" fill="#EDF4EE" stroke="#20664E"/>
+    <text x="120" y="64" font-weight="700" fill="#173F33">4. الكشف</text>
+    <text x="120" y="90" fill="#21342D">«الكشف وإنهاء الزيارة»</text>
+
+    <!-- Row 2, continues left to right under the last box -->
+    <rect x="20" y="184" width="200" height="86" rx="8" fill="#EDF4EE" stroke="#20664E"/>
+    <text x="120" y="218" font-weight="700" fill="#173F33">5. تحصيل الباقي</text>
+    <text x="120" y="244" fill="#21342D">وطباعة الإيصال</text>
+
+    <rect x="260" y="184" width="200" height="86" rx="8" fill="#FBF5E9" stroke="#9A651D"/>
+    <text x="360" y="218" font-weight="700" fill="#5C3D10">6. موعد المتابعة</text>
+    <text x="360" y="244" fill="#21342D">الزيارة القادمة (اختياري)</text>
+
+    <rect x="500" y="184" width="200" height="86" rx="8" fill="#FBF5E9" stroke="#9A651D"/>
+    <text x="600" y="218" font-weight="700" fill="#5C3D10">7. يوم المتابعة</text>
+    <text x="600" y="244" fill="#21342D">تحصيل ثم «دخول بعد السداد»</text>
+
+    <rect x="740" y="184" width="200" height="86" rx="8" fill="#F4F6F3" stroke="#9AAE9F"/>
+    <text x="840" y="218" font-weight="700" fill="#173F33">8. «إنهاء المتابعة»</text>
+    <text x="840" y="244" fill="#21342D">بعد الكشف</text>
+  </g>
+  <g stroke="#20664E" stroke-width="2" fill="none" marker-end="url(#arrow)">
+    <line x1="738" y1="73" x2="704" y2="73"/>
+    <line x1="498" y1="73" x2="464" y2="73"/>
+    <line x1="258" y1="73" x2="224" y2="73"/>
+    <line x1="120" y1="118" x2="120" y2="180"/>
+    <line x1="222" y1="227" x2="256" y2="227"/>
+    <line x1="462" y1="227" x2="496" y2="227"/>
+    <line x1="702" y1="227" x2="736" y2="227"/>
+  </g>
+</svg>
