@@ -21,7 +21,7 @@ export default function FollowUps(){
  {account&&<p className="notice">متابعات الحساب المفتوح <Link to="/follow-ups">عرض كل المتابعات</Link></p>}
  <div className="filters"><label>عرض<select value={scope} onChange={event=>setScope(event.target.value)}><option value="today">اليوم</option><option value="overdue">متأخرة</option><option value="upcoming">قادمة</option><option value="all">كل المتابعات</option></select></label><span>{due.length} متابعة</span></div>
  <Table rows={due} columns={[
-  {label:'العميل / الحساب',render:row=><><Link to={profile.role==='doctor'?`/patients/${text(row.patient_id)}`:`/visits/${text(row.billing_visit_id||row.source_visit_id)}`}>{name('patients',row.patient_id)}</Link>{profile.role!=='doctor'&&<><small>المطلوب: {money(balance(row))}</small><Link to={`/patients/${text(row.patient_id)}`}>ملف العميل</Link></>}</>},
+  {label:'العميل / الحساب',render:row=><><Link to={profile.role==='doctor'?`/patients/${text(row.patient_id)}`:`/visits/${text(row.billing_visit_id||row.source_visit_id)}`}>{name('patients',row.patient_id)}</Link>{profile.role!=='doctor'&&<> <small>المطلوب: {money(balance(row))}</small> <Link to={`/patients/${text(row.patient_id)}`}>ملف العميل</Link></>}</>},
   {label:'التاريخ',render:row=>date(row.due_date)},{label:'الوقت',render:row=><bdi>{text(row.due_time).slice(0,5)||'—'}</bdi>},
   {label:'الطبيب',render:row=>name('doctors',row.doctor_id)},{label:'الغرض',render:row=>text(row.purpose)},
   {label:'الحالة',render:row=><Badge>{label(row.status)}</Badge>},
