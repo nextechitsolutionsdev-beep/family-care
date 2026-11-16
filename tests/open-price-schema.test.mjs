@@ -36,28 +36,32 @@ begin
  -- Reception books an open-price service: the typed price is required, snapshotted, audited and collected like any line.
  perform set_config('request.jwt.claims',jsonb_build_object('sub',rec,'role','authenticated')::text,true);perform set_config('role','authenticated',true);
  intake:=public.clinic_patient_intake(jsonb_build_object('idempotency_key',gen_random_uuid(),
-  'patient',jsonb_build_object('name','QA open price patient','phone_e164','+200000000801','client_type_code','family_care_cash','specialty_id',phys,'demo_batch_id',batch),
+  'patient',jsonb_build_object('name','QA open price patient','phone_e164','+201500000802','client_type_code','family_care_cash','specialty_id',phys,'demo_batch_id',batch),
   'visit',jsonb_build_object('doctor_id',doc,'visit_date',day,'location','clinic'),
   'service',jsonb_build_object('service_id',open_svc,'unit_price_minor',35000),
   'additional_services',jsonb_build_array(jsonb_build_object('service_id',(select id from public.services where seed_code='CAT-PHYS-04'),'quantity',2,'unit_price_minor',15050)),
   'payment',jsonb_build_object('amount_minor',20000,'method','cash')));
  v:=(intake->>'visit_id')::uuid;pt:=(intake->>'patient_id')::uuid;
+ perform set_config('role','postgres',true);
  insert into qa_out select 'intake',jsonb_build_object(
   'lines',(select jsonb_agg(jsonb_build_object('unit',unit_price_minor,'qty',quantity,'total',line_total_minor,'manual',manual_price) order by sequence) from public.visit_lines where visit_id=v),
   'patient_share',(select co_pay_minor from public.visits where id=v),'paid',private.patient_paid(v),
   'audited',(select count(*) from public.audit_log where action='manual_price' and entity_id in (select id from public.visit_lines where visit_id=v)));
- begin perform public.clinic_command('line_add',jsonb_build_object('visit_id',v,'service_id',open_svc,'doctor_id',doc)); procedure_error:='accepted';
+ perform set_config('role','authenticated',true);
+ begin perform public.clinic_append_service(jsonb_build_object('visit_id',v,'service_id',open_svc,'doctor_id',doc,'quantity',1,'idempotency_key',gen_random_uuid())); procedure_error:='accepted';
  exception when others then procedure_error:=sqlerrm; end;
  insert into qa_out values('missing_price',to_jsonb(procedure_error));
- begin perform public.clinic_command('line_add',jsonb_build_object('visit_id',v,'service_id',open_svc,'doctor_id',doc,'unit_price_minor',0)); procedure_error:='accepted';
+ begin perform public.clinic_append_service(jsonb_build_object('visit_id',v,'service_id',open_svc,'doctor_id',doc,'quantity',1,'unit_price_minor',0,'idempotency_key',gen_random_uuid())); procedure_error:='accepted';
  exception when others then procedure_error:=sqlerrm; end;
  insert into qa_out values('zero_price',to_jsonb(procedure_error));
  perform public.clinic_append_service(jsonb_build_object('visit_id',v,'service_id',(select id from public.services where seed_code='CAT-PHYS-07'),'doctor_id',doc,'quantity',1,'unit_price_minor',10000,'idempotency_key',gen_random_uuid()));
  perform public.clinic_append_service(jsonb_build_object('visit_id',v,'service_id',open_svc,'doctor_id',doc,'quantity',1,'is_gift',true,'idempotency_key',gen_random_uuid()));
+ perform set_config('role','postgres',true);
  insert into qa_out select 'after_payment',jsonb_build_object('total',(select sum(line_total_minor) from public.visit_lines where visit_id=v),
   'remaining',(select co_pay_minor from public.visits where id=v)-private.patient_paid(v),'gift_price',(select unit_price_minor from public.visit_lines where visit_id=v and is_gift));
 
  -- A fixed-price service keeps its list price and refuses a typed one.
+ perform set_config('role','authenticated',true);
  v:=(public.clinic_command('visit_create',jsonb_build_object('patient_id',pt,'doctor_id',den_doc,'visit_date',day,'location','clinic'))->>'id')::uuid;
  begin perform public.clinic_command('line_add',jsonb_build_object('visit_id',v,'service_id',fixed_svc,'doctor_id',den_doc,'unit_price_minor',1)); procedure_error:='accepted';
  exception when others then procedure_error:=sqlerrm; end;

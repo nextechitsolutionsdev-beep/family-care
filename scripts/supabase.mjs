@@ -13,7 +13,7 @@ const require = createRequire(import.meta.url);
 export function cli(args, json = true) {
   const root = dirname(require.resolve('supabase/package.json'));
   const executable = join(root, 'dist', 'supabase.js');
-  const run = spawnSync(process.execPath, [executable, ...args, ...(json ? ['--output-format', 'json'] : [])], { env, encoding: 'utf8', windowsHide: true, timeout: 180000 });
+  const run = spawnSync(process.execPath, [executable, ...args, ...(json ? ['--output-format', 'json'] : [])], { env, encoding: 'utf8', windowsHide: true, timeout: 180000, maxBuffer: 64 * 1024 * 1024 });
   if (run.status !== 0) {
     let message = String(run.stdout || run.stderr || run.error?.message || 'Supabase command failed');
     for (const [key, value] of Object.entries(env)) if (/KEY|TOKEN|PASSWORD/.test(key) && value) message = message.replaceAll(value, '[redacted]');

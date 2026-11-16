@@ -29,7 +29,7 @@ begin
  select id into strict den from public.specialties where client_prefix='DEN';
  select id into strict derm from public.specialties where client_prefix='DERM';
  select id into strict den_service from public.services where seed_code='DEN-001';
- select id into derm_service from public.services where specialty_id=derm and active and pricing_kind='service' limit 1;
+ select id into derm_service from public.services where specialty_id=derm and active and pricing_kind='service' and not open_price order by seed_code limit 1;
  insert into public.demo_batches(name) values('QA patient code rollback') returning id into batch;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',owner,'role','authenticated')::text,true);
 
