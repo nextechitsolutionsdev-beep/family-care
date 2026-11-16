@@ -13,3 +13,4 @@ output/playwright/
 *.log
 tmp/pdfs/
 
+output/purge-backup/
