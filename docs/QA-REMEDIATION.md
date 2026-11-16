@@ -94,6 +94,10 @@ Combined review: no migration updates or deletes a payment, allocation, invoice,
 
 ## Cleanup
 
+**16/11/2026 — handover cleanup (owner decision: delete archived test data permanently, keep real records).** `scripts/purge-test-data.mjs` selected test rows structurally (test batches and everything depending on them, plus the three retained rows below), refused to run if any were linked to real records (12 checks, all 0), backed every row up to `output/purge-backup/` (gitignored; 3,723 rows plus 24 unions), deleted them in one transaction with the immutability guards disabled only inside it, and verified real counts unchanged before committing. Deleted: 191 test patients, 210 visits, 216 lines, 185 payments, 132 doctors, 91 follow-ups, 50 payers, 20 invoices, 25 settlements, 151 batches, 767 audit rows and their dependants; then 24 test unions left without a payer. Afterwards: 4 patients, 5 visits, 3 payments, 3 doctors, 5 accounts, 4 specialties, 45 services, 1 expense; 0 batches, 0 payers, 0 unions; all 12 guards enabled; no orphaned lines. The real records were never touched. The clinic must add its real insurers and unions.
+
+Earlier cleanup notes (kept for history):
+
 - 63 fixture ledgers today, all clean: 16 temporary logins deleted, 0 retained; 73 test batches archived (financial history retained, hidden) and 2 empty batches deleted.
 - Live check after the final run: 0 open batches; 0 active test patients, doctors, payers or offers; 3 profiles and 3 Auth users (owner, reception, doctor), as before.
 - Real data: the patient count rose from 2 to 3 during the session from a registration by the real reception account at 11:13 Cairo time (not a test). No real record was changed or removed.
