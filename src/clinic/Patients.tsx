@@ -87,7 +87,6 @@ function IntakePreview({values,clientType,extras=[],payer=null}:{values:Record<s
  const listType=covered(type)?'family_care_cash':type;
  const list=rows('price_lists').find(row=>row.client_type_code===listType);
  const version=rows('price_list_versions').filter(row=>row.list_id===list?.id&&row.published_at&&text(row.effective_from)<=text(values.visit_date)).sort((a,b)=>text(b.effective_from).localeCompare(text(a.effective_from)))[0];
- const service=rows('services').find(row=>row.id===values.service_id);
  // A covered visit uses the owner's price for its insurer or union when one is set (owner decision 19/11/2026).
  const payerPriceOf=(serviceId:unknown)=>covered(type)?payerPrice(rows('payer_service_prices'),payer,serviceId):null;
  const ownPrice=payerPriceOf(values.service_id);
