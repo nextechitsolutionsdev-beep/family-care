@@ -293,3 +293,9 @@
 - [x] «الموظفين» under the expenses, owner only (20261119100900): employees, monthly salary, bonus/advance/deduction/payout, still due per month, employee report with history; advances and payouts become «أجور وعمالة» expenses; voiding an entry voids its expense.
 - [x] «معمل الأسنان» for owner and reception (20261119101000): the lab sheet columns plus the lab price; paying the lab records a «معمل أسنان» expense; owner-only payment cancel; cancelled cases kept.
 - [x] Verified all four in a rolled-back transaction on the project; unit tests for payroll, lab totals and template variables.
+
+## Release 19/11/2026
+- [x] Migrations 20261119100400–20261119101000 applied to the project in order, with checksums (same transaction shape as scripts/migrate.mjs).
+- [x] Full day scenario on the migrated database in a rolled-back transaction: 23/23 checks (corrections, three cancellation modes, payroll, lab, closing totals and lock, campaign template, doctor/reception permissions, wallet payment).
+- [x] Screens checked at 1366×768 and 375px (closing, lab, employees, templates, accounts, receipt correction, cancel booking, reports, patients, insurance, doctors): no console errors, no horizontal scroll.
+- [x] Lint, typecheck, build, 52 unit tests; pushed to `main`.
