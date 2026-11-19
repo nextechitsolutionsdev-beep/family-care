@@ -1,3 +1,4 @@
+import {paymentMethodOptions} from './paymentMethods';
 import {useState} from 'react';
 import {Link,useParams} from 'react-router-dom';
 import {command,visitOperation,date,label,text,today,percentLabel,type Row} from './api';
@@ -56,7 +57,7 @@ export default function Visit(){
  {dialog==='offer'&&<Dialog title="تطبيق عرض" close={()=>setDialog('')}><Form fields={[{key:'code',label:'كود العرض',required:true}]} submit={async values=>{await command('offer_apply',{...values,visit_id:id});await refresh('operational');setDialog('');}} label="تطبيق العرض"/></Dialog>}
  {dialog==='payment'&&<Dialog title="تسجيل تحصيل" close={()=>setDialog('')}><Form initial={{amount_minor:Number(remaining),method:'cash',kind:!v.confirmed?'deposit':'payment'}} fields={[
  {key:'amount_minor',label:'المبلغ بالجنيه',type:'money',required:true,hint:capabilities.paymentExcess?`المتبقي ${money(remaining)}. لو العميل دفع أكتر، اكتب المبلغ اللي استلمته والزيادة تتسجل إيراد زيادة.`:`المتبقي ${money(remaining)}`},
- {key:'method',label:'طريقة الدفع',type:'select',required:true,options:['cash','card','transfer'].map(value=>({value,label:label(value)}))},
+ {key:'method',label:'طريقة الدفع',type:'select',required:true,options:()=>paymentMethodOptions()},
  {key:'kind',label:'النوع',type:'select',required:true,options:[{value:'payment',label:'تحصيل'},{value:'deposit',label:'ديبوزيت حجز'}]}
  ]} submit={async values=>{const result=await command('payment',{...values,visit_id:id,idempotency_key:paymentKey});await refresh('operational');setDialog('');setReceipt(result as Row);}} label="تسجيل وطباعة الإيصال">{values=>{let typed:bigint;try{typed=BigInt(minor(text(values.amount_minor||'0')));}catch{return null;}
   return capabilities.paymentExcess&&typed>remaining&&remaining>0n?<p className="notice wide" role="status">المستلم {money(typed)} · يتسجل على الزيارة {money(remaining)} · <strong>زيادة {money(typed-remaining)} هتتسجل إيراد زيادة</strong> ومش هترجع للعميل.</p>:null;}}</Form></Dialog>}

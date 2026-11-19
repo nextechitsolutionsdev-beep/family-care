@@ -39,6 +39,7 @@ const messages: Record<string,string> = {
  FOLLOWUP_PLAN_LOCKED:'نوع وسعر المتابعة محفوظان مع الحجز ولا يمكن تغييرهما عند التحصيل.',
  FOLLOWUP_FEE_LOCKED:'حساب رسوم المتابعة مستقل وثابت بالسعر المحجوز. أضف أي خدمة أخرى في زيارة منفصلة من ملف العميل.',
  INVALID_PERIOD:'تاريخ البداية لازم يكون قبل تاريخ النهاية أو نفس اليوم.',
+ DAY_ALREADY_CLOSED:'اليوم ده اتقفل بالفعل. حدّث الصفحة.',CLOSING_OUT_OF_ORDER:'فيه يوم بعده متقفل بالفعل. التقفيل لازم يكون بالترتيب.',HANDOVER_ABOVE_DRAWER:'المبلغ المبعوت للمالك أكبر من الكاش اللي في الدرج.',HANDOVER_RECEIVER_REQUIRED:'اكتب اسم اللي استلم الفلوس.',INVALID_HANDOVER:'اكتب المبلغ المبعوت للمالك صح.',INVALID_CLOSING_DAY:'مينفعش تقفل يوم لسه ما جاش.',CLOSING_NOT_LATEST:'تقدر تفتح آخر يوم متقفل بس.',DAY_NOT_CLOSED:'اليوم ده مش متقفل.',
  COPAY_REQUIRED:'اكتب نسبة تحمّل العميل من الكارنيه قبل فتح الزيارة.',INVALID_COPAY:'النسبة لازم تكون من 0 إلى 100%.',COPAY_NOT_APPLICABLE:'نسبة التحمل متاحة للنقابة أو التأمين فقط.',
  };
 export function readableError(error: unknown): string {
@@ -93,7 +94,7 @@ export const date=(value: unknown)=>{
   ?new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Cairo',day:'2-digit',month:'2-digit',year:'numeric'}).format(instant)
   :'—';
 };
-export const labels: Record<string,string>={owner:'المالك',reception:'الاستقبال',doctor:'الطبيب',dentist:'أطباء التخصص',percentage:'أطباء نسبة',renting:'أطباء مستأجرين',open:'مفتوحة',completed:'مكتملة',void:'ملغاة',pending:'بانتظار الديبوزيت',confirmed:'مؤكدة',arrived:'حضر',cancelled:'ملغي',scheduled:'محددة',done:'تمت',rescheduled:'اتغير موعدها',missed:'لم يحضر',simulated:'مسجلة تجريبياً',queued:'في الانتظار',skipped:'لم تُرسل',failed:'تعذرت',payment:'تحصيل',deposit:'ديبوزيت',refund:'رد مبلغ',cash:'نقدي',card:'بطاقة',transfer:'تحويل',birthday:'عيد ميلاد',campaign:'حملة',follow_up:'متابعة',experience_survey:'تقييم تجربة',clinic:'العيادة',home:'منزلية'};
+export const labels: Record<string,string>={owner:'المالك',reception:'الاستقبال',doctor:'الطبيب',dentist:'أطباء التخصص',percentage:'أطباء نسبة',renting:'أطباء مستأجرين',open:'مفتوحة',completed:'مكتملة',void:'ملغاة',pending:'بانتظار الديبوزيت',confirmed:'مؤكدة',arrived:'حضر',cancelled:'ملغي',scheduled:'محددة',done:'تمت',rescheduled:'اتغير موعدها',missed:'لم يحضر',simulated:'مسجلة تجريبياً',queued:'في الانتظار',skipped:'لم تُرسل',failed:'تعذرت',payment:'تحصيل',deposit:'ديبوزيت',refund:'رد مبلغ',cash:'كاش',card:'فيزا',transfer:'تحويل',instapay:'انستاباي',wallet:'محفظة',birthday:'عيد ميلاد',campaign:'حملة',follow_up:'متابعة',experience_survey:'تقييم تجربة',clinic:'العيادة',home:'منزلية'};
 export const label=(value:unknown)=>labels[text(value)]??text(value);
 export const percentLabel=(basisPoints:unknown)=>{
  if(basisPoints===null||basisPoints===undefined||basisPoints==='')return '—';

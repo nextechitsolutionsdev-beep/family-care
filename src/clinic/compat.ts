@@ -3,8 +3,8 @@ import {readAll,type Cursor} from './pager.ts';
 
 /** Which server features the connected database actually provides. The app is deployed before the database
  * changes (see docs/QA-REMEDIATION.md); a control that needs a server rule stays hidden until the rule exists. */
-export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;commissionTerms:boolean;doctorHours:boolean;payerPrices:boolean;paymentExcess:boolean};
-export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,commissionTerms:false,doctorHours:false,payerPrices:false,paymentExcess:false};
+export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;commissionTerms:boolean;doctorHours:boolean;payerPrices:boolean;paymentExcess:boolean;dayClosing:boolean};
+export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,commissionTerms:false,doctorHours:false,payerPrices:false,paymentExcess:false,dayClosing:false};
 
 // Missing column (42703/PGRST204/PGRST200) or missing table (42P01/PGRST205): the server does not have it yet.
 const missingColumn=(error:{code?:string}|null)=>Boolean(error&&['42703','PGRST204','PGRST200','42P01','PGRST205'].includes(String(error.code)));
@@ -18,10 +18,11 @@ async function hasColumn(client:SupabaseClient,table:string,column:string):Promi
 }
 
 export async function probeCapabilities(client:SupabaseClient,role:string):Promise<Omit<Capabilities,'commissionTerms'>>{
- const [offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices]=await Promise.all([hasColumn(client,'offers','once_per_patient'),hasColumn(client,'patients','patient_code'),
+ const [offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing]=await Promise.all([hasColumn(client,'offers','once_per_patient'),hasColumn(client,'patients','patient_code'),
   hasColumn(client,'doctors','working_hours'),role==='doctor'?Promise.resolve(false):hasColumn(client,'payments','excess_minor'),
-  role==='doctor'?Promise.resolve(false):hasColumn(client,'payer_service_prices','price_minor')]);
- return {offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices};
+  role==='doctor'?Promise.resolve(false):hasColumn(client,'payer_service_prices','price_minor'),
+  role==='doctor'?Promise.resolve(false):hasColumn(client,'day_closings','day')]);
+ return {offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing};
 }
 
 /** Working hours per doctor (20261119100200). Read separately because the doctors column list is fixed

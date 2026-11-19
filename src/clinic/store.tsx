@@ -2,6 +2,7 @@ import {createContext,useContext,useEffect,useState,useMemo,useRef,type ReactNod
 import {all,db,readableError,text,type Row,type Profile} from './api';
 import {commissionTerms,doctorHours,noCapabilities,probeCapabilities,withTerms,type Capabilities} from './compat';
 import {singleFlight} from './singleFlight';
+import {setExtendedPaymentMethods} from './paymentMethods';
 /** 'operational' re-reads bookings, money and messages but keeps catalog/terms/settings from the last full read. */
 export type RefreshScope='all'|'operational';
 type Store={profile:Profile;data:Record<string,Row[]>;capabilities:Capabilities;refresh:(scope?:RefreshScope)=>Promise<void>;name:(table:string,id:unknown)=>string;rows:(table:string)=>Row[]};
@@ -97,7 +98,7 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
      if(profile.role!=='reception')next.doctors=withTerms(next.doctors,terms.terms);
      if(hours)next.doctors=next.doctors.map(row=>({...row,working_hours:hours.get(row.id)??{}}));
      next.payer_service_prices=payerPrices;
-     setCapabilities({...features,commissionTerms:terms.terms!==null});
+     setExtendedPaymentMethods(features.dayClosing);setCapabilities({...features,commissionTerms:terms.terms!==null});
    }
    if(profile.role==='doctor') {
      const {data:visits,error}=await db.rpc('doctor_visits');if(error) {setError(readableError(error));throw error;}

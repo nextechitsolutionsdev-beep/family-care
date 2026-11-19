@@ -17,7 +17,7 @@
     "deploy": "node scripts/deploy.mjs",
     "verify": "node scripts/verify.mjs",
     "archive:demo": "node scripts/archive-demo.mjs",
-    "test:unit": "node --test tests/money.test.mjs tests/phone.test.mjs tests/edge-validation.test.mjs tests/account-errors.test.mjs tests/performance.test.mjs tests/pagination.test.mjs tests/dates.test.mjs tests/search.test.mjs tests/compat.test.mjs tests/doctor-categories.test.mjs tests/doctor-hours.test.mjs tests/migration-integrity.test.mjs",
+    "test:unit": "node --test tests/money.test.mjs tests/phone.test.mjs tests/edge-validation.test.mjs tests/account-errors.test.mjs tests/performance.test.mjs tests/pagination.test.mjs tests/dates.test.mjs tests/search.test.mjs tests/compat.test.mjs tests/doctor-categories.test.mjs tests/doctor-hours.test.mjs tests/day-closing.test.mjs tests/migration-integrity.test.mjs",
     "test:db": "node --test --test-concurrency=1 tests/financial-rollback.test.mjs tests/operations-rollback.test.mjs tests/remediation-schema.test.mjs tests/patient-code.test.mjs tests/migration-prefixes.test.mjs tests/migration-history.test.mjs tests/expenses.test.mjs tests/quick-service.test.mjs tests/catalog-archive.test.mjs tests/doctor-share-revisions.test.mjs tests/doctor-account.test.mjs tests/doctor-availability.test.mjs tests/visit-additions.test.mjs tests/followup-plans.test.mjs tests/desk-updates-2026-11.test.mjs tests/pagination-live.test.mjs tests/api-integration.test.mjs",
     "measure:loading": "playwright test -c playwright.measure.config.mjs",
     "fixtures:cleanup": "node scripts/fixture-cleanup.mjs",

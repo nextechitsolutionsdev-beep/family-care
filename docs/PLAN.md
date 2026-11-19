@@ -270,5 +270,10 @@
 - [x] Doctor working hours per day with confirmed out-of-hours bookings (20261119100200); schedule shown under the selected doctor and on «مواعيد الدكاترة».
 - [x] Per-payer service prices (20261119100300): owner editor per insurer/union, applied to covered visit lines, shown in the reception preview.
 - [x] Ported onto `main` without the 05/11 desk-priced services; unit tests pass.
-- [ ] Not run yet: lint, typecheck, build, `npm run test:db`, browser E2E (need `npm ci` and the project credentials).
-- [ ] Owner approval: apply the pending migrations in order in a maintenance window (the seven of 21/10, then 20261119100000–100300), then deploy the frontend.
+- [x] Lint, typecheck, build and unit tests pass on `main` (two lint errors fixed 19/11/2026). `npm run test:db` and browser E2E still not run (need the project credentials).
+- [x] Owner approved 19/11/2026: frontend deployed from `main`; the seven 21/10 migrations and 20261119100000–100300 applied in order with checksums.
+
+## Reception day closing «تقفيل اليوم» — 19/11/2026
+- [x] Owner decisions: InstaPay and wallet added, transfer no longer offered in new forms; «يومية النسبة» = specialty + percentage doctors, «يومية المستأجرين» = renting doctors; a saved closing with handover to the owner and automatic carry-over; total expenses of every desk user.
+- [x] Migration 20261119100400: payment/expense methods, `day_closings`, `clinic_day_summary`, `clinic_day_close`, owner-only `clinic_day_reopen` (latest closing only). Verified in a rolled-back transaction on the project.
+- [x] Screen «تقفيل اليوم» for owner and reception (shown once the server has the table); unit tests replay the 16/11 paper sheet.

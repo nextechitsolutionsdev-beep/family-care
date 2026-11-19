@@ -1,3 +1,4 @@
+import {paymentMethodOptions} from './paymentMethods';
 import {useState,useMemo} from 'react';
 import {patientSearchIndex,specialtyCodes} from './search';
 import {Link,useNavigate,useParams} from 'react-router-dom';
@@ -79,7 +80,7 @@ const copayField:Field={key:'co_pay_bps',label:'نسبة تحمّل العميل
 const paymentFields:Field[]=[
  {key:'amount_minor',label:'المدفوع الآن بالجنيه (اختياري)',type:'money',hint:'اكتب صفر لو هتسجل التحصيل بعد فتح الزيارة.'},
  {key:'method',label:'طريقة الدفع',type:'select',required:true,when:values=>Number(values.amount_minor)>0,
-  options:[{value:'cash',label:'نقدي'},{value:'card',label:'بطاقة'},{value:'transfer',label:'تحويل'}]}
+  options:()=>paymentMethodOptions()}
 ];
 function IntakePreview({values,clientType,extras=[],payer=null}:{values:Record<string,unknown>;clientType?:string;extras?:SelectedService[];payer?:string|null}){
  const {rows}=useClinic();const type=clientType??text(values.client_type_code);
