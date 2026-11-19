@@ -201,7 +201,9 @@ export default function Patients() {
  const visits=rows('visits').filter(row=>row.patient_id===id).sort((a,b)=>text(b.visit_date).localeCompare(text(a.visit_date)));
  const payments=rows('payments').filter(row=>row.patient_id===id);
  const totals=visits.filter(row=>row.status!=='void').reduce((sum,row)=>sum+BigInt(text(row.co_pay_minor||0)),0n);
- const paid=visits.reduce((sum,row)=>sum+patientPaid(data,row.id),0n);
+ // Money kept from cancelled bookings is clinic revenue, not credit on the patient's account (owner decision 19/11/2026).
+ const paid=visits.filter(row=>row.status!=='void').reduce((sum,row)=>sum+patientPaid(data,row.id),0n);
+ const kept=visits.filter(row=>row.status==='void').reduce((sum,row)=>sum+patientPaid(data,row.id),0n);
  return <>
  <Heading title={patient?text(patient.name):'ملفات العملاء'} detail={patient?[text(patient.patient_code),text(patient.phone_e164),name('client_types',patient.client_type_code)].filter(Boolean).join(' · '):'بحث بالاسم أو رقم الموبايل أو كود العميل'}>
    {id&&<Link className="button" to="/patients">كل العملاء</Link>}
@@ -213,7 +215,7 @@ export default function Patients() {
  {id&&!patient?<p className="empty">الملف غير موجود أو غير متاح لحسابك.</p>:patient?<>
    {patient.demo_batch_id&&<p className="notice">ملف تجريبي — بيانات اختبار.</p>}
    <div className="file-details"><p><strong>الأكواد:</strong> <bdi>{codes(patient.id)||'لم يُخصص كود بعد'}</bdi></p><p>الميلاد: <bdi>{date(patient.birth_date)}</bdi></p>{patient.client_type_code==='syndicate_cash'&&<p>النقابة: {name('unions',patient.union_id)}</p>}<p>العروض: {patient.marketing_consent?'وافق':'لم يوافق'} · المتابعات: {patient.transactional_consent?'وافق':'لم يوافق'}</p><p>{text(patient.notes)||'لا توجد ملاحظات.'}</p></div>
-   {profile.role!=='doctor'&&<div className="ledger-summary"><span>حصة العميل <strong>{money(totals)}</strong></span><span>المحصّل <strong>{money(paid)}</strong></span><span>المتبقي <strong>{money(totals-paid)}</strong></span></div>}
+   {profile.role!=='doctor'&&<div className="ledger-summary"><span>حصة العميل <strong>{money(totals)}</strong></span><span>المحصّل <strong>{money(paid)}</strong></span>{kept>0n&&<span>محتفظ به من حجوزات ملغاة <strong>{money(kept)}</strong></span>}<span>المتبقي <strong>{money(totals-paid)}</strong></span></div>}
    <h2>الزيارات</h2><Table rows={visits} columns={[
     {label:'التاريخ',render:row=>date(row.visit_date)},{label:'الطبيب',render:row=>name('doctors',row.doctor_id)},
     {label:'الحالة',render:row=><Badge>{label(row.status)}</Badge>},

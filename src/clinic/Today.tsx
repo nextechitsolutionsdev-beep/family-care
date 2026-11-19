@@ -1,3 +1,4 @@
+import {CancelBookingDialog} from './CancelBooking';
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {command,date,label,text,today,type Row} from './api';
@@ -6,7 +7,7 @@ import {Badge,Heading,Table,useTask,DateInput} from './ui';
 import {money} from '../domain/money';
 import {followupTiming} from './followupDates';
 export default function Today(){
- const {rows,name,profile,refresh,data}=useClinic();const [day,setDay]=useState(today());const task=useTask(refresh);
+ const {rows,name,profile,refresh,data,capabilities}=useClinic();const [day,setDay]=useState(today());const [cancelling,setCancelling]=useState<unknown>(null);const task=useTask(refresh);
  const appointments=rows('appointments').filter(row=>row.appointment_date===day).sort((a,b)=>text(a.appointment_time).localeCompare(text(b.appointment_time)));
  const cairoToday=today();
  const reminders=rows('follow_ups').filter(row=>(row.status==='scheduled'&&['overdue','today'].includes(followupTiming(row.due_date,cairoToday)))||(row.status==='arrived'&&date(row.admitted_at)===date(cairoToday))).sort((a,b)=>text(a.due_date).localeCompare(text(b.due_date)));
@@ -19,8 +20,9 @@ export default function Today(){
   {label:'الطبيب',render:row=>name('doctors',row.doctor_id)},
   {label:'التخصص',render:row=>name('specialties',rows('visits').find(v=>v.id===row.visit_id)?.specialty_id??rows('doctors').find(doctor=>doctor.id===row.doctor_id)?.specialty_id)||'—'},{label:'الحالة',render:row=><Badge tone={row.status==='pending'?'warning':'neutral'}>{label(row.status)}</Badge>},
   ...(profile.role==='doctor'?[]:[{label:'المطلوب على العميل',numeric:true,render:(row:Row)=>money(rows('visits').find(v=>v.id===row.visit_id)?.co_pay_minor||0)},{label:'المدفوع',numeric:true,render:(row:Row)=>money(patientPaid(data,row.visit_id))},{label:'المتبقي',numeric:true,render:(row:Row)=>money(patientRemaining(data,rows('visits').find(v=>v.id===row.visit_id)))}]),
-  {label:'الإجراء',render:row=><div className="actions"><Link to={`/visits/${text(row.visit_id)}`}>فتح الزيارة</Link>{profile.role!=='doctor'&&row.status==='confirmed'&&<button disabled={task.busy} onClick={()=>void task.run(()=>command('appointment_status',{visit_id:row.visit_id,status:'arrived'}))}>حضر</button>}{profile.role!=='doctor'&&!['completed','cancelled'].includes(text(row.status))&&<button onClick={()=>{if(window.confirm('إلغاء الحجز؟ سجل الزيارة والتحصيل سيظل محفوظاً.'))void task.run(()=>command('appointment_status',{visit_id:row.visit_id,status:'cancelled'}));}}>إلغاء الحجز</button>}</div>}
+  {label:'الإجراء',render:row=><div className="actions"><Link to={`/visits/${text(row.visit_id)}`}>فتح الزيارة</Link>{profile.role!=='doctor'&&row.status==='confirmed'&&<button disabled={task.busy} onClick={()=>void task.run(()=>command('appointment_status',{visit_id:row.visit_id,status:'arrived'}))}>حضر</button>}{profile.role!=='doctor'&&!['completed','cancelled'].includes(text(row.status))&&<button onClick={()=>{if(capabilities.bookingCancellation){setCancelling(row.visit_id);return;}if(window.confirm('إلغاء الحجز؟ سجل الزيارة والتحصيل سيظل محفوظاً.'))void task.run(()=>command('appointment_status',{visit_id:row.visit_id,status:'cancelled'}));}}>إلغاء الحجز</button>}</div>}
  ]}/>
+{cancelling!==null&&<CancelBookingDialog visitId={cancelling} close={()=>setCancelling(null)}/>}
  <h2>المتابعات المستحقة</h2><p className='notice'>تصنيف المتابعات حسب اليوم الفعلي بتوقيت القاهرة: {date(cairoToday)}، مستقل عن تاريخ الحجوزات المختار.</p><Table rows={reminders} columns={[{label:'العميل',render:row=><Link to={profile.role==='doctor'?`/patients/${text(row.patient_id)}`:`/visits/${text(row.billing_visit_id||row.source_visit_id)}`}>{name('patients',row.patient_id)}</Link>},{label:'الموعد',render:row=>date(row.due_date)},{label:'الغرض',render:row=>text(row.purpose)},{label:'التنبيه',render:row=><Badge tone={followupTiming(row.due_date,cairoToday)==='overdue'?'warning':'neutral'}>{followupTiming(row.due_date,cairoToday)==='overdue'?'متأخرة':'اليوم'}</Badge>},{label:'الإجراء',render:row=><div className='actions'>{profile.role!=='doctor'&&<Link className='button' to={`/visits/${text(row.billing_visit_id||row.source_visit_id)}`}>فتح الحساب</Link>}<Link to="/follow-ups">إدارة المتابعات</Link></div>}]}/>
  <h2>المتابعات القادمة</h2><Table rows={upcoming} columns={[{label:'العميل',render:row=><Link to={profile.role==='doctor'?`/patients/${text(row.patient_id)}`:`/visits/${text(row.billing_visit_id||row.source_visit_id)}`}>{name('patients',row.patient_id)}</Link>},{label:'الموعد',render:row=>date(row.due_date)},{label:'الغرض',render:row=>text(row.purpose)},{label:'الإجراء',render:row=><div className='actions'>{profile.role!=='doctor'&&<Link className='button' to={`/visits/${text(row.billing_visit_id||row.source_visit_id)}`}>فتح الحساب</Link>}<Link to="/follow-ups">إدارة المتابعات</Link></div>}]}/>
  </>;

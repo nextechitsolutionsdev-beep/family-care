@@ -281,3 +281,13 @@
 ## Receipt correction «تعديل» — 19/11/2026
 - [x] Migration 20261119100500: `payment_corrections` and `clinic_payment_correct` (reverse the original + record the corrected receipt in one transaction, reason audited). Owner any receipt; reception today's receipts before the day is closed. Verified in a rolled-back transaction.
 - [x] «تعديل» button and correction badges on the visit receipts table.
+
+## Receipt correction «تعديل» — 19/11/2026
+- [x] Owner decision: the owner corrects any receipt; reception only today's, before the day is closed.
+- [x] Migration 20261119100500: `payment_corrections` and `clinic_payment_correct` (reverse the original in full, record the corrected receipt in one transaction, audited with the reason). Verified in a rolled-back transaction.
+- [x] «تعديل» button and «اتعدل / إلغاء بسبب تعديل / تصحيح» badges on the visit's receipts.
+
+## Booking cancellation with refund choice — 19/11/2026
+- [x] Owner decision: «استرداد المبلغ بالكامل / رد جزئي من المبلغ / لن يتم استرداد المبلغ», for owner and reception.
+- [x] Migration 20261119100600: `booking_cancellations`, `clinic_booking_cancel` (refund receipts newest first with the original methods, visit void, booking cancelled), partial refunds keep the receipt excess. Verified in a rolled-back transaction.
+- [x] Today's «إلغاء الحجز» opens the choice; the visit shows what was returned and kept; the patient file no longer counts kept money as credit.

@@ -1,3 +1,4 @@
+import {CancellationNotice} from './CancelBooking';
 import {canCorrect,CorrectionBadge,CorrectionDialog} from './PaymentCorrection';
 import {paymentMethodOptions} from './paymentMethods';
 import {useState} from 'react';
@@ -27,6 +28,7 @@ export default function Visit(){
  const planFields:Field[]=[{key:'planned_billing_mode',label:'حساب المتابعة',type:'select',required:true,when:values=>dialog==='followup'||Boolean(values.follow_up_date),options:[{value:'continuation',label:'استكمال نفس الخدمة / تحصيل الباقي'},...(!isDoctor?[{value:'fee',label:'متابعة بسعر مستقل'}]:[])]},
  {key:'fee_minor',label:'سعر المتابعة بالجنيه',type:'money',blankInitially:true,required:true,when:values=>values.planned_billing_mode==='fee'&&(dialog==='followup'||Boolean(values.follow_up_date)),hint:'المبلغ المطلوب من العميل بالكامل، حتى لو تبع تأمين أو نقابة.'}];
  return <><Heading title={`زيارة ${name('patients',v.patient_id)}`} detail={[patientCode(v.patient_id),date(v.visit_date),name('specialties',v.specialty_id),name('doctors',v.doctor_id),label(v.location)].filter(Boolean).join(' · ')}><Link className="button" to={`/patients/${text(v.patient_id)}`}>ملف العميل</Link><Badge>{label(v.status)}</Badge><Link className='button' to={`/follow-ups?account=${v.id}`}>متابعات / دخول هذا الحساب</Link></Heading>{task.feedback}
+{!isDoctor&&<CancellationNotice visitId={v.id}/>}
  {patient?.demo_batch_id&&<p className="notice">زيارة تجريبية — بيانات اختبار.</p>}
  {linkedFollowup?.planned_billing_mode==='fee'&&<p className="notice">رسوم المتابعة المحجوزة على العميل بالكامل: {money(linkedFollowup.fee_minor)}، ولا تُخصم منها نسبة تأمين أو نقابة. أي خدمة إضافية تُسجل في زيارة مستقلة من ملف العميل.</p>}
  {entryPending&&<p className="notice">المتابعة بانتظار التحصيل وتسجيل «دخول بعد السداد» من صفحة المتابعات.</p>}

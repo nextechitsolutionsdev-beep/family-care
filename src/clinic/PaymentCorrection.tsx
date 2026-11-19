@@ -4,16 +4,10 @@ import {useClinic} from './store';
 import {Badge,Dialog,Form} from './ui';
 import {money} from '../domain/money';
 import {paymentMethodOptions} from './paymentMethods';
+import {correctable} from '../domain/paymentCorrection';
 
-const cairoDay=(value:unknown)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date(text(value)));
-
-/** «تعديل» on a receipt (owner decision 19/11/2026): the owner any receipt; reception only today's, before the day is
- * closed (the server checks the closing). Already reversed or corrected receipts and refunds cannot be corrected. */
-export function canCorrect(payment:Row,payments:Row[],role:Profile['role'],available:boolean):boolean{
- if(!available||role==='doctor'||payment.kind==='refund')return false;
- if(payments.some(row=>row.reverses_payment_id===payment.id))return false;
- return role==='owner'||cairoDay(payment.paid_at)===today();
-}
+/** See correctable(): owner any receipt, reception today's only. */
+export const canCorrect=(payment:Row,payments:Row[],role:Profile['role'],available:boolean)=>correctable(payment,payments,role,available,today());
 
 /** Marks the three receipts of a correction: the original, its reversal and the corrected receipt. */
 export function CorrectionBadge({payment}:{payment:Row}){
