@@ -32,7 +32,14 @@ test('any other server error is reported, not hidden',async()=>{
 });
 
 test('capabilities are on only when the server positively accepts the column',async()=>{
- const features=await probeCapabilities(client({rpc:()=>assert.fail(),select:(table)=>table==='offers'?{data:[],error:null}:{data:null,error:{code:'42703',message:'column does not exist'}}}));
- assert.deepEqual(features,{offerPatientLimit:true,patientCode:false});
- await assert.rejects(probeCapabilities(client({rpc:()=>assert.fail(),select:()=>({data:null,error:{code:'08006',message:'connection failure'}})})),error=>error.code==='08006');
+ const features=await probeCapabilities(client({rpc:()=>assert.fail(),select:(table)=>table==='offers'?{data:[],error:null}:{data:null,error:{code:'42703',message:'column does not exist'}}}),'owner');
+ assert.deepEqual(features,{offerPatientLimit:true,patientCode:false,doctorHours:false,paymentExcess:false,payerPrices:false});
+ await assert.rejects(probeCapabilities(client({rpc:()=>assert.fail(),select:()=>({data:null,error:{code:'08006',message:'connection failure'}})}),'owner'),error=>error.code==='08006');
+});
+
+test('a table that does not exist yet (payer prices before 20261119100300) is a missing capability, not an error',async()=>{
+ const features=await probeCapabilities(client({rpc:()=>assert.fail(),select:(table)=>table==='payer_service_prices'?{data:null,error:{code:'PGRST205',message:'table not found'}}:{data:[],error:null}}),'reception');
+ assert.deepEqual(features,{offerPatientLimit:true,patientCode:true,doctorHours:true,paymentExcess:true,payerPrices:false});
+ const doctor=await probeCapabilities(client({rpc:()=>assert.fail(),select:(table)=>['payments','payer_service_prices'].includes(table)?assert.fail('doctors never read payments'):{data:[],error:null}}),'doctor');
+ assert.equal(doctor.paymentExcess,false);assert.equal(doctor.payerPrices,false);
 });

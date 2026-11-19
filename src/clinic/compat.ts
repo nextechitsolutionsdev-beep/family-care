@@ -3,10 +3,11 @@ import {readAll,type Cursor} from './pager.ts';
 
 /** Which server features the connected database actually provides. The app is deployed before the database
  * changes (see docs/QA-REMEDIATION.md); a control that needs a server rule stays hidden until the rule exists. */
-export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;commissionTerms:boolean};
-export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,commissionTerms:false};
+export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;commissionTerms:boolean;doctorHours:boolean;payerPrices:boolean;paymentExcess:boolean};
+export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,commissionTerms:false,doctorHours:false,payerPrices:false,paymentExcess:false};
 
-const missingColumn=(error:{code?:string}|null)=>Boolean(error&&['42703','PGRST204','PGRST200'].includes(String(error.code)));
+// Missing column (42703/PGRST204/PGRST200) or missing table (42P01/PGRST205): the server does not have it yet.
+const missingColumn=(error:{code?:string}|null)=>Boolean(error&&['42703','PGRST204','PGRST200','42P01','PGRST205'].includes(String(error.code)));
 
 /** A column counts as available only when the server positively accepts it; any other error is reported. */
 async function hasColumn(client:SupabaseClient,table:string,column:string):Promise<boolean>{
@@ -16,9 +17,22 @@ async function hasColumn(client:SupabaseClient,table:string,column:string):Promi
  throw error;
 }
 
-export async function probeCapabilities(client:SupabaseClient):Promise<Omit<Capabilities,'commissionTerms'>>{
- const [offerPatientLimit,patientCode]=await Promise.all([hasColumn(client,'offers','once_per_patient'),hasColumn(client,'patients','patient_code')]);
- return {offerPatientLimit,patientCode};
+export async function probeCapabilities(client:SupabaseClient,role:string):Promise<Omit<Capabilities,'commissionTerms'>>{
+ const [offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices]=await Promise.all([hasColumn(client,'offers','once_per_patient'),hasColumn(client,'patients','patient_code'),
+  hasColumn(client,'doctors','working_hours'),role==='doctor'?Promise.resolve(false):hasColumn(client,'payments','excess_minor'),
+  role==='doctor'?Promise.resolve(false):hasColumn(client,'payer_service_prices','price_minor')]);
+ return {offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices};
+}
+
+/** Working hours per doctor (20261119100200). Read separately because the doctors column list is fixed
+ * (commission privacy) and must keep working on a database without this column. */
+export async function doctorHours(client:SupabaseClient):Promise<Map<string,unknown>>{
+ const rows=await readAll<Cursor>(async(after,limit)=>{
+  let request=client.from('doctors').select('id,working_hours').order('id',{ascending:true});
+  if(after)request=request.gt('id',after.id as string);
+  const {data,error}=await request.limit(limit);if(error)throw error;return data as Cursor[];
+ },['id']);
+ return new Map(rows.map(row=>[String(row.id),row.working_hours]));
 }
 
 type Terms={terms:Map<string,unknown>|null};

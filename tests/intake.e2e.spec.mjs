@@ -45,7 +45,7 @@ test('owner configures a union and reception intake opens one visit on desktop a
  await form.getByLabel('رقم الموبايل').fill('+200000000007');
  await form.getByLabel('نوع العميل').selectOption('syndicate_cash');
  await form.getByLabel('النقابة').selectOption(union.id);
- await form.getByLabel('الطبيب والتخصص').selectOption(doctor.id);
+ await form.getByLabel('الطبيب والتخصص').selectOption(doctor.id);await form.getByLabel('الوقت').fill('09:05');
  const {data:service,error:serviceError}=await admin.from('services').select('id').eq('seed_code','DEN-001').single();
  expect(serviceError).toBeNull();
  await form.getByLabel('الخدمة').selectOption(service.id);
@@ -73,7 +73,7 @@ test('owner configures a union and reception intake opens one visit on desktop a
  await expect(page.getByText(`النقابة: نقابة اختبار ${suffix}`)).toBeVisible();
  await page.getByRole('button',{name:'زيارة جديدة',exact:true}).click();
  form=page.locator('dialog');
- await form.getByLabel('الطبيب').selectOption(doctor.id);
+ await form.getByLabel('الطبيب').selectOption(doctor.id);await form.getByLabel('الوقت').fill('09:06');
  await form.getByLabel('الخدمة').selectOption(service.id);
  await form.getByLabel('نسبة تحمّل العميل من الكارنيه (%)').fill('20');
  await form.getByRole('button',{name:'إضافة خدمة أخرى'}).click();

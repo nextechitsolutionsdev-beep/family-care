@@ -87,6 +87,10 @@ Timings varied more between runs than between versions (cold login 2.4–4.5 s),
 | `20261021100400_session_revocation` | Role helpers require a live session; `clinic_revoke_user_sessions` | Compatible |
 | `20261021100500_report_summary` | `clinic_report_summary()` | Compatible |
 | `20261021100600_permanent_patient_code` | Backfill + sequence + immutability; `patient_specialties`; legacy codes frozen | Old app shows no code for new patients |
+| `20261119100000_payment_excess` | `payments.excess_minor`; payment above the remaining balance is applied up to the balance, the rest is extra revenue; refund repeats it; report line | Compatible (old app never sends more than the remaining) |
+| `20261119100100_appointment_time_slots` | Unique active booking per doctor per minute; stops if existing duplicates are found | Compatible (a clash shows the generic duplicate message) |
+| `20261119100200_doctor_working_hours` | `doctors.working_hours`; out-of-hours/day-off booking needs `confirm_outside_hours` and is audited; patches `private.command` in place | Old app cannot confirm, so it cannot book outside a doctor's days (as before) |
+| `20261119100300_payer_service_prices` | `payer_service_prices`, owner RPC, price applied on covered visit lines | Compatible (no payer prices until the owner sets them) |
 
 Combined review: no migration updates or deletes a payment, allocation, invoice, settlement, visit line or price; the only data change is the one-time code backfill on `patients` and the membership copy. All seven were staged together under every database test. Doctor access is unchanged or narrower.
 

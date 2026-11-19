@@ -262,3 +262,13 @@
 - [x] Arabic user guide rewritten (docs/USER_GUIDE.md) and built as docs/family-care-user-guide-ar.pdf; every page rendered and reviewed.
 - [x] Branch `codex/qa-remediation` pushed; not merged into `main`.
 - [ ] Owner approval, in this order: deploy the site (merge to `main`), apply the seven remediation migrations in a maintenance window, deploy the two Edge Functions, tag the three retained test rows; then rerun `test:db`, the 5 BLOCKED E2E tests and the loading measurement against the migrated project.
+
+## Desk changes from ClickUp «familycare» — 19/11/2026
+- [x] Rename «إجمالي حصة الشركة» to «إجمالي حصة التأمين»; Today «التخصص» column; all active specialties offered with no-doctor/no-service notices.
+- [x] Payment excess as extra revenue (20261119100000): applied/excess split, retry and reversal, owner report line.
+- [x] One booking per doctor per minute (20261119100100); time required in every booking form; live clash notice.
+- [x] Doctor working hours per day with confirmed out-of-hours bookings (20261119100200); schedule shown under the selected doctor and on «مواعيد الدكاترة».
+- [x] Per-payer service prices (20261119100300): owner editor per insurer/union, applied to covered visit lines, shown in the reception preview.
+- [x] Ported onto `main` without the 05/11 desk-priced services; unit tests pass.
+- [ ] Not run yet: lint, typecheck, build, `npm run test:db`, browser E2E (need `npm ci` and the project credentials).
+- [ ] Owner approval: apply the pending migrations in order in a maintenance window (the seven of 21/10, then 20261119100000–100300), then deploy the frontend.

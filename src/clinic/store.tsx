@@ -1,6 +1,6 @@
 import {createContext,useContext,useEffect,useState,useMemo,useRef,type ReactNode} from 'react';
 import {all,db,readableError,text,type Row,type Profile} from './api';
-import {commissionTerms,noCapabilities,probeCapabilities,withTerms,type Capabilities} from './compat';
+import {commissionTerms,doctorHours,noCapabilities,probeCapabilities,withTerms,type Capabilities} from './compat';
 import {singleFlight} from './singleFlight';
 /** 'operational' re-reads bookings, money and messages but keeps catalog/terms/settings from the last full read. */
 export type RefreshScope='all'|'operational';
@@ -81,7 +81,10 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
    const partial=scope==='operational'&&tables.every(table=>table in raw.current);
    const wanted=partial?tables.filter(table=>!reference.has(table)):tables;
    // Server features and commission terms are read on full loads only, alongside the tables; reception never requests commission.
-   const extras=partial?null:Promise.all([probeCapabilities(db),profile.role==='reception'?Promise.resolve({terms:null}):commissionTerms(db)]);
+   // Doctor hours and payer prices exist only after 20261119100200/100300; they are read once the probe confirms them.
+   const extras=partial?null:Promise.all([probeCapabilities(db,profile.role).then(features=>Promise.all([features,
+     features.doctorHours?doctorHours(db):Promise.resolve(null),features.payerPrices?all('payer_service_prices'):Promise.resolve([] as Row[])])),
+    profile.role==='reception'?Promise.resolve({terms:null}):commissionTerms(db)]);
    extras?.catch(()=>undefined);
    const results=await Promise.allSettled(wanted.map(table=>all(table)));
    const next:Record<string,Row[]>=partial?{...raw.current}:{};
@@ -90,8 +93,10 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
      next[wanted[index]]=result.value;
    }
    if(extras){
-     const [features,terms]=await extras.catch(error=>{setError(readableError(error));throw error;});
+     const [[features,hours,payerPrices],terms]=await extras.catch(error=>{setError(readableError(error));throw error;});
      if(profile.role!=='reception')next.doctors=withTerms(next.doctors,terms.terms);
+     if(hours)next.doctors=next.doctors.map(row=>({...row,working_hours:hours.get(row.id)??{}}));
+     next.payer_service_prices=payerPrices;
      setCapabilities({...features,commissionTerms:terms.terms!==null});
    }
    if(profile.role==='doctor') {

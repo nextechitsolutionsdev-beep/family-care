@@ -65,12 +65,13 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await form.getByLabel('نوع العميل').selectOption('insurance_credit');
  await form.getByLabel('شركة التأمين').selectOption(insurer.id);
  await form.getByLabel('نسبة تحمّل العميل من الكارنيه (%)').fill('20');
- // The visit date comes first: a doctor who does not work that weekday is not offered (server check: doctor-availability.test).
+ // Owner decision 19/11/2026: a doctor who does not work that weekday is still offered, marked, and needs a confirmation
+ // (server check: desk-updates-2026-11.test).
  await form.getByLabel('تاريخ الزيارة').fill(today);
- await expect(form.getByLabel('الطبيب والتخصص').locator(`option[value="${doctor.id}"]`)).toHaveCount(0);
+ await expect(form.getByLabel('الطبيب والتخصص').locator(`option[value="${doctor.id}"]`)).toContainText('خارج مواعيده');
  await form.getByLabel('تاريخ الزيارة').fill(tomorrow);
  await expect(form.getByLabel('تاريخ الزيارة')).toHaveValue(tomorrow.split('-').reverse().join('/'));
- await form.getByLabel('الطبيب والتخصص').selectOption(doctor.id);
+ await form.getByLabel('الطبيب والتخصص').selectOption(doctor.id);await form.getByLabel('الوقت').fill('09:04');
  await form.getByLabel('الخدمة').selectOption(service.id);
  await expect(form.getByText(/العميل عليه 60 جنيه.*على الجهة 240 جنيه/)).toBeVisible();
  await form.getByLabel('مجموعة تجريبية (اختياري)').selectOption(batch.id);
@@ -86,7 +87,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  expect(splitError).toBeNull();expect(split).toMatchObject({total_minor:30000,co_pay_minor:6000,covered_minor:24000,co_pay_bps:2000});
  await page.goto('/insurance');
  let accountRow=page.locator('.table-wrap').first().locator('tr').filter({hasText:insurerName});
- await expect(accountRow).toContainText('إجمالي حصة الشركة: 240 جنيه');
+ await expect(accountRow).toContainText('إجمالي حصة التأمين: 240 جنيه');
  await expect(accountRow).toContainText('240 جنيه');
  await expect(accountRow).toContainText('0 جنيه');
  await expect(accountRow.getByRole('button',{name:'تسوية'})).toBeDisabled();
@@ -95,8 +96,8 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await expect(pendingRow).toContainText(service.name);
  await expect(pendingRow).toContainText('على الجهة 240 جنيه');
  await page.setViewportSize({width:390,height:844});
- await accountRow.getByRole('button',{name:/إجمالي حصة الشركة/}).scrollIntoViewIfNeeded();
- await expect(accountRow.getByRole('button',{name:/إجمالي حصة الشركة/})).toBeInViewport();
+ await accountRow.getByRole('button',{name:/إجمالي حصة التأمين/}).scrollIntoViewIfNeeded();
+ await expect(accountRow.getByRole('button',{name:/إجمالي حصة التأمين/})).toBeInViewport();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  await page.screenshot({path:'scratch/insurance-account-phone.png'});
  await page.setViewportSize({width:1366,height:768});
@@ -121,7 +122,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await expect(form).toHaveCount(0);
  await page.goto('/insurance');
  accountRow=page.locator('.table-wrap').first().locator('tr').filter({hasText:insurerName});
- await expect(accountRow).toContainText('إجمالي حصة الشركة: 240 جنيه');
+ await expect(accountRow).toContainText('إجمالي حصة التأمين: 240 جنيه');
  await expect(accountRow.getByRole('button',{name:'تسوية'})).toBeEnabled();
  pendingRow=page.locator('.table-wrap').nth(1).locator('tr').filter({hasText:patientName});
  await expect(pendingRow).toHaveCount(0);
@@ -130,7 +131,7 @@ test('doctor share and working day, insurer coverage and Family Care base price'
  await form.getByLabel('المبلغ بالجنيه').fill('240');
  await form.getByRole('button',{name:'تسجيل التسوية'}).click();
  await expect(form).toHaveCount(0);
- await expect(accountRow).toContainText('إجمالي حصة الشركة: 0 جنيه');
+ await expect(accountRow).toContainText('إجمالي حصة التأمين: 0 جنيه');
  const shares=query(`select (select coalesce(sum(a.doctor_share_minor),0) from public.payment_allocations a join public.payments p on p.id=a.payment_id where p.visit_id='${visitId}' and p.kind<>'refund') patient_share,(select coalesce(sum(a.doctor_share_minor),0) from public.settlement_allocations a join public.insurance_invoices i on i.id=a.invoice_id join public.insurance_settlements s on s.id=a.settlement_id where i.visit_id='${visitId}' and s.reverses_settlement_id is null) insurer_share;`)[0];
  expect(BigInt(shares.patient_share)).toBe(2000n);
  expect(BigInt(shares.insurer_share)).toBe(7999n);

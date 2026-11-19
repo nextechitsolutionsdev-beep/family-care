@@ -1,5 +1,38 @@
 # Assumptions and owner review
 
+## Desk changes — 19/11/2026
+
+Owner answers (19/11/2026, ClickUp list «familycare»):
+- Payment above the remaining balance (e.g. 3000 for 2999) is accepted; the difference is extra revenue («إيراد زيادة»), not returned and not a patient credit.
+- One booking per doctor per exact minute; same time is allowed for another doctor or specialty. No booking duration.
+- Doctors have working days and per-day hours. Booking on a day off or outside the hours is a warning that reception confirms, not a refusal.
+- The owner sets a price per service for each insurance company and each union; reception sees it as soon as the service is chosen. «تأمين نقدي» is not a separate client type.
+- Label «إجمالي حصة الشركة» renamed to «إجمالي حصة التأمين»; Today shows the visit specialty; every active specialty is offered when booking, with a notice when it has no doctor or service.
+
+Routine decisions:
+- payments.amount_minor stays «applied to the visit» (≤ remaining); the excess is payments.excess_minor. Allocations, doctor shares, insurer shares, receipts' remaining balance and the patient balance ignore it. A reversal repeats the excess on the refund row so revenue nets to zero. The owner report shows it as its own line and adds it to the net. A visit with nothing due still refuses any amount.
+- The booking time is required in every booking form; bookings saved earlier without a time, and server callers that send none, are not compared. A cancelled or voided booking frees its minute. The rule is a unique index, so simultaneous saves cannot both succeed.
+- Hours are optional per working day ({"0":{"from":"15:00","to":"17:00"}}, end exclusive: 17:00 is outside). A day without hours has no hour limit; an empty schedule still means every day. A confirmed out-of-hours booking is audited as «حجز خارج مواعيد الطبيب». Follow-up dates are not checked against hours (unchanged).
+- Doctors outside their days/hours stay in the doctor list, marked «(خارج مواعيده)»; the form shows the selected doctor's schedule.
+- Payer prices apply to lines added to a covered visit whose payer (insurer or union) has a price for that service; otherwise the Family Care price applies as before. Not applied to gifts, bundle components or follow-up fee lines. Changing a payer price never changes lines already on a visit. Each change is audited.
+- Database changes to private.command are applied in place (only the exact statements are replaced), so other changes to that function are kept; a statement that is not found stops the migration.
+
+## Catalogue request — 05/11/2026
+
+Owner answers (05/11/2026):
+- Prices: none were given; services are added without prices. For such a service reception types the charged price at the visit, records what was paid, and the rest stays as the remaining balance («الاستقبال الفلوس اللي خدها يقيدها ويكتب المتبقي»).
+- Lab tests: not imported from the 2026 lab sheet; the owner adds, prices and removes tests. The «معمل تحاليل» specialty is created empty.
+- Emergency and general services (طوارئ أسنان، تخدير، ايكو، رسم قلب، سونار …): the owner creates an emergency clinic and its services.
+- «معاد الزيارة القادمة» with a client reminder: postponed by the owner; nothing changed.
+
+Routine decisions:
+- A desk-priced service is marked `open_price`; it has no price-list rows. The typed unit price (more than 0) is snapshotted on the line, flagged `manual_price` and audited; quantity, gifts, co-pay, offers, collection and remaining balance work as for list prices. A fixed-price service refuses a typed price, so a list price cannot be overridden at the desk.
+- Price versions cover fixed-price services only. «تحديد سعر ثابت» gives an open service one price in every list (current and future versions), after which it is edited through price versions. Published prices stay immutable.
+- A follow-up opened as «زيارة جديدة لنفس الخدمة» re-adds the service at its list price, so for a desk-priced service reception uses «متابعة بسعر مستقل» or «استكمال الحساب».
+- Names follow the owner's message (spelling kept, hamza normalised where clear). «باطنه» becomes «باطنة وكلى» and «جلدية» becomes «جلدية وتجميل» (rename only). Sub-items become separate services (حجامة جافة، حجامة تشريطية عادية/بريميام، إبر صينية، حقن ويجوفي/مونجارو). Packages are plain desk-priced services until their session counts are known. «كشف تخصص كذا» in home visits is one service «كشف منزلي (حسب التخصص)». Specialties without a service list get «كشف». Prefixes come from the Family Care presets. The existing service «عايز ماوس ليزر» is unchanged.
+
+- Built on `main` (19/11/2026, owner request). The desk-priced services and catalogue work of 05/11 stays on branch `codex/qa-remediation` and is not part of this change.
+
 ## Remediation decisions — 21/10/2026
 
 Owner answers (21/10/2026):

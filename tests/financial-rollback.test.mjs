@@ -75,8 +75,19 @@ begin
  insert into qa_out select 'payment_remaining_snapshot',to_jsonb(remaining_snapshot) from public.payments where id=(r->>'id')::uuid;
  begin perform public.clinic_command('payment',jsonb_build_object('visit_id',va,'amount_minor',50002,'method','cash','idempotency_key',k)); insert into qa_out values('payment_changed_retry','"accepted"');
  exception when others then insert into qa_out values('payment_changed_retry',to_jsonb(sqlerrm)); end;
- begin perform public.clinic_command('payment',jsonb_build_object('visit_id',va,'amount_minor',price-50001+1,'method','cash','idempotency_key',gen_random_uuid())); insert into qa_out values('payment_overpay','"accepted"');
- exception when others then insert into qa_out values('payment_overpay',to_jsonb(sqlerrm)); end;
+ -- Owner decision 19/11/2026: paying 1 piastre above the remaining balance is accepted; the remaining balance is
+ -- applied and the extra is recorded as excess revenue. Checked inside a block that is rolled back afterwards,
+ -- so the later checks still see the partial receipt. A visit with nothing due still refuses any amount.
+ begin
+  r2:=public.clinic_command('payment',jsonb_build_object('visit_id',va,'amount_minor',price-50001+1,'method','cash','idempotency_key',gen_random_uuid()));
+  select jsonb_build_object('applied',p.amount_minor,'excess',p.excess_minor,'remaining',p.remaining_snapshot,
+   'allocated',(select sum(a.amount_minor) from public.payment_allocations a where a.payment_id=p.id),
+   'report_excess',public.clinic_report_summary(day,day)->'excess_cash_minor') into prev from public.payments p where p.id=(r2->>'id')::uuid;
+  begin perform public.clinic_command('payment',jsonb_build_object('visit_id',va,'amount_minor',100,'method','cash','idempotency_key',gen_random_uuid())); msg:='accepted';
+  exception when others then msg:=sqlerrm; end;
+  raise exception 'qa_rollback';
+ exception when others then if sqlerrm<>'qa_rollback' then prev:=to_jsonb(sqlerrm); end if; end;
+ insert into qa_out values('payment_overpay',prev),('payment_when_nothing_due',to_jsonb(msg));
  insert into qa_out select 'statement_A_after_receipt',public.doctor_statement(da,day,day)->'doctor_share_minor';
 
  -- Retroactive audited commission revision (owner decision 19/10/2026).
@@ -227,7 +238,10 @@ test('rolled-back financial, messaging and role audit against independent expect
  assert.equal(big(r.payment_collection_share),halfUp(50001n,3333));
  assert.equal(big(r.payment_remaining_snapshot),price-50001n);
  assert.match(String(r.payment_changed_retry),/IDEMPOTENCY|CONFLICT/i);
- assert.notEqual(r.payment_overpay,'accepted');
+ assert.equal(big(r.payment_overpay.applied),price-50001n);assert.equal(big(r.payment_overpay.excess),1n);
+ assert.equal(big(r.payment_overpay.remaining),0n);assert.equal(big(r.payment_overpay.allocated),price-50001n);
+ assert.equal(big(r.payment_overpay.report_excess),1n);
+ assert.match(String(r.payment_when_nothing_due),/INVALID_PAYMENT_AMOUNT/);
  // Retroactive revision with untouched snapshots.
  assert.equal(r.revision_A.length,1);
  assert.deepEqual(r.revision_A[0],{from:3333,to:5000,old:Number(halfUp(price,3333)),new:Number(halfUp(price,5000)),delta:Number(halfUp(price,5000)-halfUp(price,3333)),reason:'default_changed',actor_is_owner:true});

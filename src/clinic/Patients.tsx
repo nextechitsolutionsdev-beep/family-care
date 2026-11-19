@@ -6,7 +6,7 @@ import {useClinic,patientPaid,patientRemaining} from './store';
 import {Badge,Dialog,Form,Heading,Table,type Field} from './ui';
 import {money,minor,percent,roundShare} from '../domain/money';
 import ExtraServices,{type SelectedService} from './ExtraServices';
-import {doctorAvailable,visitWeekday} from './doctorAvailability';
+import {doctorAvailable,outsideDoctorHours,scheduleLabel,visitWeekday} from './doctorAvailability';
 import {normalizeEgyptianPhone} from '../domain/phone';
 // Other active patients already using the typed number (owner decision 21/10/2026: warn, open, or confirm).
 // Test placeholders and an unchanged number on edit are not checked, as on the server.
@@ -26,11 +26,53 @@ const requireSharedPhoneConfirmation=(matches:Row[],values:Record<string,unknown
 function DoctorAvailabilityNotice({day}:{day:unknown}){
  const {rows}=useClinic();
  if(visitWeekday(day)===null||rows('doctors').some(row=>doctorAvailable(row,day)&&rows('specialties').some(s=>s.id===row.specialty_id)))return null;
- return <p className="notice wide" role="status">لا يوجد أطباء متاحون في هذا التاريخ. اختار يومًا آخر أو راجع أيام العمل عند الأدمن.</p>;
+ return <p className="notice wide" role="status">مفيش طبيب شغال في التاريخ ده حسب جدول المواعيد. تقدر تحجز بعد تأكيد الحجز خارج مواعيد الطبيب، أو تختار يوم تاني.</p>;
 }
-function visitDateField(doctors:Row[],service=true):Field{
- return {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true,hint:'اليوم تلقائيًا بتوقيت القاهرة؛ الأطباء حسب أيام عملهم في التاريخ المختار.',clearOnChange:values=>doctorAvailable(doctors.find(row=>row.id===values.doctor_id),values.visit_date)?[]:service?['doctor_id','service_id']:['doctor_id']};
+function visitDateField():Field{
+ return {key:'visit_date',label:'تاريخ الزيارة',type:'date',required:true,hint:'اليوم تلقائيًا بتوقيت القاهرة. مواعيد الطبيب بتظهر تحت الاختيار.'};
 }
+const visitTimeField:Field={key:'visit_time',label:'الوقت',type:'time',required:true,hint:'الدكتور ما ينفعش يكون عنده حجزين في نفس الوقت.'};
+/** Every active doctor of the visit specialty; doctors outside their days or hours stay selectable (owner decision 19/11/2026). */
+function doctorOptions(doctors:Row[],specialties:Row[],values:Record<string,unknown>,withSpecialty?:(doctor:Row)=>string){
+ return doctors.filter(row=>row.active&&inVisitSpecialty(row,values)&&specialties.some(s=>s.id===row.specialty_id)).map(row=>{
+  const away=outsideDoctorHours(row,values.visit_date,values.visit_time)!==null;
+  return {value:row.id,label:`${text(row.name)}${withSpecialty?` — ${withSpecialty(row)}`:''}${away?' (خارج مواعيده)':''}`};
+ });
+}
+const outsideConfirmField=(doctors:Row[]):Field=>({key:'confirm_outside_hours',label:'تأكيد الحجز خارج مواعيد الطبيب',type:'checkbox',
+ when:values=>outsideDoctorHours(doctors.find(row=>row.id===values.doctor_id),values.visit_date,values.visit_time)!==null});
+function requireOutsideConfirmation(doctors:Row[],values:Record<string,unknown>){
+ if(outsideDoctorHours(doctors.find(row=>row.id===values.doctor_id),values.visit_date,values.visit_time)!==null&&!values.confirm_outside_hours)
+  throw new Error('الحجز خارج مواعيد الطبيب. علّم «تأكيد الحجز خارج مواعيد الطبيب» لو متأكد، أو غيّر اليوم أو الوقت.');
+}
+/** The selected doctor's working days and hours, the out-of-hours warning and a booking already at that minute. */
+function DoctorHoursNotice({values}:{values:Record<string,unknown>}){
+ const {rows}=useClinic();
+ const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
+ if(!doctor)return null;
+ const away=outsideDoctorHours(doctor,values.visit_date,values.visit_time);
+ const time=String(values.visit_time??'').slice(0,5);
+ const taken=time&&rows('appointments').some(row=>row.doctor_id===doctor.id&&row.appointment_date===values.visit_date&&text(row.appointment_time).slice(0,5)===time&&row.status!=='cancelled');
+ return <div className={away||taken?'error wide':'notice wide'} role="status" aria-live="polite">
+  <strong>مواعيد {text(doctor.name)}:</strong> {scheduleLabel(doctor)}
+  {away&&<><br/>⚠ {away} علّم التأكيد لو الحجز مقصود.</>}
+  {taken&&<><br/>⚠ الدكتور عنده حجز الساعة <bdi>{time}</bdi> في اليوم ده. اختار وقت تاني.</>}
+ </div>;
+}
+/** The insurer or union payer of a covered client (unions bill through their own payer row). */
+function payerId(insurers:Row[],clientType:unknown,insurerId:unknown,unionId:unknown):string|null{
+ if(clientType==='insurance_credit')return insurerId?text(insurerId):null;
+ if(clientType==='syndicate_cash')return text(insurers.find(row=>row.union_id===unionId)?.id)||null;
+ return null;
+}
+/** The owner's price for this payer and service (piastres), or null when the Family Care price applies. */
+export function payerPrice(prices:Row[],payer:string|null,serviceId:unknown):number|null{
+ if(!payer)return null;
+ const row=prices.find(price=>price.payer_id===payer&&price.service_id===serviceId);
+ return row?Number(row.price_minor):null;
+}
+// The server applies the payer price itself; the desk sends only the service and quantity.
+const extraPayload=(extras:SelectedService[])=>extras.map(item=>({service_id:item.service_id,quantity:item.quantity}));
 const covered=(type:unknown)=>type==='insurance_credit'||type==='syndicate_cash';
 const copayField:Field={key:'co_pay_bps',label:'نسبة تحمّل العميل من الكارنيه (%)',type:'percent',required:true,blankInitially:true,
  when:values=>covered(values.client_type_code),hint:'اكتب النسبة المكتوبة على الكارنيه لكل زيارة. مثال: 20 يعني العميل 20% والجهة 80%.'};
@@ -39,25 +81,31 @@ const paymentFields:Field[]=[
  {key:'method',label:'طريقة الدفع',type:'select',required:true,when:values=>Number(values.amount_minor)>0,
   options:[{value:'cash',label:'نقدي'},{value:'card',label:'بطاقة'},{value:'transfer',label:'تحويل'}]}
 ];
-function IntakePreview({values,clientType,extras=[]}:{values:Record<string,unknown>;clientType?:string;extras?:SelectedService[]}){
+function IntakePreview({values,clientType,extras=[],payer=null}:{values:Record<string,unknown>;clientType?:string;extras?:SelectedService[];payer?:string|null}){
  const {rows}=useClinic();const type=clientType??text(values.client_type_code);
  if(!values.service_id)return null;
  const listType=covered(type)?'family_care_cash':type;
  const list=rows('price_lists').find(row=>row.client_type_code===listType);
  const version=rows('price_list_versions').filter(row=>row.list_id===list?.id&&row.published_at&&text(row.effective_from)<=text(values.visit_date)).sort((a,b)=>text(b.effective_from).localeCompare(text(a.effective_from)))[0];
- const price=rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===values.service_id);
+ const service=rows('services').find(row=>row.id===values.service_id);
+ // A covered visit uses the owner's price for its insurer or union when one is set (owner decision 19/11/2026).
+ const payerPriceOf=(serviceId:unknown)=>covered(type)?payerPrice(rows('payer_service_prices'),payer,serviceId):null;
+ const ownPrice=payerPriceOf(values.service_id);
+ const price=ownPrice!==null?{price_minor:ownPrice}:rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===values.service_id);
  if(!price)return <p className="notice wide">سعر الخدمة غير متاح لهذا التاريخ. راجع قائمة الأسعار قبل الحفظ.</p>;
  try {
   const bps=covered(type)?percent(text(values.co_pay_bps)):10000;
   const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
   const homeService=rows('services').find(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind==='home');
-  const homePrice=values.location==='home'?rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===homeService?.id):null;
+  const homePayer=values.location==='home'?payerPriceOf(homeService?.id):null;
+  const homePrice=values.location==='home'?(homePayer!==null?{price_minor:homePayer}:rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===homeService?.id)):null;
   if(values.location==='home'&&!homePrice)return <p className="notice wide">رسم الزيارة المنزلية غير متاح لهذا التاريخ. راجع قائمة الأسعار.</p>;
   let total=BigInt(text(price.price_minor))+BigInt(text(homePrice?.price_minor||0));
-  for(const item of extras){if(!item.service_id)continue;const extraPrice=rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===item.service_id);if(!extraPrice)return <p className="notice wide">سعر إحدى الخدمات غير متاح لهذا التاريخ.</p>;total+=BigInt(text(extraPrice.price_minor))*BigInt(item.quantity);}
+  for(const item of extras){if(!item.service_id)continue;const extraPayer=payerPriceOf(item.service_id);const extraPrice=extraPayer!==null?{price_minor:extraPayer}:rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===item.service_id);if(!extraPrice)return <p className="notice wide">سعر إحدى الخدمات غير متاح لهذا التاريخ.</p>;total+=BigInt(text(extraPrice.price_minor))*BigInt(item.quantity);}
   const patient=roundShare(total,bps);
   const paid=minor(text(values.amount_minor||'0'));
-  return <p className="notice wide">{values.location==='home'?'إجمالي الخدمة والزيارة المنزلية':'سعر الخدمة'} {money(total)} · العميل عليه {money(patient)} ({percentLabel(bps)}) · على الجهة {money(total-patient)} · المدفوع الآن {money(paid)} · المتبقي على العميل {money(patient-BigInt(paid))}</p>;
+  const extra=BigInt(paid)>patient?BigInt(paid)-patient:0n;
+  return <p className="notice wide">{values.location==='home'?'إجمالي الخدمة والزيارة المنزلية':'سعر الخدمة'} {money(total)}{ownPrice!==null?' (سعر الجهة)':''} · العميل عليه {money(patient)} ({percentLabel(bps)}) · على الجهة {money(total-patient)} · المدفوع الآن {money(paid)} · المتبقي على العميل {money(extra?0n:patient-BigInt(paid))}{extra>0n&&<> · <strong>زيادة {money(extra)} هتتسجل إيراد زيادة</strong></>}</p>;
  }catch{return null;}
 }
 export function patientFields(types:Row[],insurers:Row[],unions:Row[],specialties:Row[],demo:Row[]):Field[]{return [
@@ -75,40 +123,53 @@ export function patientFields(types:Row[],insurers:Row[],unions:Row[],specialtie
 /** Per-visit specialty (the patient keeps one code for all specialties); narrows the doctor list. */
 export function visitSpecialtyField(specialties:Row[],doctors:Row[]):Field{
  return {key:'visit_specialty_id',label:'تخصص الزيارة',type:'select',clearOnChange:['doctor_id','service_id'],hint:'اختار التخصص ثم الطبيب المتاح في يوم الزيارة.',
-  options:specialties.filter(row=>row.active&&doctors.some(doctor=>doctor.specialty_id===row.id)).map(row=>({value:row.id,label:text(row.name)}))};
+  options:specialties.filter(row=>row.active).map(row=>({value:row.id,label:doctors.some(doctor=>doctor.specialty_id===row.id)?text(row.name):`${text(row.name)} (لا يوجد طبيب)`}))};
+}
+/** Every active specialty is offered; this explains why a chosen one has no doctor or service to pick. */
+function SpecialtyNotice({specialtyId,day}:{specialtyId:unknown;day:unknown}){
+ const {rows}=useClinic();
+ if(!specialtyId)return null;
+ const doctors=rows('doctors').filter(row=>row.specialty_id===specialtyId);
+ const messages:string[]=[];
+ if(!doctors.length)messages.push('لا يوجد طبيب مسجل في هذا التخصص. أضف طبيبًا للتخصص من «الأطباء والحسابات» أولًا.');
+ else if(visitWeekday(day)!==null&&!doctors.some(row=>doctorAvailable(row,day)))messages.push('مفيش طبيب من التخصص ده شغال في التاريخ المختار. تقدر تحجز بعد التأكيد أو تختار يوم تاني.');
+ if(!rows('services').some(row=>row.active&&row.specialty_id===specialtyId&&row.pricing_kind!=='home'))messages.push('لا توجد خدمات في هذا التخصص. أضف خدمة من «التخصصات والخدمات».');
+ return messages.length?<p className="notice wide" role="status">{messages.join(' ')}</p>:null;
 }
 const inVisitSpecialty=(doctor:Row,values:Record<string,unknown>)=>!values.visit_specialty_id||doctor.specialty_id===values.visit_specialty_id;
 export function VisitBooking({patient,close}:{patient:Row;close:()=>void}) {
  const {rows,refresh}=useClinic();const navigate=useNavigate();const [key]=useState(()=>crypto.randomUUID());
  const [extras,setExtras]=useState<SelectedService[]>([]);
+ const payer=payerId(rows('insurance_companies'),patient.client_type_code,patient.insurer_id,patient.union_id);
  return <Dialog title={`زيارة وخدمة — ${text(patient.name)}`} close={close}><Form initial={{visit_date:today(),location:'clinic',method:'cash',amount_minor:0}} fields={[
- visitDateField(rows('doctors')),
+ visitDateField(),visitTimeField,
  visitSpecialtyField(rows('specialties'),rows('doctors')),
- {key:'doctor_id',label:'الطبيب',required:true,type:'select',clearOnChange:['service_id'],options:values=>rows('doctors').filter(row=>inVisitSpecialty(row,values)&&doctorAvailable(row,values.visit_date)&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:text(row.name)}))},
+ {key:'doctor_id',label:'الطبيب',required:true,type:'select',clearOnChange:['service_id'],options:values=>doctorOptions(rows('doctors'),rows('specialties'),values)},
+ outsideConfirmField(rows('doctors')),
  {key:'service_id',label:'الخدمة',type:'select',required:true,when:values=>Boolean(values.doctor_id),options:values=>{
   const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
   return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
  }},
- {key:'visit_time',label:'الوقت',type:'time'},
  {key:'location',label:'مكان الزيارة',type:'select',required:true,options:[{value:'clinic',label:'العيادة'},{value:'home',label:'منزلية (+ 1,000 جنيه)'}]},
  {...copayField,when:()=>covered(patient.client_type_code)},...paymentFields
  ]} submit={async values=>{
+  requireOutsideConfirmation(rows('doctors'),values);
   const result=await visitIntake({idempotency_key:key,
-   visit:{patient_id:patient.id,doctor_id:values.doctor_id,visit_date:values.visit_date,visit_time:values.visit_time,location:values.location,...(covered(patient.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
-   service:{service_id:values.service_id},additional_services:extras,
+   visit:{patient_id:patient.id,doctor_id:values.doctor_id,visit_date:values.visit_date,visit_time:values.visit_time,location:values.location,...(values.confirm_outside_hours?{confirm_outside_hours:true}:{}),...(covered(patient.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
+   service:{service_id:values.service_id},additional_services:extraPayload(extras),
    ...(Number(values.amount_minor)>0?{payment:{amount_minor:values.amount_minor,method:values.method}}:{})});
   await refresh('operational');close();navigate(`/visits/${text(result.visit_id)}`);
- }} label="تسجيل الزيارة والخدمة">{values=><><DoctorAvailabilityNotice day={values.visit_date}/><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras} clientType={text(patient.client_type_code)}/></>}</Form></Dialog>;
+ }} label="تسجيل الزيارة والخدمة">{values=><><DoctorAvailabilityNotice day={values.visit_date}/><SpecialtyNotice specialtyId={values.visit_specialty_id} day={values.visit_date}/><DoctorHoursNotice values={values}/><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras} clientType={text(patient.client_type_code)} payer={payer}/></>}</Form></Dialog>;
 }
 function BookingOnly({patient,close}:{patient:Row;close:()=>void}){
- const {rows,refresh}=useClinic();const navigate=useNavigate();
+ const {rows,name,refresh}=useClinic();const navigate=useNavigate();
  return <Dialog title={`حجز بدون خدمة — ${text(patient.name)}`} close={close}><Form initial={{visit_date:today(),location:'clinic'}} fields={[
-  visitDateField(rows('doctors'),false),
-  {key:'doctor_id',label:'الطبيب',required:true,type:'select',options:values=>rows('doctors').filter(row=>doctorAvailable(row,values.visit_date)&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:text(row.name)}))},
-  {key:'visit_time',label:'الوقت',type:'time'},
+  visitDateField(),visitTimeField,
+  {key:'doctor_id',label:'الطبيب',required:true,type:'select',options:values=>doctorOptions(rows('doctors'),rows('specialties'),values,row=>name('specialties',row.specialty_id))},
+  outsideConfirmField(rows('doctors')),
   {key:'location',label:'مكان الزيارة',type:'select',required:true,options:[{value:'clinic',label:'العيادة'},{value:'home',label:'منزلية (+ 1,000 جنيه)'}]},
   {...copayField,when:()=>covered(patient.client_type_code)}
- ]} submit={async values=>{const result=await command('visit_create',{...values,patient_id:patient.id,...(!covered(patient.client_type_code)?{co_pay_bps:undefined}:{})});await refresh('operational');close();navigate(`/visits/${text(result.id)}`);}} label="حفظ الحجز">{values=><DoctorAvailabilityNotice day={values.visit_date}/>}</Form></Dialog>;
+ ]} submit={async values=>{requireOutsideConfirmation(rows('doctors'),values);const result=await command('visit_create',{...values,patient_id:patient.id,confirm_outside_hours:values.confirm_outside_hours?true:undefined,...(!covered(patient.client_type_code)?{co_pay_bps:undefined}:{})});await refresh('operational');close();navigate(`/visits/${text(result.id)}`);}} label="حفظ الحجز">{values=><><DoctorAvailabilityNotice day={values.visit_date}/><DoctorHoursNotice values={values}/></>}</Form></Dialog>;
 }
 export default function Patients() {
  const {id}=useParams();const navigate=useNavigate();const {data,rows,name,profile,refresh}=useClinic();
@@ -120,15 +181,16 @@ export default function Patients() {
  const sharedWith=(values:Record<string,unknown>)=>sharedPhonePatients(rows('patients'),values.phone_e164,editing);
  const openExisting=(target:string)=>{setEditing(undefined);setQuickKey(null);navigate(`/patients/${target}`);};
  const fields=basicFields.flatMap(field=>field.key==='phone_e164'?[field,{...sharedPhoneConfirm,when:(values:Record<string,unknown>)=>sharedWith(values).length>0}]:[field]);
+ const quickPayer=(values:Record<string,unknown>)=>payerId(rows('insurance_companies'),values.client_type_code,values.insurer_id,values.union_id);
  const quickFields:Field[]=[...fields.filter(field=>['name','phone_e164','confirm_shared_phone','client_type_code','insurer_id','union_id'].includes(field.key)),
-  visitDateField(rows('doctors')),
+  visitDateField(),visitTimeField,
   visitSpecialtyField(rows('specialties'),rows('doctors')),
-  {key:'doctor_id',label:'الطبيب والتخصص',type:'select',required:true,clearOnChange:['service_id'],options:values=>rows('doctors').filter(row=>inVisitSpecialty(row,values)&&doctorAvailable(row,values.visit_date)&&rows('specialties').some(s=>s.id===row.specialty_id)).map(row=>({value:row.id,label:`${text(row.name)} — ${name('specialties',row.specialty_id)}`}))},
+  {key:'doctor_id',label:'الطبيب والتخصص',type:'select',required:true,clearOnChange:['service_id'],options:values=>doctorOptions(rows('doctors'),rows('specialties'),values,row=>name('specialties',row.specialty_id))},
+  outsideConfirmField(rows('doctors')),
   {key:'service_id',label:'الخدمة',type:'select',required:true,when:values=>Boolean(values.doctor_id),options:values=>{
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
    return rows('services').filter(row=>row.active&&row.specialty_id===doctor?.specialty_id&&row.pricing_kind!=='home').map(row=>({value:row.id,label:text(row.name)}));
   }},
-  
   copayField,...paymentFields,
   ...(profile.role==='owner'?fields.filter(field=>field.key==='demo_batch_id'&&rows('demo_batches').some(row=>!row.archived_at)):[])];
  const patientRows=rows('patients'),codeRows=rows('patient_specialty_codes');
@@ -181,16 +243,17 @@ export default function Patients() {
  }}>{values=><SharedPhoneNotice matches={sharedWith(values)} open={openExisting}/>}</Form></Dialog>}
  {quickKey&&<Dialog title="تسجيل عميل وزيارة وخدمة" close={()=>setQuickKey(null)}><div className="quick-intake"><Form fields={quickFields} initial={{client_type_code:'family_care_cash',visit_date:today(),amount_minor:0,method:'cash'}} label="تسجيل العميل والخدمة" submit={async values=>{
    requireSharedPhoneConfirmation(sharedWith(values),values);
+   requireOutsideConfirmation(rows('doctors'),values);
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
    if(!doctor)throw new Error('اختار طبيباً نشطاً.');
    const patient:Record<string,unknown>={...values,specialty_id:doctor.specialty_id,insurer_id:values.client_type_code==='insurance_credit'?values.insurer_id:null,union_id:values.client_type_code==='syndicate_cash'?values.union_id:null};
-   for(const key of ['doctor_id','service_id','visit_date','visit_specialty_id','co_pay_bps','amount_minor','method'])delete patient[key];
+   for(const key of ['doctor_id','service_id','visit_date','visit_time','confirm_outside_hours','visit_specialty_id','co_pay_bps','amount_minor','method'])delete patient[key];
    const result=await patientIntake({idempotency_key:quickKey,patient,
-    visit:{doctor_id:values.doctor_id,visit_date:values.visit_date,location:'clinic',...(covered(values.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
-    service:{service_id:values.service_id},additional_services:extras,
+    visit:{doctor_id:values.doctor_id,visit_date:values.visit_date,visit_time:values.visit_time,location:'clinic',...(values.confirm_outside_hours?{confirm_outside_hours:true}:{}),...(covered(values.client_type_code)?{co_pay_bps:values.co_pay_bps}:{})},
+    service:{service_id:values.service_id},additional_services:extraPayload(extras),
     ...(Number(values.amount_minor)>0?{payment:{amount_minor:values.amount_minor,method:values.method}}:{})});
    await refresh('operational');setQuickKey(null);navigate(`/visits/${text(result.visit_id)}`);
- }}>{values=><><SharedPhoneNotice matches={sharedWith(values)} open={openExisting}/><DoctorAvailabilityNotice day={values.visit_date}/><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras}/></>}</Form></div></Dialog>}
+ }}>{values=><><SharedPhoneNotice matches={sharedWith(values)} open={openExisting}/><DoctorAvailabilityNotice day={values.visit_date}/><SpecialtyNotice specialtyId={values.visit_specialty_id} day={values.visit_date}/><DoctorHoursNotice values={values}/><ExtraServices doctorId={values.doctor_id} items={extras} onChange={setExtras}/><IntakePreview values={values} extras={extras} payer={quickPayer(values)}/></>}</Form></div></Dialog>}
  {booking&&<VisitBooking patient={booking} close={()=>setBooking(null)}/>}
  {bookingOnly&&<BookingOnly patient={bookingOnly} close={()=>setBookingOnly(null)}/>}
  </>;

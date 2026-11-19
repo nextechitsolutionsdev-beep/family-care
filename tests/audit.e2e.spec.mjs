@@ -64,7 +64,7 @@ test('cash patient changes and receipts propagate across client, Today, visit an
  await expect(dialog).toHaveCount(0);await expect(page.getByRole('heading',{name:`${name} معدل`,exact:true})).toBeVisible();
  expect((await admin.from('patients').select('name').eq('id',patientId).single()).data.name).toBe(`${name} معدل`);
  await page.getByRole('button',{name:'زيارة جديدة',exact:true}).click();dialog=page.locator('dialog');
- await dialog.getByLabel('الطبيب',{exact:false}).selectOption(f.doctor);await dialog.getByRole('combobox',{name:/^الخدمة/}).selectOption(f.service.id);
+ await dialog.getByLabel('الطبيب',{exact:false}).selectOption(f.doctor);await dialog.getByLabel('الوقت').fill('09:01');await dialog.getByRole('combobox',{name:/^الخدمة/}).selectOption(f.service.id);
  await dialog.getByRole('button',{name:'تسجيل الزيارة والخدمة'}).click();await expect(page).toHaveURL(/\/visits\/[a-f0-9-]+$/);
  const visitId=new URL(page.url()).pathname.split('/').at(-1);
  await expect(summary(page,'المتبقي')).toHaveText('300 جنيه');

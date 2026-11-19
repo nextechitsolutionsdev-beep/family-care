@@ -68,7 +68,7 @@ test('reception journey, insurance, refunds, reversals and mock campaign',async(
 
  await page.getByRole('button',{name:'زيارة جديدة'}).click();
  form=page.locator('dialog');
- await form.getByLabel('الطبيب').selectOption(doctor.id);
+ await form.getByLabel('الطبيب').selectOption(doctor.id);await form.getByLabel('الوقت').fill('09:02');
  await form.getByLabel('الخدمة').selectOption(services.id);
  await form.getByRole('button',{name:'تسجيل الزيارة والخدمة'}).click();
  await expect(page).toHaveURL(/\/visits\/[0-9a-f-]+$/);
@@ -166,7 +166,7 @@ test('reception journey, insurance, refunds, reversals and mock campaign',async(
  await expect(page).toHaveURL(/\/patients\/[0-9a-f-]+$/);
  await page.getByRole('button',{name:'زيارة جديدة'}).click();
  form=page.locator('dialog');
- await form.getByLabel('الطبيب').selectOption(doctor.id);
+ await form.getByLabel('الطبيب').selectOption(doctor.id);await form.getByLabel('الوقت').fill('09:03');
  await form.getByLabel('الخدمة').selectOption(services.id);
  await form.getByLabel('نسبة تحمّل العميل من الكارنيه (%)').fill('20');
  await form.getByRole('button',{name:'تسجيل الزيارة والخدمة'}).click();

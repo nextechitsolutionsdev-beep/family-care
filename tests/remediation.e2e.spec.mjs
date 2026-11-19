@@ -165,7 +165,7 @@ test('one permanent code: reception books a second specialty, legacy codes still
  await dialog.getByLabel('تخصص الزيارة').selectOption(derm);
  const offered=await dialog.getByRole('combobox',{name:/^الطبيب/}).locator('option').evaluateAll(options=>options.map(option=>option.value).filter(Boolean));
  expect(offered).toContain(dermDoctor);expect(offered).not.toContain(f.doctor);
- await dialog.getByRole('combobox',{name:/^الطبيب/}).selectOption(dermDoctor);
+ await dialog.getByRole('combobox',{name:/^الطبيب/}).selectOption(dermDoctor);await dialog.getByLabel('الوقت').fill('09:30');
  if(dermService)await dialog.getByRole('combobox',{name:/^الخدمة/}).selectOption(dermService);
  await dialog.getByRole('button',{name:/تسجيل الزيارة/}).click();await expect(page).toHaveURL(/\/visits\/[0-9a-f-]+$/);
  await expect(page.locator('.page-heading')).toContainText(code);
