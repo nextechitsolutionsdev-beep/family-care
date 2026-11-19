@@ -39,6 +39,7 @@ const messages: Record<string,string> = {
  FOLLOWUP_PLAN_LOCKED:'نوع وسعر المتابعة محفوظان مع الحجز ولا يمكن تغييرهما عند التحصيل.',
  FOLLOWUP_FEE_LOCKED:'حساب رسوم المتابعة مستقل وثابت بالسعر المحجوز. أضف أي خدمة أخرى في زيارة منفصلة من ملف العميل.',
  INVALID_PERIOD:'تاريخ البداية لازم يكون قبل تاريخ النهاية أو نفس اليوم.',
+ CORRECTION_TODAY_ONLY:'الاستقبال يقدر يعدّل تحصيل النهارده بس وقبل تقفيل اليوم. للتعديل بعد كده كلّم المالك.',CORRECTION_UNCHANGED:'مفيش تغيير: المبلغ وطريقة الدفع زي ما هم.',CORRECTION_REASON_REQUIRED:'اكتب سبب التعديل.',PAYMENT_NOT_CORRECTABLE:'الإيصال ده مينفعش يتعدل.',PAYMENT_ALREADY_REVERSED:'الإيصال ده اترد أو اتعدل قبل كده. حدّث الصفحة.',
  DAY_ALREADY_CLOSED:'اليوم ده اتقفل بالفعل. حدّث الصفحة.',CLOSING_OUT_OF_ORDER:'فيه يوم بعده متقفل بالفعل. التقفيل لازم يكون بالترتيب.',HANDOVER_ABOVE_DRAWER:'المبلغ المبعوت للمالك أكبر من الكاش اللي في الدرج.',HANDOVER_RECEIVER_REQUIRED:'اكتب اسم اللي استلم الفلوس.',INVALID_HANDOVER:'اكتب المبلغ المبعوت للمالك صح.',INVALID_CLOSING_DAY:'مينفعش تقفل يوم لسه ما جاش.',CLOSING_NOT_LATEST:'تقدر تفتح آخر يوم متقفل بس.',DAY_NOT_CLOSED:'اليوم ده مش متقفل.',
  COPAY_REQUIRED:'اكتب نسبة تحمّل العميل من الكارنيه قبل فتح الزيارة.',INVALID_COPAY:'النسبة لازم تكون من 0 إلى 100%.',COPAY_NOT_APPLICABLE:'نسبة التحمل متاحة للنقابة أو التأمين فقط.',
  };

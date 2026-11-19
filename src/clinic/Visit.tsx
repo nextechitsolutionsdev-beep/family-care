@@ -1,3 +1,4 @@
+import {canCorrect,CorrectionBadge,CorrectionDialog} from './PaymentCorrection';
 import {paymentMethodOptions} from './paymentMethods';
 import {useState} from 'react';
 import {Link,useParams} from 'react-router-dom';
@@ -11,7 +12,7 @@ function Receipt({payment,close}:{payment:Row;close:()=>void}) {
 }
 export default function Visit(){
  const {id}=useParams();const {data,rows,name,profile,refresh,capabilities}=useClinic();const task=useTask(refresh);const patientCode=(patientId:unknown)=>text(rows('patients').find(row=>row.id===patientId)?.patient_code);
- const [dialog,setDialog]=useState('');const [paymentKey,setPaymentKey]=useState('');const [serviceKey,setServiceKey]=useState('');const [followupKey,setFollowupKey]=useState('');const [receipt,setReceipt]=useState<Row|null>(null);
+ const [dialog,setDialog]=useState('');const [paymentKey,setPaymentKey]=useState('');const [serviceKey,setServiceKey]=useState('');const [followupKey,setFollowupKey]=useState('');const [receipt,setReceipt]=useState<Row|null>(null);const [correcting,setCorrecting]=useState<Row|null>(null);
  const v=rows('visits').find(row=>row.id===id);if(!v)return <p className="empty">الزيارة غير موجودة أو غير متاحة لحسابك.</p>;
  const patient=rows('patients').find(row=>row.id===v.patient_id);const lines=rows('visit_lines').filter(row=>row.visit_id===id).sort((a,b)=>Number(a.sequence)-Number(b.sequence));
  const payments=rows('payments').filter(row=>row.visit_id===id);const isDoctor=profile.role==='doctor';
@@ -44,10 +45,10 @@ export default function Visit(){
  <h2>الكشف والمتابعة</h2><p>{text(v.diagnosis)||'لم يُسجل تشخيص بعد.'}</p><p>{text(v.instructions)||'لم تُسجل تعليمات بعد.'}</p>
  <div className="toolbar"><button disabled={v.status==='void'||entryPending} onClick={()=>{setFollowupKey(crypto.randomUUID());setDialog('clinical');}}>{v.status==='completed'?'تعديل الكشف / إضافة متابعة':'الكشف وإنهاء الزيارة'}</button><button disabled={v.status==='void'} onClick={()=>{setFollowupKey(crypto.randomUUID());setDialog('followup');}}>متابعة جديدة</button>{profile.role==='owner'&&v.status!=='void'&&<button disabled={task.busy} onClick={()=>{if(window.confirm('إلغاء الزيارة؟ يجب عكس التحصيل والتسويات أولاً.'))void task.run(()=>command('visit_void',{id:v.id}));}}>إلغاء الزيارة</button>}</div>
  {!isDoctor&&<><h2>التحصيل والإيصالات</h2><Table rows={payments} columns={[
- {label:'الإيصال',render:row=><bdi>{text(row.receipt_number)}</bdi>},{label:'التاريخ',render:row=>date(row.paid_at)},{label:'النوع',render:row=>label(row.kind)},
+ {label:'الإيصال',render:row=><bdi>{text(row.receipt_number)}</bdi>},{label:'التاريخ',render:row=>date(row.paid_at)},{label:'النوع',render:row=><>{label(row.kind)} <CorrectionBadge payment={row}/></>},
  {label:'المبلغ',numeric:true,render:row=>money(row.amount_minor)},...(payments.some(row=>Number(row.excess_minor??0)>0)?[{label:'إيراد زيادة',numeric:true,render:(row:Row)=>money(row.excess_minor??0)}]:[]),{label:'الطريقة',render:row=>label(row.method)},
  ...(profile.role==='owner'?[{label:'سجّل التحصيل',render:(row:Row)=>name('profiles',row.recorded_by)}]:[]),
- {label:'الإجراء',render:row=><div className="actions"><button onClick={()=>setReceipt(row)}>عرض / طباعة</button>{profile.role==='owner'&&row.kind!=='refund'&&!payments.some(pay=>pay.reverses_payment_id===row.id)&&<button disabled={task.busy} onClick={()=>{if(window.confirm('رد هذا التحصيل بالكامل؟ سيُسجل إيصال عكس مع الحفاظ على الإيصال الأصلي.'))void task.run(()=>command('payment_reverse',{id:row.id,idempotency_key:crypto.randomUUID()}));}}>رد المبلغ</button>}</div>}
+ {label:'الإجراء',render:row=><div className="actions"><button onClick={()=>setReceipt(row)}>عرض / طباعة</button>{canCorrect(row,payments,profile.role,capabilities.paymentCorrection)&&<button disabled={task.busy} onClick={()=>setCorrecting(row)}>تعديل</button>}{profile.role==='owner'&&row.kind!=='refund'&&!payments.some(pay=>pay.reverses_payment_id===row.id)&&<button disabled={task.busy} onClick={()=>{if(window.confirm('رد هذا التحصيل بالكامل؟ سيُسجل إيصال عكس مع الحفاظ على الإيصال الأصلي.'))void task.run(()=>command('payment_reverse',{id:row.id,idempotency_key:crypto.randomUUID()}));}}>رد المبلغ</button>}</div>}
  ]}/></>}
  {dialog==='service'&&<Dialog title="إضافة خدمة للزيارة" close={()=>setDialog('')}><Form initial={{doctor_id:v.doctor_id,quantity:1,is_gift:false}} fields={[
  {key:'service_id',label:'الخدمة',type:'select',required:true,options:activeServices.map(row=>({value:row.id,label:text(row.name)}))},
@@ -68,6 +69,6 @@ export default function Visit(){
  ]} submit={async values=>{requirePastConfirmation(values,'follow_up_date');await command(v.status==='completed'?'clinical_save':'visit_complete',{...values,visit_id:id,followup_key:followupKey});await refresh('operational');setDialog('');}} label={v.status==='completed'?'حفظ الكشف':'حفظ وإنهاء الزيارة'}/></Dialog>}
  {dialog==='followup'&&<Dialog title="متابعة جديدة" close={()=>setDialog('')}><Form initial={{due_date:today(),planned_billing_mode:'continuation'}} fields={[{key:'due_date',label:'التاريخ',type:'date',required:true},pastDateConfirmation('due_date'),{key:'due_time',label:'الوقت',type:'time'},{key:'purpose',label:'الغرض',required:true},...planFields]} submit={async values=>{requirePastConfirmation(values,'due_date');await visitOperation('clinic_schedule_followup',{...values,visit_id:id,idempotency_key:followupKey});await refresh('operational');setDialog('');}}/></Dialog>}
  {dialog==='invoice'&&<Dialog title="فاتورة الزيارة" close={()=>setDialog('')}><div className="print-receipt"><h2>فاميلي كير — فاتورة الزيارة</h2><p>العميل: {name('patients',v.patient_id)}{patientCode(v.patient_id)&&<> · كود العميل: <bdi>{patientCode(v.patient_id)}</bdi></>}</p><p>تاريخ الزيارة: {date(v.visit_date)} · رقم الزيارة: <bdi>{v.id}</bdi></p><p>نسخة الفاتورة: {text(v.version)}</p><Table rows={lines} columns={[{label:'الخدمة',render:row=>name('services',row.service_id)},{label:'العدد',render:row=>text(row.quantity)},{label:'سعر الوحدة',render:row=>money(row.unit_price_minor)},{label:'الخصم',render:row=>money(row.discount_minor)},{label:'الإجمالي',render:row=>money(row.line_total_minor)}]}/><p>الإجمالي: {money(v.total_minor)} · حصة العميل: {money(v.co_pay_minor)} · على الجهة: {money(v.covered_minor)}</p><p>المدفوع: {money(paid)} · المتبقي: {money(remaining)}</p><p>الفاتورة ملخص محدث للحساب، وإيصالات التحصيل السابقة محفوظة.</p></div><button className="primary no-print" onClick={()=>window.print()}>طباعة الفاتورة</button></Dialog>}
- {receipt&&<Receipt payment={receipt} close={()=>setReceipt(null)}/>}
+ {receipt&&<Receipt payment={receipt} close={()=>setReceipt(null)}/>}{correcting&&<CorrectionDialog payment={correcting} close={()=>setCorrecting(null)}/>}
  </>;
 }

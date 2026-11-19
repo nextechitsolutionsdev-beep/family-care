@@ -84,7 +84,8 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
    // Server features and commission terms are read on full loads only, alongside the tables; reception never requests commission.
    // Doctor hours and payer prices exist only after 20261119100200/100300; they are read once the probe confirms them.
    const extras=partial?null:Promise.all([probeCapabilities(db,profile.role).then(features=>Promise.all([features,
-     features.doctorHours?doctorHours(db):Promise.resolve(null),features.payerPrices?all('payer_service_prices'):Promise.resolve([] as Row[])])),
+     features.doctorHours?doctorHours(db):Promise.resolve(null),features.payerPrices?all('payer_service_prices'):Promise.resolve([] as Row[]),
+     features.paymentCorrection?all('payment_corrections'):Promise.resolve([] as Row[])])),
     profile.role==='reception'?Promise.resolve({terms:null}):commissionTerms(db)]);
    extras?.catch(()=>undefined);
    const results=await Promise.allSettled(wanted.map(table=>all(table)));
@@ -94,10 +95,10 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
      next[wanted[index]]=result.value;
    }
    if(extras){
-     const [[features,hours,payerPrices],terms]=await extras.catch(error=>{setError(readableError(error));throw error;});
+     const [[features,hours,payerPrices,corrections],terms]=await extras.catch(error=>{setError(readableError(error));throw error;});
      if(profile.role!=='reception')next.doctors=withTerms(next.doctors,terms.terms);
      if(hours)next.doctors=next.doctors.map(row=>({...row,working_hours:hours.get(row.id)??{}}));
-     next.payer_service_prices=payerPrices;
+     next.payer_service_prices=payerPrices;next.payment_corrections=corrections;
      setExtendedPaymentMethods(features.dayClosing);setCapabilities({...features,commissionTerms:terms.terms!==null});
    }
    if(profile.role==='doctor') {

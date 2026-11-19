@@ -277,3 +277,7 @@
 - [x] Owner decisions: InstaPay and wallet added, transfer no longer offered in new forms; «يومية النسبة» = specialty + percentage doctors, «يومية المستأجرين» = renting doctors; a saved closing with handover to the owner and automatic carry-over; total expenses of every desk user.
 - [x] Migration 20261119100400: payment/expense methods, `day_closings`, `clinic_day_summary`, `clinic_day_close`, owner-only `clinic_day_reopen` (latest closing only). Verified in a rolled-back transaction on the project.
 - [x] Screen «تقفيل اليوم» for owner and reception (shown once the server has the table); unit tests replay the 16/11 paper sheet.
+
+## Receipt correction «تعديل» — 19/11/2026
+- [x] Migration 20261119100500: `payment_corrections` and `clinic_payment_correct` (reverse the original + record the corrected receipt in one transaction, reason audited). Owner any receipt; reception today's receipts before the day is closed. Verified in a rolled-back transaction.
+- [x] «تعديل» button and correction badges on the visit receipts table.

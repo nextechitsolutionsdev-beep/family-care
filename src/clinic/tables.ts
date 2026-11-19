@@ -4,7 +4,7 @@ import {afterFilter,readAll,type Cursor,type Key} from './pager.ts';
 // Unique key per table for deterministic keyset pagination (all other tables use id).
 export const tableKeys:Record<string,Key>={bundle_components:['bundle_service_id','component_service_id'],campaign_recipients:['campaign_id','patient_id'],
  client_types:['code'],doctor_service_terms:['doctor_id','service_id'],experience_survey_links:['visit_id'],message_templates:['kind'],
- patient_specialty_codes:['patient_id','specialty_id'],payer_service_prices:['payer_id','service_id'],payment_allocations:['payment_id','visit_line_id'],rent_allocations:['payment_id','due_id'],
+ patient_specialty_codes:['patient_id','specialty_id'],payer_service_prices:['payer_id','service_id'],payment_corrections:['original_id'],payment_allocations:['payment_id','visit_line_id'],rent_allocations:['payment_id','due_id'],
  service_prices:['version_id','service_id'],settlement_allocations:['settlement_id','visit_line_id'],specialty_sequences:['specialty_id']};
 
 // Commission columns are readable only through clinic_commission_terms (owner decision 21/10/2026).
