@@ -3,8 +3,14 @@ import {readAll,type Cursor} from './pager.ts';
 
 /** Which server features the connected database actually provides. The app is deployed before the database
  * changes (see docs/QA-REMEDIATION.md); a control that needs a server rule stays hidden until the rule exists. */
-export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;commissionTerms:boolean;doctorHours:boolean;payerPrices:boolean;paymentExcess:boolean;dayClosing:boolean;paymentCorrection:boolean;bookingCancellation:boolean};
-export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,commissionTerms:false,doctorHours:false,payerPrices:false,paymentExcess:false,dayClosing:false,paymentCorrection:false,bookingCancellation:false};
+export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;commissionTerms:boolean;doctorHours:boolean;payerPrices:boolean;paymentExcess:boolean;dayClosing:boolean;paymentCorrection:boolean;bookingCancellation:boolean;accountArchive:boolean;campaignTemplates:boolean;payroll:boolean;dentalLab:boolean};
+export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,commissionTerms:false,doctorHours:false,payerPrices:false,paymentExcess:false,dayClosing:false,paymentCorrection:false,bookingCancellation:false,accountArchive:false,campaignTemplates:false,payroll:false,dentalLab:false};
+
+/** Tables that exist only after a migration, read on full loads once the probe confirms them (role → readable). */
+export const optionalTables:{table:string;feature:Exclude<keyof Capabilities,'commissionTerms'>}[]=[
+ {table:'payer_service_prices',feature:'payerPrices'},{table:'payment_corrections',feature:'paymentCorrection'},
+ {table:'booking_cancellations',feature:'bookingCancellation'},{table:'campaign_templates',feature:'campaignTemplates'},
+ {table:'lab_cases',feature:'dentalLab'},{table:'employees',feature:'payroll'},{table:'payroll_months',feature:'payroll'},{table:'payroll_entries',feature:'payroll'}];
 
 // Missing column (42703/PGRST204/PGRST200) or missing table (42P01/PGRST205): the server does not have it yet.
 const missingColumn=(error:{code?:string}|null)=>Boolean(error&&['42703','PGRST204','PGRST200','42P01','PGRST205'].includes(String(error.code)));
@@ -18,13 +24,13 @@ async function hasColumn(client:SupabaseClient,table:string,column:string):Promi
 }
 
 export async function probeCapabilities(client:SupabaseClient,role:string):Promise<Omit<Capabilities,'commissionTerms'>>{
- const [offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing,paymentCorrection,bookingCancellation]=await Promise.all([hasColumn(client,'offers','once_per_patient'),hasColumn(client,'patients','patient_code'),
-  hasColumn(client,'doctors','working_hours'),role==='doctor'?Promise.resolve(false):hasColumn(client,'payments','excess_minor'),
-  role==='doctor'?Promise.resolve(false):hasColumn(client,'payer_service_prices','price_minor'),
-  role==='doctor'?Promise.resolve(false):hasColumn(client,'day_closings','day'),
-  role==='doctor'?Promise.resolve(false):hasColumn(client,'payment_corrections','original_id'),
-  role==='doctor'?Promise.resolve(false):hasColumn(client,'booking_cancellations','visit_id')]);
- return {offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing,paymentCorrection,bookingCancellation};
+ const desk=(table:string,column:string)=>role==='doctor'?Promise.resolve(false):hasColumn(client,table,column);
+ const owner=(table:string,column:string)=>role==='owner'?hasColumn(client,table,column):Promise.resolve(false);
+ const [offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing,paymentCorrection,bookingCancellation,accountArchive,campaignTemplates,payroll,dentalLab]=await Promise.all([
+  hasColumn(client,'offers','once_per_patient'),hasColumn(client,'patients','patient_code'),hasColumn(client,'doctors','working_hours'),
+  desk('payments','excess_minor'),desk('payer_service_prices','price_minor'),desk('day_closings','day'),desk('payment_corrections','original_id'),
+  desk('booking_cancellations','visit_id'),owner('profiles','archived_at'),desk('campaign_templates','title'),owner('employees','salary_minor'),desk('lab_cases','work')]);
+ return {offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing,paymentCorrection,bookingCancellation,accountArchive,campaignTemplates,payroll,dentalLab};
 }
 
 /** Working hours per doctor (20261119100200). Read separately because the doctors column list is fixed

@@ -1,6 +1,6 @@
 import {createContext,useContext,useEffect,useState,useMemo,useRef,type ReactNode} from 'react';
 import {all,db,readableError,text,type Row,type Profile} from './api';
-import {commissionTerms,doctorHours,noCapabilities,probeCapabilities,withTerms,type Capabilities} from './compat';
+import {commissionTerms,doctorHours,noCapabilities,optionalTables,probeCapabilities,withTerms,type Capabilities} from './compat';
 import {singleFlight} from './singleFlight';
 import {setExtendedPaymentMethods} from './paymentMethods';
 /** 'operational' re-reads bookings, money and messages but keeps catalog/terms/settings from the last full read. */
@@ -84,9 +84,8 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
    // Server features and commission terms are read on full loads only, alongside the tables; reception never requests commission.
    // Doctor hours and payer prices exist only after 20261119100200/100300; they are read once the probe confirms them.
    const extras=partial?null:Promise.all([probeCapabilities(db,profile.role).then(features=>Promise.all([features,
-     features.doctorHours?doctorHours(db):Promise.resolve(null),features.payerPrices?all('payer_service_prices'):Promise.resolve([] as Row[]),
-     features.paymentCorrection?all('payment_corrections'):Promise.resolve([] as Row[]),
-     features.bookingCancellation?all('booking_cancellations'):Promise.resolve([] as Row[])])),
+     features.doctorHours?doctorHours(db):Promise.resolve(null),
+     Promise.all(optionalTables.map(({table,feature})=>features[feature]?all(table):Promise.resolve([] as Row[])))])),
     profile.role==='reception'?Promise.resolve({terms:null}):commissionTerms(db)]);
    extras?.catch(()=>undefined);
    const results=await Promise.allSettled(wanted.map(table=>all(table)));
@@ -96,10 +95,10 @@ export function ClinicProvider({profile,children}:{profile:Profile;children:Reac
      next[wanted[index]]=result.value;
    }
    if(extras){
-     const [[features,hours,payerPrices,corrections,cancellations],terms]=await extras.catch(error=>{setError(readableError(error));throw error;});
+     const [[features,hours,optional],terms]=await extras.catch(error=>{setError(readableError(error));throw error;});
      if(profile.role!=='reception')next.doctors=withTerms(next.doctors,terms.terms);
      if(hours)next.doctors=next.doctors.map(row=>({...row,working_hours:hours.get(row.id)??{}}));
-     next.payer_service_prices=payerPrices;next.payment_corrections=corrections;next.booking_cancellations=cancellations;
+     optionalTables.forEach(({table},index)=>{next[table]=optional[index];});
      setExtendedPaymentMethods(features.dayClosing);setCapabilities({...features,commissionTerms:terms.terms!==null});
    }
    if(profile.role==='doctor') {

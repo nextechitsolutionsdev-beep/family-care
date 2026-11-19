@@ -286,3 +286,10 @@
 - [x] Owner decision: «استرداد المبلغ بالكامل / رد جزئي من المبلغ / لن يتم استرداد المبلغ», for owner and reception.
 - [x] Migration 20261119100600: `booking_cancellations`, `clinic_booking_cancel` (refund receipts newest first with the original methods, visit void, booking cancelled), partial refunds keep the receipt excess. Verified in a rolled-back transaction.
 - [x] Today's «إلغاء الحجز» opens the choice; the visit shows what was returned and kept; the patient file no longer counts kept money as credit.
+
+## Staff, templates and dental lab — 19/11/2026
+- [x] «حذف الحساب» (20261119100700): deactivate (login banned, sessions revoked) then archive; hidden from the list, restorable; records keep the name. Cannot archive yourself or an active account.
+- [x] New campaign templates (20261119100800): variables guide with meaning and examples, click-to-insert, live preview, unknown variables refused by client and server; reception picks the template when sending a campaign.
+- [x] «الموظفين» under the expenses, owner only (20261119100900): employees, monthly salary, bonus/advance/deduction/payout, still due per month, employee report with history; advances and payouts become «أجور وعمالة» expenses; voiding an entry voids its expense.
+- [x] «معمل الأسنان» for owner and reception (20261119101000): the lab sheet columns plus the lab price; paying the lab records a «معمل أسنان» expense; owner-only payment cancel; cancelled cases kept.
+- [x] Verified all four in a rolled-back transaction on the project; unit tests for payroll, lab totals and template variables.
