@@ -305,6 +305,7 @@
 - [x] Migration 20261120100000 written (not applied): provider `openwa`, statuses `sending`/`sent`, worker claim/complete/heartbeat for service_role only, owner provider switch, gateway status table.
 - [x] Worker `scripts/whatsapp-worker.mjs` and session setup `scripts/whatsapp-setup.mjs`; unit tests for settings, Cairo hours/day, gateway answers.
 - [x] Settings «إرسال الرسائل» (owner), message log provider and reason columns; hidden until the migration exists.
-- [ ] Owner approval to apply 20261120100000 on the development project; then verify it in a rolled-back transaction and run test:db.
+- [x] Owner approved 20/11/2026. Verified in a rolled-back transaction (mock unchanged, openwa leaves messages queued, trial-number filter, claim/sent/repeat, test record and stale skipped, consent rechecked, unconfirmed send not retried, retry delay, bad codes refused, reception/anon refused, reception reads the gateway state), then applied with its checksum (same record shape as scripts/migrate.mjs, through the Supabase MCP because .env has no CLI token). Security advisors: no new findings.
+- [ ] test:db and the screen review at 1366×768/phone: need .env (SUPABASE_ACCESS_TOKEN) and an owner sign-in.
 - [ ] Local trial: OpenWA running, `.env` server keys and OPENWA_* filled, number linked, one message to the owner's own number with WHATSAPP_ONLY_NUMBERS.
 - [ ] Production: OpenWA and the worker on the server next to the site.
