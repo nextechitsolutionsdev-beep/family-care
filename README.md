@@ -33,31 +33,10 @@ npm run dev
 ```powershell
 npm run lint
 npm run typecheck
-npm test                       # اختبارات وحدات فقط، لا تتصل بقاعدة البيانات
 npm run build
-npx playwright test -c playwright.smoke.config.mjs   # البناء النهائي بهيدرز الأمان
 ```
 
-اختبارات قاعدة البيانات والواجهة لا تعمل إلا بعد تسمية المشروع صراحة؛ مشروع العيادة الحقيقي يحتاج موافقة التنظيف المتتبَّع:
-
-```powershell
-$env:FAMILY_CARE_TEST_TARGET='xkbyxefvzlcnyefkxwsx'
-$env:FAMILY_CARE_ALLOW_PRODUCTION_FIXTURES='tracked-cleanup'
-npm run test:db        # معاملات تُلغى بالكامل + اختبار API بتنظيف متحقَّق منه
-npx playwright install chromium
-npm run test:e2e
-npm run measure:loading
-```
-
-كل سجل تجريبي يُسجَّل في `output/playwright/fixture-ledger/` ويُنظَّف بالمعرّف عند نهاية الاختبار؛ أي فشل في التنظيف يُفشل الاختبار. لو توقف تشغيل في المنتصف: `npm run fixtures:cleanup -- <ledger.json>`. التفاصيل في `docs/QA-REMEDIATION.md`. للاحتفاظ بسجلات المال والتدقيق مع إخفاء ملفات العملاء التجريبية وإيقاف رسائلهم:
-
-```powershell
-npm run archive:demo
-# لمجموعة معينة فقط:
-npm run archive:demo -- --batch=<demo-batch-uuid>
-```
-
-الأرشفة لا تحذف المدفوعات أو الفواتير أو سجل التدقيق، ويمكن إعادة تشغيل الأمر بأمان. سجلات الطبيب وشركة التأمين والعرض المعلّمة بأنها تابعة للمجموعة التجريبية تُعطّل أيضاً، وتختفي من شاشات التشغيل؛ تاريخها المالي محفوظ للمراجعة في قاعدة البيانات.
+الاختبارات الآلية اتشالت بقرار المالك (21/11/2026). الـ CI بيعمل lint وtypecheck وbuild بس قبل النشر.
 
 ## نشر الواجهة على Cloudflare Pages
 
