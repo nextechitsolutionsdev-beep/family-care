@@ -299,3 +299,12 @@
 - [x] Full day scenario on the migrated database in a rolled-back transaction: 23/23 checks (corrections, three cancellation modes, payroll, lab, closing totals and lock, campaign template, doctor/reception permissions, wallet payment).
 - [x] Screens checked at 1366×768 and 375px (closing, lab, employees, templates, accounts, receipt correction, cancel booking, reports, patients, insurance, doctors): no console errors, no horizontal scroll.
 - [x] Lint, typecheck, build, 52 unit tests; pushed to `main`.
+
+## WhatsApp through OpenWA — 20/11/2026
+- [x] Owner decision: real WhatsApp delivery for the existing messages (campaigns, birthday offers, follow-up reminders, experience surveys) through a self-hosted OpenWA gateway. No lab-results table.
+- [x] Migration 20261120100000 written (not applied): provider `openwa`, statuses `sending`/`sent`, worker claim/complete/heartbeat for service_role only, owner provider switch, gateway status table.
+- [x] Worker `scripts/whatsapp-worker.mjs` and session setup `scripts/whatsapp-setup.mjs`; unit tests for settings, Cairo hours/day, gateway answers.
+- [x] Settings «إرسال الرسائل» (owner), message log provider and reason columns; hidden until the migration exists.
+- [ ] Owner approval to apply 20261120100000 on the development project; then verify it in a rolled-back transaction and run test:db.
+- [ ] Local trial: OpenWA running, `.env` server keys and OPENWA_* filled, number linked, one message to the owner's own number with WHATSAPP_ONLY_NUMBERS.
+- [ ] Production: OpenWA and the worker on the server next to the site.
