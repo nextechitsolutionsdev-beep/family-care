@@ -44,7 +44,7 @@ test('a table that does not exist yet (payer prices before 20261119100300) is a 
  assert.equal(doctor.paymentExcess,false);assert.equal(doctor.payerPrices,false);
 });
 
-test('the price screen and per-type previews are available once the server has clinic_price_matrix_save (20261120100000)',async()=>{
+test('the price screen and per-type previews are available once the server has clinic_price_matrix_save (20261120100100)',async()=>{
  let sent;
  const features=await probeCapabilities(client({rpc:(name,args)=>{sent={name,args};return {data:null,error:{code:'P0001',message:'INVALID_INPUT'}};},select:()=>({data:[],error:null})}),'owner');
  assert.equal(features.priceMatrix,true);

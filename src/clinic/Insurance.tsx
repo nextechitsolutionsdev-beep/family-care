@@ -10,7 +10,7 @@ function PayerPrices({payer,title,close}:{payer:Row;title:string;close:()=>void}
  const current=(service:unknown)=>rows('payer_service_prices').find(row=>row.payer_id===payer.id&&row.service_id===service);
  const [specialty,setSpecialty]=useState('');const [search,setSearch]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState('');
  const [draft,setDraft]=useState<Record<string,string>>({});
- // The payer's own client type list (20261120100000); before that, insurance and unions used Family Care's.
+ // The payer's own client type list (20261120100100); before that, insurance and unions used Family Care's.
  const baseType=!capabilities.priceMatrix?'family_care_cash':payer.payer_kind==='union'?'syndicate_cash':'insurance_credit';
  const list=rows('price_lists').find(row=>row.client_type_code===baseType);
  const version=rows('price_list_versions').filter(row=>row.list_id===list?.id&&row.published_at&&text(row.effective_from)<=today()).sort((a,b)=>text(b.effective_from).localeCompare(text(a.effective_from)))[0];

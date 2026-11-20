@@ -7,6 +7,15 @@
 --   (Cairo). A second save on the same day replaces that day's version while no visit line uses it; once a visit
 --   line uses it, the change starts tomorrow. Visit lines already saved keep their snapshot prices.
 
+-- Guard: guard_price is replaced below; stop if it changed since 20261015174425.
+do $guard$
+begin
+ if position('app.launch_service' in pg_get_functiondef('private.guard_price()'::regprocedure))=0
+  or position('app.price_matrix_version' in pg_get_functiondef('private.guard_price()'::regprocedure))>0 then
+  raise exception 'guard_price changed since 20261015174425; review 20261120100100 before applying';
+ end if;
+end $guard$;
+
 -- 1. Copy the Family Care versions that are newer than each list's latest version (same dates, same prices).
 do $$
 declare target record; source record; copy uuid;

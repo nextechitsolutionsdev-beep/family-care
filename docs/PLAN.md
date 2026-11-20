@@ -301,7 +301,7 @@
 - [x] Lint, typecheck, build, 52 unit tests; pushed to `main`.
 
 ## Prices per client type, shorter owner menu — 20/11/2026
-- [x] Migration 20261120100000_client_type_prices: own list per client type, Family Care prices copied to insurance/union lists first, `clinic_price_matrix_save` (owner only, idempotent, audited).
+- [x] Migration 20261120100100_client_type_prices: own list per client type, Family Care prices copied to insurance/union lists first, `clinic_price_matrix_save` (owner only, idempotent, audited).
 - [x] «الأسعار» page; Settings price tab removed; intake preview and payer price editor use the client type's own list once the migration exists.
 - [x] Grouped owner menu, scrollable sidebar, logout in the top bar.
 - [ ] Rolled-back run of the migration on the project (needs the owner's go-ahead in the Supabase prompt), lint/build/E2E, review at 1366x768 and phone width.
