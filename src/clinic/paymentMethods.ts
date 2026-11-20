@@ -6,5 +6,3 @@ let extended=false;
 export const setExtendedPaymentMethods=(available:boolean)=>{extended=available;};
 export const paymentMethods=()=>extended?['cash','instapay','card','wallet']:['cash','card','transfer'];
 export const paymentMethodOptions=()=>paymentMethods().map(value=>({value,label:label(value)}));
-/** Methods that land in the clinic's accounts directly; only cash is counted in the desk drawer. */
-export const drawerMethod='cash';

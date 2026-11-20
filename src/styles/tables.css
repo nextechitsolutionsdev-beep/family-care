@@ -45,27 +45,4 @@
     max-width: 100px;
     flex-wrap: wrap;
   }
-
-  .price-editor table {
-    width: 100%;
-    table-layout: fixed;
-  }
-
-  .price-editor th,
-  .price-editor td {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .price-editor th:first-child,
-  .price-editor td:first-child { width: 62%; }
-
-  .price-editor th:last-child,
-  .price-editor td:last-child { width: 38%; }
-
-  .price-editor input {
-    display: block;
-    width: 100%;
-    min-width: 0;
-  }
 }
