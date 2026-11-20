@@ -27,7 +27,7 @@ const messages: Record<string,string> = {
  appointments_doctor_time_slot:'الدكتور عنده حجز تاني في نفس الوقت ده. اختار وقت تاني أو دكتور تاني.',
  doctors_working_hours_valid:'راجع ساعات العمل: وقت البداية لازم يكون قبل وقت النهاية.',
  INVALID_PAYER_PRICE:'السعر لازم يكون رقم أكبر من صفر.',PAYER_NOT_FOUND:'الجهة غير موجودة. حدّث الصفحة.',SERVICES_BEFORE_OFFER:'أضف الخدمات قبل تطبيق العرض.',HOME_FEE_ONCE:'رسم الزيارة المنزلية مضاف بالفعل.',
- REVERSE_FINANCIAL_RECORDS_FIRST:'اعكس التحصيل والتسويات أولاً للحفاظ على الحسابات.',PRICE_LIST_INCOMPLETE:'القائمة لازم تشمل كل الخدمات النشطة.',
+ REVERSE_FINANCIAL_RECORDS_FIRST:'اعكس التحصيل والتسويات أولاً للحفاظ على الحسابات.',PRICE_LIST_INCOMPLETE:'القائمة لازم تشمل كل الخدمات النشطة.',PRICE_VERSION_IN_USE:'أسعار بكرة اتسجل عليها حجز بالفعل. حدّث الصفحة وحاول تاني.',
  IDEMPOTENCY_CONFLICT:'الطلب اتغير. افتح النموذج من جديد.',CAMPAIGN_SPECIALTY_REQUIRED:'اختار تخصص العرض في فلاتر الحملة.',
  UNION_REQUIRED:'اختار النقابة.',UNION_INACTIVE:'النقابة غير نشطة. اختار نقابة أخرى.',UNION_NOT_APPLICABLE:'النقابة متاحة لعميل النقابة فقط.',
  INVALID_EXPENSE:'راجع المبلغ والسبب والتاريخ؛ لا يمكن تسجيل مصروف بتاريخ مستقبلي.',

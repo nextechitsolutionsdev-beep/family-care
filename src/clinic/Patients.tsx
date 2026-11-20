@@ -83,9 +83,10 @@ const paymentFields:Field[]=[
   options:()=>paymentMethodOptions()}
 ];
 function IntakePreview({values,clientType,extras=[],payer=null}:{values:Record<string,unknown>;clientType?:string;extras?:SelectedService[];payer?:string|null}){
- const {rows}=useClinic();const type=clientType??text(values.client_type_code);
+ const {rows,capabilities}=useClinic();const type=clientType??text(values.client_type_code);
  if(!values.service_id)return null;
- const listType=covered(type)?'family_care_cash':type;
+ // Since 20261120100100 every client type has its own prices; before it, insurance and unions used Family Care's.
+ const listType=covered(type)&&!capabilities.priceMatrix?'family_care_cash':type;
  const list=rows('price_lists').find(row=>row.client_type_code===listType);
  const version=rows('price_list_versions').filter(row=>row.list_id===list?.id&&row.published_at&&text(row.effective_from)<=text(values.visit_date)).sort((a,b)=>text(b.effective_from).localeCompare(text(a.effective_from)))[0];
  // A covered visit uses the owner's price for its insurer or union when one is set (owner decision 19/11/2026).

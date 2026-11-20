@@ -5,7 +5,7 @@ import {commissionTerms,probeCapabilities,withTerms} from '../src/clinic/compat.
 // A minimal stand-in for the Supabase client: each scenario decides how the server answers.
 function client({rpc,select}){
  const chain=result=>{const builder={order:()=>builder,gt:()=>builder,limit:async()=>result()};return builder;};
- return {rpc:name=>chain(()=>rpc(name)),from:table=>({select:columns=>{const answer=()=>select(table,columns);const builder={limit:async()=>answer(),then:(resolve,reject)=>Promise.resolve(answer()).then(resolve,reject)};return builder;}})};
+ return {rpc:(name,args)=>{const builder=chain(()=>rpc(name,args));builder.then=(resolve,reject)=>Promise.resolve(rpc(name,args)).then(resolve,reject);return builder;},from:table=>({select:columns=>{const answer=()=>select(table,columns);const builder={limit:async()=>answer(),then:(resolve,reject)=>Promise.resolve(answer()).then(resolve,reject)};return builder;}})};
 }
 const missingFunction={data:null,error:{code:'PGRST202',message:'Could not find the function'}};
 const denied={data:null,error:{code:'42501',message:'permission denied'}};
@@ -32,14 +32,25 @@ test('any other server error is reported, not hidden',async()=>{
 });
 
 test('capabilities are on only when the server positively accepts the column',async()=>{
- const features=await probeCapabilities(client({rpc:()=>assert.fail(),select:(table)=>table==='offers'?{data:[],error:null}:{data:null,error:{code:'42703',message:'column does not exist'}}}),'owner');
- assert.deepEqual(features,{offerPatientLimit:true,patientCode:false,doctorHours:false,paymentExcess:false,payerPrices:false,dayClosing:false,paymentCorrection:false,bookingCancellation:false,accountArchive:false,campaignTemplates:false,payroll:false,dentalLab:false});
+ const features=await probeCapabilities(client({rpc:()=>({data:null,error:{code:'PGRST202',message:'function not found'}}),select:(table)=>table==='offers'?{data:[],error:null}:{data:null,error:{code:'42703',message:'column does not exist'}}}),'owner');
+ assert.deepEqual(features,{offerPatientLimit:true,patientCode:false,doctorHours:false,paymentExcess:false,payerPrices:false,dayClosing:false,paymentCorrection:false,bookingCancellation:false,accountArchive:false,campaignTemplates:false,payroll:false,dentalLab:false,priceMatrix:false});
  await assert.rejects(probeCapabilities(client({rpc:()=>assert.fail(),select:()=>({data:null,error:{code:'08006',message:'connection failure'}})}),'owner'),error=>error.code==='08006');
 });
 
 test('a table that does not exist yet (payer prices before 20261119100300) is a missing capability, not an error',async()=>{
- const features=await probeCapabilities(client({rpc:()=>assert.fail(),select:(table)=>table==='payer_service_prices'?{data:null,error:{code:'PGRST205',message:'table not found'}}:{data:[],error:null}}),'reception');
- assert.deepEqual(features,{offerPatientLimit:true,patientCode:true,doctorHours:true,paymentExcess:true,payerPrices:false,dayClosing:true,paymentCorrection:true,bookingCancellation:true,accountArchive:false,campaignTemplates:true,payroll:false,dentalLab:true});
+ const features=await probeCapabilities(client({rpc:()=>({data:null,error:{code:'PGRST202',message:'function not found'}}),select:(table)=>table==='payer_service_prices'?{data:null,error:{code:'PGRST205',message:'table not found'}}:{data:[],error:null}}),'reception');
+ assert.deepEqual(features,{offerPatientLimit:true,patientCode:true,doctorHours:true,paymentExcess:true,payerPrices:false,dayClosing:true,paymentCorrection:true,bookingCancellation:true,accountArchive:false,campaignTemplates:true,payroll:false,dentalLab:true,priceMatrix:false});
  const doctor=await probeCapabilities(client({rpc:()=>assert.fail(),select:(table)=>['payments','payer_service_prices','day_closings','payment_corrections','booking_cancellations','campaign_templates','lab_cases','employees','profiles'].includes(table)?assert.fail('doctors never read payments'):{data:[],error:null}}),'doctor');
  assert.equal(doctor.paymentExcess,false);assert.equal(doctor.payerPrices,false);
+});
+
+test('the price screen and per-type previews are available once the server has clinic_price_matrix_save (20261120100100)',async()=>{
+ let sent;
+ const features=await probeCapabilities(client({rpc:(name,args)=>{sent={name,args};return {data:null,error:{code:'P0001',message:'INVALID_INPUT'}};},select:()=>({data:[],error:null})}),'owner');
+ assert.equal(features.priceMatrix,true);
+ assert.deepEqual(sent,{name:'clinic_price_matrix_save',args:{payload:null}});
+ const reception=await probeCapabilities(client({rpc:()=>({data:null,error:{code:'P0001',message:'ACCESS_DENIED'}}),select:()=>({data:[],error:null})}),'reception');
+ assert.equal(reception.priceMatrix,true,'reception previews need the same price list as the server');
+ const doctor=await probeCapabilities(client({rpc:()=>assert.fail('doctors never probe prices'),select:()=>({data:[],error:null})}),'doctor');
+ assert.equal(doctor.priceMatrix,false);
 });
