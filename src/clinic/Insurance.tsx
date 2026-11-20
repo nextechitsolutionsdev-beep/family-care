@@ -6,11 +6,13 @@ import {Dialog,Form,Heading,Table,useTask} from './ui';
 import {decimal,minor,money} from '../domain/money';
 /** Owner sets this payer's price per service (owner decision 19/11/2026). Empty = Family Care price applies. */
 function PayerPrices({payer,title,close}:{payer:Row;title:string;close:()=>void}){
- const {rows,name,refresh}=useClinic();
+ const {rows,name,refresh,capabilities}=useClinic();
  const current=(service:unknown)=>rows('payer_service_prices').find(row=>row.payer_id===payer.id&&row.service_id===service);
  const [specialty,setSpecialty]=useState('');const [search,setSearch]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState('');
  const [draft,setDraft]=useState<Record<string,string>>({});
- const list=rows('price_lists').find(row=>row.client_type_code==='family_care_cash');
+ // The payer's own client type list (20261120100000); before that, insurance and unions used Family Care's.
+ const baseType=!capabilities.priceMatrix?'family_care_cash':payer.payer_kind==='union'?'syndicate_cash':'insurance_credit';
+ const list=rows('price_lists').find(row=>row.client_type_code===baseType);
  const version=rows('price_list_versions').filter(row=>row.list_id===list?.id&&row.published_at&&text(row.effective_from)<=today()).sort((a,b)=>text(b.effective_from).localeCompare(text(a.effective_from)))[0];
  const clinicPrice=(service:unknown)=>rows('service_prices').find(row=>row.version_id===version?.id&&row.service_id===service);
  const services=rows('services').filter(row=>row.active&&!row.internal_followup&&(!specialty||row.specialty_id===specialty)&&text(row.name).includes(search.trim()))
@@ -29,12 +31,12 @@ function PayerPrices({payer,title,close}:{payer:Row;title:string;close:()=>void}
   }catch(failure){setError(readableError(failure));}finally{setBusy(false);}
  };
  return <Dialog title={`أسعار الخدمات — ${title}`} close={close}>
-  <p className="notice">السعر هنا بيتطبق على أي خدمة تتضاف لعميل الجهة دي من دلوقتي. السعر الفاضي معناه سعر فاميلي كير العادي. الزيارات المسجلة قبل كده أسعارها ما بتتغيرش.</p>
+  <p className="notice">السعر هنا بيتطبق على أي خدمة تتضاف لعميل الجهة دي من دلوقتي. السعر الفاضي معناه سعر {text(list?.name)} من صفحة «الأسعار». الزيارات المسجلة قبل كده أسعارها ما بتتغيرش.</p>
   <div className="filters"><label>التخصص<select value={specialty} onChange={event=>setSpecialty(event.target.value)}><option value="">كل التخصصات</option>{rows('specialties').map(row=><option key={row.id} value={row.id}>{text(row.name)}</option>)}</select></label><label>بحث الخدمة<input type="search" value={search} onChange={event=>setSearch(event.target.value)}/></label></div>
   <Table rows={services} empty="لا توجد خدمات مطابقة." columns={[
    {label:'الخدمة',render:row=>text(row.name)},{label:'التخصص',render:row=>name('specialties',row.specialty_id)},
-   {label:'سعر فاميلي كير',numeric:true,render:row=>clinicPrice(row.id)?money(clinicPrice(row.id)?.price_minor):'—'},
-   {label:'سعر الجهة بالجنيه',render:row=><input aria-label={`سعر ${text(row.name)} للجهة`} inputMode="decimal" dir="ltr" value={value(row.id)} placeholder="سعر فاميلي كير" onChange={event=>setDraft(current=>({...current,[row.id]:event.target.value}))}/>}
+   {label:`سعر ${text(list?.name)||'القائمة'}`,numeric:true,render:row=>clinicPrice(row.id)?money(clinicPrice(row.id)?.price_minor):'—'},
+   {label:'سعر الجهة بالجنيه',render:row=><input aria-label={`سعر ${text(row.name)} للجهة`} inputMode="decimal" dir="ltr" value={value(row.id)} placeholder="سعر القائمة" onChange={event=>setDraft(current=>({...current,[row.id]:event.target.value}))}/>}
   ]}/>
   {error&&<p className="error" role="alert">{error}</p>}
   <div className="form-actions"><button className="primary" disabled={busy||!Object.keys(draft).length} onClick={()=>void save()}>{busy?'جارٍ الحفظ…':`حفظ الأسعار (${Object.keys(draft).length})`}</button></div>

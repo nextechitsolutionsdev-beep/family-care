@@ -160,3 +160,10 @@ Routine decisions:
 - قرار المالك 19/11/2026 (قوالب جديدة): القوالب الأساسية الأربعة فاضلة واحد لكل نوع رسالة. القوالب الجديدة قوالب إضافية لحملات العروض بمتغيرات {client_name} {offer} {code} بس، والاستقبال بيختار منها وقت الإرسال.
 - قرار المالك 19/11/2026 (الموظفين): للمالك بس. المتبقي للموظف في الشهر = المرتب + المكافأة − السلف − الخصومات − اللي اتصرف. السلفة وصرف المرتب بيتسجلوا مصروف «أجور وعمالة» أوتوماتيك بطريقة الدفع المختارة (الكاش بيتخصم من الدرج)؛ الخصم والمكافأة مش فلوس بتخرج. مرتب الشهر = المرتب الحالي إلا لو المالك عدّل مرتب الشهر ده.
 - قرار المالك 19/11/2026 (معمل الأسنان): للمالك والاستقبال. السعر = تكلفة المعمل على العيادة. الدفع للمعمل بيسجل مصروف «معمل أسنان»، وبعد الدفع السعر بيتقفل، والمالك بس يلغي الدفع. المريض يتختار من العملاء أو يتكتب اسمه.
+
+## Prices per client type and a shorter owner menu — 20/11/2026
+
+Owner request (20/11/2026): the owner sets the price of every service for every client type, including «عميل نقدي عيادات مصر», «عميل آجل تأمين» and «عميل نقدي نقابة»; the owner screens are too crowded and «تسجيل الخروج» is not visible.
+- New owner page «الأسعار»: services × client types in one table. Saving applies from today (Cairo); a second save on the same day corrects that day's prices while no visit uses them, otherwise the change starts tomorrow. Old visits keep their snapshot prices. The old «قوائم الأسعار» tab in Settings is removed.
+- Insurance and union visits now use their own client type list. Migration 20261120100000 first copies the current Family Care prices into those two lists, so nothing changes until the owner edits them. A per-insurer/union price (19/11) still wins over the list.
+- Owner menu grouped into «الشغل اليومي / الإدارة / المتابعة»; the menu scrolls; «تسجيل الخروج» moved to the top bar. Settings now holds only accounts, message templates and clinic settings; services and specialties live in «التخصصات والخدمات».
