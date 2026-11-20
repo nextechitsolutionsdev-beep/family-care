@@ -1,8 +1,7 @@
 name: Deploy Family Care to Cloudflare Pages
 
 # Deployment runs only after the quality gate passes, and deploys the exact build that was tested.
-# CI never receives database or owner credentials: database and full browser suites need the live
-# clinic project and run locally with explicit opt-in (see docs/QA-REMEDIATION.md).
+# CI never receives database or owner credentials. Automated tests were removed by owner decision (21/11/2026).
 on:
   push:
     branches: [main]
@@ -17,7 +16,7 @@ env:
 
 jobs:
   quality:
-    name: Lint, typecheck, unit tests, build
+    name: Lint, typecheck, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +31,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - name: Unit tests (money, phone, dates, pagination, Edge Function validation)
-        run: npm run test:unit
       - name: Build and verify browser bundle
         env:
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
@@ -45,27 +42,9 @@ jobs:
           include-hidden-files: true
           retention-days: 7
 
-  browser-smoke:
-    name: Built app under production headers
-    needs: quality
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist
-      - run: npx playwright install --with-deps chromium
-      - run: npx playwright test -c playwright.smoke.config.mjs
-
   deploy:
     name: Deploy tested build
-    needs: [quality, browser-smoke]
+    needs: quality
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

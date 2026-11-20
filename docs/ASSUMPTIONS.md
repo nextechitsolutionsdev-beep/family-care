@@ -167,3 +167,9 @@ Owner request (20/11/2026): the owner sets the price of every service for every 
 - New owner page «الأسعار»: services × client types in one table. Saving applies from today (Cairo); a second save on the same day corrects that day's prices while no visit uses them, otherwise the change starts tomorrow. Old visits keep their snapshot prices. The old «قوائم الأسعار» tab in Settings is removed.
 - Insurance and union visits now use their own client type list. Migration 20261120100100 first copies the current Family Care prices into those two lists, so nothing changes until the owner edits them. A per-insurer/union price (19/11) still wins over the list.
 - Owner menu grouped into «الشغل اليومي / الإدارة / المتابعة»; the menu scrolls; «تسجيل الخروج» moved to the top bar. Settings now holds only accounts, message templates and clinic settings; services and specialties live in «التخصصات والخدمات».
+
+## Production reset and test removal — 21/11/2026
+
+Owner decisions (21/11/2026):
+- The clinic's activity in the production database was wiped: patients, visits, lines, appointments, follow-ups, payments and allocations, expenses, rent dues/payments, messages, consents, share revisions, the audit log and request logs. Receipt and patient-code counters restart at 1. Kept: accounts, doctors, specialties, services, price lists and prices, insurers and unions, rent contracts, templates and clinic settings. A copy of every deleted row is in the database schema `wipe_backup_20261121` (not reachable by the app or the API); drop it once it is no longer needed.
+- All automated tests were removed (unit, database, browser, load and capacity tests, their configs and fixture scripts). CI now runs lint, typecheck and build before deploying.

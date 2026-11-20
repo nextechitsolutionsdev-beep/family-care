@@ -6,7 +6,7 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['src/**/*.{js,jsx,ts,tsx}', 'scripts/**/*.mjs', 'tests/**/*.{mjs,js,ts}', 'supabase/functions/**/*.ts'],
+    files: ['src/**/*.{js,jsx,ts,tsx}', 'scripts/**/*.mjs', 'supabase/functions/**/*.ts'],
     languageOptions: { globals: { ...globals.browser, ...globals.node, Deno: 'readonly' } },
   },
 ];
