@@ -14,7 +14,9 @@
     "seed": "node scripts/seed.mjs",
     "deploy": "node scripts/deploy.mjs",
     "verify": "node scripts/verify.mjs",
-    "guide:pdf": "node scripts/build-user-guide.mjs"
+    "guide:pdf": "node scripts/build-user-guide.mjs",
+    "whatsapp:worker": "node scripts/whatsapp-worker.mjs",
+    "whatsapp": "node scripts/whatsapp-start.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",

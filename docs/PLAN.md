@@ -305,3 +305,20 @@
 - [x] «الأسعار» page; Settings price tab removed; intake preview and payer price editor use the client type's own list once the migration exists.
 - [x] Grouped owner menu, scrollable sidebar, logout in the top bar.
 - [ ] Rolled-back run of the migration on the project (needs the owner's go-ahead in the Supabase prompt), lint/build/E2E, review at 1366x768 and phone width.
+## WhatsApp through OpenWA — 20/11/2026
+- [x] Owner decision: real WhatsApp delivery for the existing messages (campaigns, birthday offers, follow-up reminders, experience surveys) through a self-hosted OpenWA gateway. No lab-results table.
+- [x] Migration 20261120100000 written (not applied): provider `openwa`, statuses `sending`/`sent`, worker claim/complete/heartbeat for service_role only, owner provider switch, gateway status table.
+- [x] Worker `scripts/whatsapp-worker.mjs` and session setup `scripts/whatsapp-setup.mjs`; unit tests for settings, Cairo hours/day, gateway answers.
+- [x] Settings «إرسال الرسائل» (owner), message log provider and reason columns; hidden until the migration exists.
+- [x] Owner approved 20/11/2026. Verified in a rolled-back transaction (mock unchanged, openwa leaves messages queued, trial-number filter, claim/sent/repeat, test record and stale skipped, consent rechecked, unconfirmed send not retried, retry delay, bad codes refused, reception/anon refused, reception reads the gateway state), then applied with its checksum (same record shape as scripts/migrate.mjs, through the Supabase MCP because .env has no CLI token). Security advisors: no new findings.
+- [ ] test:db and the screen review at 1366×768/phone: need .env (SUPABASE_ACCESS_TOKEN) and an owner sign-in.
+- [x] Local trial 21/11/2026: OpenWA on the owner's PC (portable Node 22, better-sqlite3 12.11.1 because 13.x has no Windows prebuild), clinic number linked by QR, one message to the owner's number delivered and confirmed by the owner; log shows sending>sent with the gateway reference. Provider switched back to mock afterwards; the trial patient record is deactivated.
+- [ ] Production: OpenWA and the worker on the server next to the site.
+
+## WhatsApp managed from the settings — 21/11/2026
+- [x] Owner decision: link the number, unlink, test message, provider and sending limits from «الإعدادات ← واتساب».
+- [x] Migration 20261121100000 verified in a rolled-back transaction (settings validation, one waiting request per kind, reception and anon refused, QR stored only while linking and cleared once linked, last three digits only, stuck requests closed) and applied with its checksum. Security advisors: no new findings.
+- [x] Worker reads the limits from the database and carries out the owner's requests; `npm run whatsapp` runs OpenWA and the worker and restarts either one; OpenWA reconnects the linked number on start.
+- [x] Screen check at 1366×768 and 375px signed in as the owner: status «متصل» with the number's last digits, a test message to the owner's number sent from the screen («اتبعتت»), limits saved (audit row), no console errors, no horizontal scroll.
+- [ ] Linking from the screen not exercised end to end: the number is already linked, and unlinking it to test would need a new QR scan by the owner.
+- [ ] Production: run `npm run whatsapp` as a service on the server.

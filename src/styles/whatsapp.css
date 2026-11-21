@@ -1,0 +1,5 @@
+.whatsapp-panel{max-width:900px}.whatsapp-panel h3{font-size:15px;margin:22px 0 6px}
+.whatsapp-panel form.toolbar{align-items:flex-end}.whatsapp-panel form.toolbar label{min-width:200px}
+.whatsapp-qr{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.whatsapp-qr img{background:#fff;padding:10px;border:1px solid var(--border);border-radius:4px;width:264px;height:264px;max-width:100%;object-fit:contain}
+.whatsapp-qr ol{margin:0;padding-inline-start:20px;line-height:1.9}
