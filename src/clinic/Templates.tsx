@@ -43,7 +43,7 @@ function TemplateEditor({kind,row,close,saved}:{kind:'builtin'|'campaign';row:Ro
    <div className="field wide"><label htmlFor="template-body">نص الرسالة *</label><textarea id="template-body" ref={area} required rows={5} maxLength={2000} value={body} onChange={event=>setBody(event.target.value)}/>
     <small>{body.length}/2000</small></div>
    {unknown.length>0&&<p className="error wide" role="alert">المتغير ده مش مسموح هنا: {unknown.map(key=>`{${key}}`).join(' ')}</p>}
-   {body.trim()&&<div className="wide"><span className="label">شكل الرسالة للعميل</span><p className="notice">{preview}</p></div>}
+   {body.trim()&&<div className="wide"><span className="label">شكل الرسالة للعميل</span><p className="notice" style={{whiteSpace:'pre-line'}}>{preview}</p></div>}
    <label className="check wide"><input type="checkbox" checked={active} onChange={event=>setActive(event.target.checked)}/>القالب نشط</label>
    {error&&<p className="error wide" role="alert">{error}</p>}
    <div className="form-actions wide"><button className="primary" disabled={busy}>{busy?'جارٍ الحفظ…':'حفظ القالب'}</button></div>

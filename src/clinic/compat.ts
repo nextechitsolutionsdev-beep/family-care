@@ -3,8 +3,8 @@ import {readAll,type Cursor} from './pager.ts';
 
 /** Which server features the connected database actually provides. The app is deployed before the database
  * changes (see docs/QA-REMEDIATION.md); a control that needs a server rule stays hidden until the rule exists. */
-export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;commissionTerms:boolean;doctorHours:boolean;payerPrices:boolean;paymentExcess:boolean;dayClosing:boolean;paymentCorrection:boolean;bookingCancellation:boolean;accountArchive:boolean;campaignTemplates:boolean;payroll:boolean;dentalLab:boolean;priceMatrix:boolean;whatsapp:boolean;whatsappControl:boolean};
-export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,commissionTerms:false,doctorHours:false,payerPrices:false,paymentExcess:false,dayClosing:false,paymentCorrection:false,bookingCancellation:false,accountArchive:false,campaignTemplates:false,payroll:false,dentalLab:false,priceMatrix:false,whatsapp:false,whatsappControl:false};
+export type Capabilities={offerPatientLimit:boolean;patientCode:boolean;commissionTerms:boolean;doctorHours:boolean;payerPrices:boolean;paymentExcess:boolean;dayClosing:boolean;paymentCorrection:boolean;bookingCancellation:boolean;accountArchive:boolean;campaignTemplates:boolean;payroll:boolean;dentalLab:boolean;priceMatrix:boolean;whatsapp:boolean;whatsappControl:boolean;reminders:boolean};
+export const noCapabilities:Capabilities={offerPatientLimit:false,patientCode:false,commissionTerms:false,doctorHours:false,payerPrices:false,paymentExcess:false,dayClosing:false,paymentCorrection:false,bookingCancellation:false,accountArchive:false,campaignTemplates:false,payroll:false,dentalLab:false,priceMatrix:false,whatsapp:false,whatsappControl:false,reminders:false};
 
 /** Tables that exist only after a migration, read on full loads once the probe confirms them (role → readable). */
 export const optionalTables:{table:string;feature:Exclude<keyof Capabilities,'commissionTerms'>}[]=[
@@ -36,13 +36,13 @@ async function hasRpc(client:SupabaseClient,name:string):Promise<boolean>{
 export async function probeCapabilities(client:SupabaseClient,role:string):Promise<Omit<Capabilities,'commissionTerms'>>{
  const desk=(table:string,column:string)=>role==='doctor'?Promise.resolve(false):hasColumn(client,table,column);
  const owner=(table:string,column:string)=>role==='owner'?hasColumn(client,table,column):Promise.resolve(false);
- const [offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing,paymentCorrection,bookingCancellation,accountArchive,campaignTemplates,payroll,dentalLab,whatsapp,whatsappControl]=await Promise.all([
+ const [offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing,paymentCorrection,bookingCancellation,accountArchive,campaignTemplates,payroll,dentalLab,whatsapp,whatsappControl,reminders]=await Promise.all([
   hasColumn(client,'offers','once_per_patient'),hasColumn(client,'patients','patient_code'),hasColumn(client,'doctors','working_hours'),
   desk('payments','excess_minor'),desk('payer_service_prices','price_minor'),desk('day_closings','day'),desk('payment_corrections','original_id'),
-  desk('booking_cancellations','visit_id'),owner('profiles','archived_at'),desk('campaign_templates','title'),owner('employees','salary_minor'),desk('lab_cases','work'),desk('whatsapp_gateway','status'),owner('whatsapp_settings','daily_cap')]);
+  desk('booking_cancellations','visit_id'),owner('profiles','archived_at'),desk('campaign_templates','title'),owner('employees','salary_minor'),desk('lab_cases','work'),desk('whatsapp_gateway','status'),owner('whatsapp_settings','daily_cap'),desk('message_outbox','appointment_id')]);
  // Reception needs it too: the intake preview must use the same price list as the server.
  const priceMatrix=role==='doctor'?false:await hasRpc(client,'clinic_price_matrix_save');
- return {offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing,paymentCorrection,bookingCancellation,accountArchive,campaignTemplates,payroll,dentalLab,priceMatrix,whatsapp,whatsappControl};
+ return {offerPatientLimit,patientCode,doctorHours,paymentExcess,payerPrices,dayClosing,paymentCorrection,bookingCancellation,accountArchive,campaignTemplates,payroll,dentalLab,priceMatrix,whatsapp,whatsappControl,reminders};
 }
 
 /** Working hours per doctor (20261119100200). Read separately because the doctors column list is fixed

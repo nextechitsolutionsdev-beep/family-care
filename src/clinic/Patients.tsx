@@ -117,7 +117,7 @@ export function patientFields(types:Row[],insurers:Row[],unions:Row[],specialtie
  {key:'union_id',label:'النقابة',type:'select',required:true,when:values=>values.client_type_code==='syndicate_cash',options:unions.filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'specialty_id',label:'التخصص (اختياري)',hint:'كود العميل واحد لكل التخصصات ويُنشأ تلقائيًا.',type:'select',options:specialties.filter(row=>row.active).map(row=>({value:row.id,label:text(row.name)}))},
  {key:'marketing_consent',label:'وافق على رسائل العروض وأعياد الميلاد',type:'checkbox'},
- {key:'transactional_consent',label:'وافق على رسائل مواعيد المتابعة',type:'checkbox'},
+ {key:'transactional_consent',label:'وافق على رسائل تذكير المواعيد والمتابعات',hint:'التذكير بيوصله على واتساب قبل الميعاد، فيه الساعة والدكتور والمتبقي عليه.',type:'checkbox'},
  {key:'notes',label:'ملاحظات الملف',type:'textarea'},
  ...(demo.some(row=>!row.archived_at)?[{key:'demo_batch_id',label:'مجموعة تجريبية (اختياري)',type:'select' as const,options:demo.filter(row=>!row.archived_at).map(row=>({value:row.id,label:text(row.name)}))}]:[])
 ];}
