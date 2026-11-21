@@ -237,14 +237,14 @@ export default function Patients() {
    {label:'النوع',render:row=>name('client_types',row.client_type_code)},
    {label:'الإجراء',render:row=>profile.role==='doctor'?<Link to={`/patients/${row.id}`}>الملف</Link>:<button onClick={()=>setBooking(row)}>زيارة جديدة</button>}
  ]}/></>}
- {editing!==undefined&&<Dialog title={editing?'تعديل بيانات العميل':'عميل جديد'} close={()=>setEditing(undefined)}><Form fields={fields} initial={editing??{client_type_code:'family_care_cash'}} submit={async values=>{
+ {editing!==undefined&&<Dialog title={editing?'تعديل بيانات العميل':'عميل جديد'} close={()=>setEditing(undefined)}><Form fields={fields} initial={editing??{client_type_code:'family_care_cash',transactional_consent:true}} submit={async values=>{
    requireSharedPhoneConfirmation(sharedWith(values),values);
    if(values.client_type_code!=='insurance_credit')values.insurer_id=null;
    if(values.client_type_code!=='syndicate_cash')values.union_id=null;
    if(!values.specialty_id)delete values.specialty_id;
    const result=await patientIntake({idempotency_key:editKey,patient:{...values,...(editing?{id:editing.id}:{})}});await refresh('operational');setEditing(undefined);setEditKey(null);navigate(`/patients/${text(result.patient_id)}`);
  }}>{values=><SharedPhoneNotice matches={sharedWith(values)} open={openExisting}/>}</Form></Dialog>}
- {quickKey&&<Dialog title="تسجيل عميل وزيارة وخدمة" close={()=>setQuickKey(null)}><div className="quick-intake"><Form fields={quickFields} initial={{client_type_code:'family_care_cash',visit_date:today(),amount_minor:0,method:'cash'}} label="تسجيل العميل والخدمة" submit={async values=>{
+ {quickKey&&<Dialog title="تسجيل عميل وزيارة وخدمة" close={()=>setQuickKey(null)}><div className="quick-intake"><Form fields={quickFields} initial={{client_type_code:'family_care_cash',transactional_consent:true,visit_date:today(),amount_minor:0,method:'cash'}} label="تسجيل العميل والخدمة" submit={async values=>{
    requireSharedPhoneConfirmation(sharedWith(values),values);
    requireOutsideConfirmation(rows('doctors'),values);
    const doctor=rows('doctors').find(row=>row.id===values.doctor_id);
