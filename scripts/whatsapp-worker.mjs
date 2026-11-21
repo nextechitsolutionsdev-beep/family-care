@@ -13,7 +13,12 @@ import {cairoDayStart,chatId,gapSeconds,networkOutcome,phoneSuffix,qrImage,sendO
 const config=workerConfig(env);
 const once=process.argv.includes('--once');
 const TICK_SECONDS=5;
-const db=createClient(config.supabaseUrl,config.serverKey,{auth:{persistSession:false,autoRefreshToken:false}});
+// A database call that never answers (dropped connection, PC woke from sleep) must not freeze the worker: every request
+// gives up after 30 seconds, and a pass stuck for 5 minutes ends the process so «npm run whatsapp» starts a fresh one.
+const timedFetch=(url,options={})=>fetch(url,{...options,signal:options.signal?AbortSignal.any([options.signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000)});
+const db=createClient(config.supabaseUrl,config.serverKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:timedFetch}});
+let lastPassAt=Date.now();
+if(!process.argv.includes('--once'))setInterval(()=>{if(Date.now()-lastPassAt>300000){console.error('[whatsapp] worker stuck for 5 minutes; restarting');process.exit(1);}},30000).unref();
 let stopping=false;
 process.on('SIGINT',()=>{if(stopping)process.exit(1);stopping=true;console.log('[whatsapp] stopping…');});
 process.on('SIGTERM',()=>{stopping=true;});
@@ -169,6 +174,7 @@ while(!stopping){
   if(message!==lastError){console.error(`[whatsapp] ${message}`);lastError=message;}
   if(message.startsWith('OpenWA refused')&&once)process.exitCode=1;
  }
+ lastPassAt=Date.now();
  if(once)break;
  await pause(TICK_SECONDS);
 }
