@@ -309,3 +309,11 @@
 - [ ] test:db and the screen review at 1366×768/phone: need .env (SUPABASE_ACCESS_TOKEN) and an owner sign-in.
 - [x] Local trial 21/11/2026: OpenWA on the owner's PC (portable Node 22, better-sqlite3 12.11.1 because 13.x has no Windows prebuild), clinic number linked by QR, one message to the owner's number delivered and confirmed by the owner; log shows sending>sent with the gateway reference. Provider switched back to mock afterwards; the trial patient record is deactivated.
 - [ ] Production: OpenWA and the worker on the server next to the site.
+
+## WhatsApp managed from the settings — 21/11/2026
+- [x] Owner decision: link the number, unlink, test message, provider and sending limits from «الإعدادات ← واتساب».
+- [x] Migration 20261121100000 verified in a rolled-back transaction (settings validation, one waiting request per kind, reception and anon refused, QR stored only while linking and cleared once linked, last three digits only, stuck requests closed) and applied with its checksum. Security advisors: no new findings.
+- [x] Worker reads the limits from the database and carries out the owner's requests; `npm run whatsapp` runs OpenWA and the worker and restarts either one; OpenWA reconnects the linked number on start.
+- [x] Screen check at 1366×768 and 375px signed in as the owner: status «متصل» with the number's last digits, a test message to the owner's number sent from the screen («اتبعتت»), limits saved (audit row), no console errors, no horizontal scroll.
+- [ ] Linking from the screen not exercised end to end: the number is already linked, and unlinking it to test would need a new QR scan by the owner.
+- [ ] Production: run `npm run whatsapp` as a service on the server.
