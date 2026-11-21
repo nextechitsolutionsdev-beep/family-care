@@ -1,6 +1,6 @@
 # Family Care web app for a Docker host (Dokploy). Only public build values are passed in:
 # VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (publishable key). Never pass server keys here.
-FROM node:20.19-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
