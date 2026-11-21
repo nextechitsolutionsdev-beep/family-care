@@ -5,9 +5,17 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import dotenv from 'dotenv';
 
-export const ref = 'xkbyxefvzlcnyefkxwsx';
-export const organization = 'pmltjypbnnmrtggkwqwx';
-export const env = { ...process.env, ...dotenv.parse(existsSync('.env') ? readFileSync('.env') : '') };
+// FC_TARGET picks the Supabase project; each target keeps its secrets in its own gitignored env file.
+const targets = {
+  legacy: { ref: 'xkbyxefvzlcnyefkxwsx', organization: 'pmltjypbnnmrtggkwqwx', name: 'family care', envFile: '.env' },
+  staging: { ref: 'mzwwgiknquhlgbfrmxon', organization: 'kzaqokummzjzcunkemcx', name: 'family-care-stagging', envFile: '.env.staging' },
+  production: { ref: 'omuayitryemedynhynjj', organization: 'kzaqokummzjzcunkemcx', name: 'family-care-production', envFile: '.env.production' },
+};
+export const target = process.env.FC_TARGET || 'legacy';
+if (!targets[target]) throw new Error(`Unknown FC_TARGET ${target}`);
+export const { ref, organization, name: projectName, envFile } = targets[target];
+const readEnv = file => existsSync(file) ? dotenv.parse(readFileSync(file)) : {};
+export const env = { ...process.env, ...readEnv(envFile) };
 const require = createRequire(import.meta.url);
 
 export function cli(args, json = true) {
@@ -23,7 +31,7 @@ export function cli(args, json = true) {
 }
 
 export function setEnv(changes) {
-  let content = existsSync('.env') ? readFileSync('.env', 'utf8') : '';
+  let content = existsSync(envFile) ? readFileSync(envFile, 'utf8') : '';
   for (const [key, value] of Object.entries(changes)) {
     if (!/^[A-Z][A-Z0-9_]*$/.test(key)) throw new Error('Invalid env key');
     const line = `${key}=${JSON.stringify(String(value))}`;
@@ -31,7 +39,7 @@ export function setEnv(changes) {
     content = pattern.test(content) ? content.replace(pattern, () => line) : `${content.trimEnd()}\n${line}\n`;
     env[key] = String(value);
   }
-  writeFileSync('.env', content, { mode: 0o600 });
+  writeFileSync(envFile, content, { mode: 0o600 });
 }
 
 export function query(sql) {

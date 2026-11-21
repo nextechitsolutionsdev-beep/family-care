@@ -322,3 +322,12 @@
 - [x] Screen check at 1366×768 and 375px signed in as the owner: status «متصل» with the number's last digits, a test message to the owner's number sent from the screen («اتبعتت»), limits saved (audit row), no console errors, no horizontal scroll.
 - [ ] Linking from the screen not exercised end to end: the number is already linked, and unlinking it to test would need a new QR scan by the owner.
 - [ ] Production: run `npm run whatsapp` as a service on the server.
+
+## Move to the new Supabase account — 21/11/2026
+
+- [x] Scripts select the project with `FC_TARGET` (legacy / staging / production), each with its own env file.
+- [x] Staging and production: 53 migrations, catalog and settings copied, functions deployed, owner created, `verify` passes.
+- [ ] Point the live site at production: build variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) on the owner's server or in the GitHub Actions variables.
+- [ ] Add the site's address to the `EXPERIENCE_ALLOWED_ORIGINS` function secret once the server domain is known.
+- [ ] WhatsApp worker: run with `FC_TARGET=production` and the OPENWA_* values in `.env.production`, then relink the number.
+- [ ] Recreate doctor and reception accounts on production.

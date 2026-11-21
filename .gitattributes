@@ -13,3 +13,5 @@ supabase/migrations/20261021100300_shared_phone_confirmation.sql text eol=lf
 supabase/migrations/20261021100400_session_revocation.sql text eol=lf
 supabase/migrations/20261021100500_report_summary.sql text eol=lf
 supabase/migrations/20261021100600_permanent_patient_code.sql text eol=lf
+# Every migration stays LF: checksums and in-place function patches compare exact bytes.
+supabase/migrations/*.sql text eol=lf

@@ -1,7 +1,7 @@
-import {cli,query,ref,organization} from './supabase.mjs';
+import {cli,query,ref,organization,projectName} from './supabase.mjs';
 
 const project=cli(['projects','list']).projects.find(item=>item.ref===ref);
-if(project?.organization_slug!==organization||project.name!=='family care')throw new Error('Unexpected verification target');
+if(project?.organization_slug!==organization||project.name!==projectName)throw new Error('Unexpected verification target');
 const result=query(`select (select count(*) from public.services where seed_code not like 'CUSTOM-%') seeded_services,
   (select count(*) from public.services) total_services,
   (select count(*) from public.price_lists) price_lists,

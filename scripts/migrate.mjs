@@ -1,10 +1,10 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { cli, query, ref, organization } from './supabase.mjs';
+import { cli, query, ref, organization, projectName } from './supabase.mjs';
 import { appliedHistory, historySql, verifyApplied } from './migration-integrity.mjs';
 
 const project = cli(['projects', 'list']).projects.find(project => project.ref === ref);
-if (project?.organization_slug !== organization || project.name !== 'family care') throw new Error('Unexpected migration target');
+if (project?.organization_slug !== organization || project.name!==projectName) throw new Error('Unexpected migration target');
 const literal = value => "'" + String(value).replaceAll("'", "''") + "'";
 query(`begin;
 create schema if not exists supabase_migrations;

@@ -1,6 +1,6 @@
 # Database design — ready for authentication
 
-Target: user-created Supabase PostgreSQL project `family care` (`xkbyxefvzlcnyefkxwsx`) in organization `peter` (`pmltjypbnnmrtggkwqwx`). Preserve the original project and its data. Keep useful existing entity names so page refactoring is incremental; old schema/seed is a historical reference, not the setup command for the new application.
+Target since 21/11/2026: `family-care-production` (`omuayitryemedynhynjj`) and `family-care-stagging` (`mzwwgiknquhlgbfrmxon`) in the new account's organization `kzaqokummzjzcunkemcx`; the earlier project `family care` (`xkbyxefvzlcnyefkxwsx`, organization `peter`) is kept unchanged as `FC_TARGET=legacy`. Preserve the original project and its data. Keep useful existing entity names so page refactoring is incremental; old schema/seed is a historical reference, not the setup command for the new application.
 
 ## Shared conventions
 

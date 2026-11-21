@@ -28,6 +28,23 @@ npm run dev
 
 افتح العنوان الذي يطبعه Vite (عادة `http://localhost:5173`، وقد يختار منفذًا آخر لو مشغولاً). `connect` يتحقق من المؤسسة والمشروع، ويملأ عنوان API والمفاتيح في `.env` دون طباعتها. `migrate` يطبق ملفات SQL تصاعدياً فقط ويتحقق من بصمتها عند الإعادة. `seed` قابل للإعادة؛ ينشئ قائمة الخدمات والأسعار ومالك النظام إن لم يوجد. بريد المالك وكلمة مروره يُحفظان في `.env` المحلي؛ لا تُطبع كلمة المرور. `deploy` ينشر وظيفتي إدارة المستخدمين واستقبال تقييم الزيارة. رابط التقييم صالح 30 يوماً ولمرة واحدة، ولا يعرض اسم العميل أو بياناته. يُنشأ بعد إنهاء الزيارة للعملاء الموافقين على رسائل المتابعة. الردود تظهر للمالك فقط، والرسائل تظل تجريبية ولا ترسل SMS أو واتساب.
 
+### بيئات الحساب الجديد (staging وproduction)
+
+السكربتات بتختار المشروع بالمتغير `FC_TARGET`: من غيره بتشتغل على المشروع القديم (`.env`)، و`staging` على `family-care-stagging` (`.env.staging`)، و`production` على `family-care-production` (`.env.production`). سجّل دخول الـ CLI مرة بـ `npx supabase login --no-browser`، وحط في ملف البيئة سطر `SUPABASE_PROJECT_REF` و`SUPABASE_DB_PASSWORD`. بعد كده:
+
+```powershell
+$env:FC_TARGET = 'staging'
+npm run connect
+npm run migrate
+node scripts/copy-catalog.mjs
+npm run deploy
+node scripts/create-owner.mjs
+npm run verify
+npx vite --mode staging
+```
+
+`copy-catalog` بينقل الكتالوج والإعدادات بس من المشروع القديم ومش بيكرر الموجود. `create-owner` بيعمل حساب المالك لو مفيش، وكلمة المرور بتتحفظ في ملف البيئة بس. لـ production بدّل `staging` بـ `production` (و`--mode production` في Vite).
+
 ## التحقق
 
 ```powershell
