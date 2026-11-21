@@ -1,34 +1,27 @@
 // Pure rules for the OpenWA worker (scripts/whatsapp-worker.mjs), kept apart so they can be unit tested.
-import {normalizeEgyptianPhone} from '../src/domain/phone.ts';
 
-const EGYPT_MOBILE=/^\+201[0125][0-9]{8}$/;
-
-const integer=(value,fallback,min,max,name)=>{
- if(value===undefined||value==='')return fallback;
- const number=Number(value);
- if(!Number.isInteger(number)||number<min||number>max)throw new Error(`${name} must be a whole number from ${min} to ${max}`);
- return number;
-};
-
-/** Worker settings from the environment. Secrets are read but never returned in messages. */
+/** Connection settings from the environment (secrets stay in .env). Sending limits come from the database. */
 export function workerConfig(env){
- const missing=['SUPABASE_URL','SUPABASE_SERVER_KEY','OPENWA_API_KEY','OPENWA_SESSION_ID'].filter(key=>!env[key]);
+ const missing=['SUPABASE_URL','SUPABASE_SERVER_KEY','OPENWA_API_KEY'].filter(key=>!env[key]);
  if(missing.length)throw new Error(`Missing in .env: ${missing.join(', ')}`);
- const onlyNumbers=String(env.WHATSAPP_ONLY_NUMBERS??'').split(',').map(value=>value.trim()).filter(Boolean).map(normalizeEgyptianPhone);
- const invalid=onlyNumbers.filter(number=>!EGYPT_MOBILE.test(number));
- if(invalid.length)throw new Error('WHATSAPP_ONLY_NUMBERS has a number that is not an Egyptian mobile');
- const hours=String(env.WHATSAPP_SEND_HOURS||'9-21').match(/^(\d{1,2})-(\d{1,2})$/);
- if(!hours||Number(hours[1])>=Number(hours[2])||Number(hours[2])>24)throw new Error('WHATSAPP_SEND_HOURS must look like 9-21');
- const minGap=integer(env.WHATSAPP_MIN_GAP_SECONDS,20,5,3600,'WHATSAPP_MIN_GAP_SECONDS');
- const maxGap=integer(env.WHATSAPP_MAX_GAP_SECONDS,60,minGap,7200,'WHATSAPP_MAX_GAP_SECONDS');
- return {
-  supabaseUrl:env.SUPABASE_URL,serverKey:env.SUPABASE_SERVER_KEY,
-  gatewayUrl:String(env.OPENWA_URL||'http://localhost:2785').replace(/\/+$/,''),apiKey:env.OPENWA_API_KEY,sessionId:env.OPENWA_SESSION_ID,
-  onlyNumbers:onlyNumbers.length?onlyNumbers:null,
-  dailyCap:integer(env.WHATSAPP_DAILY_CAP,100,1,1000,'WHATSAPP_DAILY_CAP'),
-  maxAgeHours:integer(env.WHATSAPP_MAX_AGE_HOURS,48,1,720,'WHATSAPP_MAX_AGE_HOURS'),
-  startHour:Number(hours[1]),endHour:Number(hours[2]),minGap,maxGap,
- };
+ return {supabaseUrl:env.SUPABASE_URL,serverKey:env.SUPABASE_SERVER_KEY,
+  gatewayUrl:String(env.OPENWA_URL||'http://localhost:2785').replace(/\/+$/,''),apiKey:env.OPENWA_API_KEY,
+  sessionId:env.OPENWA_SESSION_ID||null,sessionName:'family-care'};
+}
+
+/** Sending limits as stored by the owner (public.whatsapp_settings via whatsapp_worker_settings). */
+export function sendingLimits(row){
+ const trial=Array.isArray(row?.trial_numbers)?row.trial_numbers.map(String):[];
+ return {provider:String(row?.provider??'mock'),clinicName:String(row?.clinic_name??''),
+  dailyCap:Number(row?.daily_cap??100),startHour:Number(row?.start_hour??9),endHour:Number(row?.end_hour??21),
+  minGap:Number(row?.min_gap_seconds??20),maxGap:Number(row?.max_gap_seconds??60),maxAgeHours:Number(row?.max_age_hours??48),
+  onlyNumbers:trial.length?trial:null};
+}
+
+/** Last three digits of the linked number, the only part of it the system keeps. */
+export function phoneSuffix(phone){
+ const digits=String(phone??'').replace(/\D/g,'');
+ return digits.length>=3?digits.slice(-3):null;
 }
 
 const cairoParts=instant=>Object.fromEntries(new Intl.DateTimeFormat('en',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23',numberingSystem:'latn'})
@@ -82,3 +75,12 @@ export function networkOutcome(error){
 }
 
 export const chatId=number=>`${number}@c.us`;
+
+/** Text of the owner's test message. */
+export const testMessage=clinicName=>`رسالة تجربة من نظام ${clinicName||'العيادة'}: واتساب شغال ✅`;
+
+/** QR as the gateway returns it, only when it is a PNG data URL of sane size. */
+export function qrImage(value){
+ const text=String(value??'');
+ return /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(text)&&text.length<=200000?text:null;
+}

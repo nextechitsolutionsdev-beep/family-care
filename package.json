@@ -22,8 +22,8 @@
     "measure:loading": "playwright test -c playwright.measure.config.mjs",
     "fixtures:cleanup": "node scripts/fixture-cleanup.mjs",
     "guide:pdf": "node scripts/build-user-guide.mjs",
-    "whatsapp:setup": "node scripts/whatsapp-setup.mjs",
-    "whatsapp:worker": "node scripts/whatsapp-worker.mjs"
+    "whatsapp:worker": "node scripts/whatsapp-worker.mjs",
+    "whatsapp": "node scripts/whatsapp-start.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",

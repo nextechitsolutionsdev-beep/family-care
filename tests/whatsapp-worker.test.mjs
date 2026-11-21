@@ -1,20 +1,35 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cairoDayStart,chatId,gapSeconds,networkOutcome,safeReference,sendOutcome,withinSendHours,workerConfig} from '../scripts/whatsapp-core.mjs';
+import {cairoDayStart,chatId,gapSeconds,networkOutcome,phoneSuffix,qrImage,safeReference,sendOutcome,sendingLimits,testMessage,withinSendHours,workerConfig} from '../scripts/whatsapp-core.mjs';
 
-const base={SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVER_KEY:'k',OPENWA_API_KEY:'a',OPENWA_SESSION_ID:'s'};
+const base={SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVER_KEY:'k',OPENWA_API_KEY:'a'};
 
-test('worker settings: defaults, trial numbers normalised, bad values refused',()=>{
+test('connection settings come from .env; secrets are required',()=>{
  const config=workerConfig(base);
  assert.equal(config.gatewayUrl,'http://localhost:2785');
- assert.equal(config.onlyNumbers,null);
- assert.deepEqual([config.dailyCap,config.maxAgeHours,config.startHour,config.endHour,config.minGap,config.maxGap],[100,48,9,21,20,60]);
- assert.deepEqual(workerConfig({...base,WHATSAPP_ONLY_NUMBERS:'01012345678, +201112345678'}).onlyNumbers,['+201012345678','+201112345678']);
- assert.throws(()=>workerConfig({...base,WHATSAPP_ONLY_NUMBERS:'0101234'}),/Egyptian mobile/);
- assert.throws(()=>workerConfig({...base,WHATSAPP_SEND_HOURS:'21-9'}),/9-21/);
- assert.throws(()=>workerConfig({...base,WHATSAPP_DAILY_CAP:'0'}),/WHATSAPP_DAILY_CAP/);
- assert.throws(()=>workerConfig({...base,OPENWA_API_KEY:''}),/OPENWA_API_KEY/);
+ assert.equal(config.sessionId,null);
+ assert.equal(config.sessionName,'family-care');
  assert.equal(workerConfig({...base,OPENWA_URL:'http://10.0.0.5:2785/'}).gatewayUrl,'http://10.0.0.5:2785');
+ assert.throws(()=>workerConfig({...base,OPENWA_API_KEY:''}),/OPENWA_API_KEY/);
+ assert.throws(()=>workerConfig({...base,SUPABASE_SERVER_KEY:''}),/SUPABASE_SERVER_KEY/);
+});
+
+test('sending limits come from the owner settings; empty trial list means everyone who consented',()=>{
+ assert.deepEqual(sendingLimits({provider:'openwa',clinic_name:'فاميلي كير',daily_cap:50,start_hour:10,end_hour:20,min_gap_seconds:30,max_gap_seconds:90,max_age_hours:24,trial_numbers:['+201012345678']}),
+  {provider:'openwa',clinicName:'فاميلي كير',dailyCap:50,startHour:10,endHour:20,minGap:30,maxGap:90,maxAgeHours:24,onlyNumbers:['+201012345678']});
+ const defaults=sendingLimits({trial_numbers:[]});
+ assert.equal(defaults.provider,'mock');assert.equal(defaults.onlyNumbers,null);assert.equal(defaults.dailyCap,100);
+});
+
+test('only the last three digits of the linked number are kept; QR must be a PNG data URL',()=>{
+ assert.equal(phoneSuffix('201226166200'),'200');
+ assert.equal(phoneSuffix('+20 122 616 6200'),'200');
+ assert.equal(phoneSuffix(null),null);
+ assert.equal(qrImage('data:image/png;base64,iVBORw0KGgo='),'data:image/png;base64,iVBORw0KGgo=');
+ assert.equal(qrImage('data:text/html;base64,PHNjcmlwdD4='),null);
+ assert.equal(qrImage('data:image/png;base64,'+'A'.repeat(200001)),null);
+ assert.match(testMessage('فاميلي كير'),/فاميلي كير/);
+ assert.match(testMessage(''),/العيادة/);
 });
 
 test('sending hours and the day boundary follow Cairo time',()=>{
