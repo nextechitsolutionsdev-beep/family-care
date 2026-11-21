@@ -307,5 +307,5 @@
 - [x] Settings «إرسال الرسائل» (owner), message log provider and reason columns; hidden until the migration exists.
 - [x] Owner approved 20/11/2026. Verified in a rolled-back transaction (mock unchanged, openwa leaves messages queued, trial-number filter, claim/sent/repeat, test record and stale skipped, consent rechecked, unconfirmed send not retried, retry delay, bad codes refused, reception/anon refused, reception reads the gateway state), then applied with its checksum (same record shape as scripts/migrate.mjs, through the Supabase MCP because .env has no CLI token). Security advisors: no new findings.
 - [ ] test:db and the screen review at 1366×768/phone: need .env (SUPABASE_ACCESS_TOKEN) and an owner sign-in.
-- [ ] Local trial: OpenWA running, `.env` server keys and OPENWA_* filled, number linked, one message to the owner's own number with WHATSAPP_ONLY_NUMBERS.
+- [x] Local trial 21/11/2026: OpenWA on the owner's PC (portable Node 22, better-sqlite3 12.11.1 because 13.x has no Windows prebuild), clinic number linked by QR, one message to the owner's number delivered and confirmed by the owner; log shows sending>sent with the gateway reference. Provider switched back to mock afterwards; the trial patient record is deactivated.
 - [ ] Production: OpenWA and the worker on the server next to the site.
