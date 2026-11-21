@@ -15,3 +15,6 @@ supabase/migrations/20261021100500_report_summary.sql text eol=lf
 supabase/migrations/20261021100600_permanent_patient_code.sql text eol=lf
 # Every migration stays LF: checksums and in-place function patches compare exact bytes.
 supabase/migrations/*.sql text eol=lf
+deploy/*.sh text eol=lf
+deploy/nginx.conf text eol=lf
+Dockerfile text eol=lf

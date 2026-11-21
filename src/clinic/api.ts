@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import {normalizeEgyptianPhone} from '../domain/phone';
 import {readTable} from './tables';
+import {supabaseUrl,supabaseKey} from './connection';
 export type Row = { id: string; [key: string]: unknown };
 export type Profile = { id: string; display_name: string; role: 'owner' | 'reception' | 'doctor'; doctor_id: string | null; active: boolean };
 // A request that never answers must surface as an error with a retry, not an endless loading screen.
@@ -9,7 +10,7 @@ const timedFetch:typeof fetch=(input,init={})=>{
  const timeout=AbortSignal.timeout(REQUEST_TIMEOUT_MS);
  return fetch(input,{...init,signal:init.signal?AbortSignal.any([init.signal,timeout]):timeout});
 };
-export const db = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY,{global:{fetch:timedFetch}});
+export const db = createClient(supabaseUrl, supabaseKey,{global:{fetch:timedFetch}});
 const messages: Record<string,string> = {
  SPECIALTY_INACTIVE:'التخصص محذوف من الاستخدام. استعد التخصص أولًا ثم الخدمة.',
  CATALOG_INACTIVE:'الخدمة محذوفة من الاستخدام. اختار خدمة متاحة أو حدّث الصفحة.',

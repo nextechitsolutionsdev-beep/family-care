@@ -1,9 +1,10 @@
 import {useEffect,useState} from 'react';
+import {supabaseUrl,supabaseKey} from './connection';
 
 type SurveyStatus='checking'|'ready'|'success'|'submitted'|'expired'|'invalid'|'error';
-const endpoint=`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/experience-feedback`;
+const endpoint=`${supabaseUrl}/functions/v1/experience-feedback`;
 async function requestSurvey(body:Record<string,unknown>){
- const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','apikey':import.meta.env.VITE_SUPABASE_ANON_KEY},body:JSON.stringify(body),cache:'no-store'});
+ const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','apikey':supabaseKey},body:JSON.stringify(body),cache:'no-store'});
  const result=await response.json() as {status?:string};
  if(!response.ok)throw new Error('SURVEY_UNAVAILABLE');
  return result;

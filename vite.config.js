@@ -9,7 +9,8 @@ function securityHeaders(mode) {
     apply: "build",
     generateBundle() {
       const api = loadEnv(mode, process.cwd(), "VITE_").VITE_SUPABASE_URL;
-      if (!api) throw new Error("VITE_SUPABASE_URL is required to build the Content-Security-Policy");
+      // Without a build-time URL (Docker image) the server writes its own headers at start; only Cloudflare reads _headers.
+      if (!api) return;
       const origin = new URL(api).origin;
       const policy = [
         "default-src 'self'",
