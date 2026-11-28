@@ -58,20 +58,31 @@ console.log('[whatsapp] starting OpenWA…');
 if(!await gatewayReady())console.log('[whatsapp] OpenWA did not answer yet; the worker will keep trying.');
 keep('worker',()=>spawn(process.execPath,['scripts/whatsapp-worker.mjs'],{stdio:'inherit',windowsHide:true}));
 
-// A linked session can get stuck reconnecting (its browser reported as crashed while still running). If the session
-// stays in a reconnecting state for 10 minutes the gateway is restarted; a saved link comes back without a new QR.
+// Keeping a linked number connected without the owner:
+//  * «failed»: starting the session failed (e.g. the PC started before the internet, 23/11/2026) and OpenWA never tries
+//    again by itself, not even after a restart. The session is started again every 5 minutes; a saved link comes back
+//    without a new QR.
+//  * stuck reconnecting for 10 minutes (its browser reported as crashed while still running): the gateway is restarted.
 // Waiting for a QR, never linked, or unlinked by the owner is left alone.
-const stuckStates=new Set(['initializing','connecting','authenticating','failed']);
-let stuckSince=0;let lastRestart=0;
+const stuckStates=new Set(['initializing','authenticating']);
+let stuckSince=0;let lastRestart=0;let lastStart=0;
 setInterval(async()=>{
  if(stopping||!gatewayChild||!env.OPENWA_API_KEY)return;
- let status;
+ const headers={'X-API-Key':env.OPENWA_API_KEY};
+ let found;
  try{
-  const answer=await fetch(`${gatewayUrl}/api/sessions`,{headers:{'X-API-Key':env.OPENWA_API_KEY},signal:AbortSignal.timeout(10000)});
+  const answer=await fetch(`${gatewayUrl}/api/sessions`,{headers,signal:AbortSignal.timeout(10000)});
   const data=await answer.json();
   const list=Array.isArray(data)?data:Array.isArray(data?.data)?data.data:Array.isArray(data?.sessions)?data.sessions:[];
-  status=list.find(row=>env.OPENWA_SESSION_ID?row?.id===env.OPENWA_SESSION_ID:row?.name==='family-care')?.status??null;
- }catch{status=null;}
+  found=list.find(row=>env.OPENWA_SESSION_ID?row?.id===env.OPENWA_SESSION_ID:row?.name==='family-care');
+ }catch{found=undefined;}
+ const status=found?.status??null;
+ if(status==='failed'&&Date.now()-lastStart>=300000){
+  lastStart=Date.now();
+  console.log('[whatsapp] WhatsApp session failed; starting it again');
+  try{await fetch(`${gatewayUrl}/api/sessions/${encodeURIComponent(found.id)}/start`,{method:'POST',headers,signal:AbortSignal.timeout(90000)});}catch{/* tried again in 5 minutes */}
+  return;
+ }
  if(!stuckStates.has(status)){stuckSince=0;return;}
  if(!stuckSince)stuckSince=Date.now();
  if(Date.now()-stuckSince<600000||Date.now()-lastRestart<1800000)return;
